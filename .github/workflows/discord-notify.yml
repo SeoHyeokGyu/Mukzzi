@@ -1,0 +1,35 @@
+name: Discord Push Notification
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord Notification
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          COMMIT_MSG=$(echo '${{ github.event.head_commit.message }}' | head -1)
+          AUTHOR="${{ github.event.head_commit.author.name }}"
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          COMMIT_URL="${{ github.event.head_commit.url }}"
+
+          curl -H "Content-Type: application/json" \
+            -d "{
+              \"embeds\": [{
+                \"title\": \"[${REPO}] Push to ${BRANCH}\",
+                \"description\": \"**${COMMIT_MSG}**\",
+                \"url\": \"${COMMIT_URL}\",
+                \"color\": 5814783,
+                \"fields\": [
+                  {\"name\": \"Author\", \"value\": \"${AUTHOR}\", \"inline\": true},
+                  {\"name\": \"Branch\", \"value\": \"${BRANCH}\", \"inline\": true}
+                ]
+              }]
+            }" \
+            "$DISCORD_WEBHOOK"
