@@ -68,7 +68,7 @@ services:
   dozzle:
     image: amir20/dozzle:latest
     ports:
-      - "127.0.0.1:8888:8080"
+      - "8888:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
@@ -76,7 +76,7 @@ services:
   uptime-kuma:
     image: louislam/uptime-kuma:latest
     ports:
-      - "127.0.0.1:3001:3001"
+      - "3001:3001"
     volumes:
       - uptime_kuma_data:/app/data
     restart: unless-stopped
@@ -84,10 +84,10 @@ services:
   bytebase:
     image: bytebase/bytebase:latest
     ports:
-      - "127.0.0.1:8889:8080"
+      - "8889:8080"
     volumes:
       - bytebase_data:/var/opt/bytebase
-    command: --data /var/opt/bytebase --external-url http://localhost:8889 --port 8080
+    command: --data /var/opt/bytebase --external-url http://${SERVER_IP}:8889 --port 8080
     depends_on:
       postgres:
         condition: service_healthy
