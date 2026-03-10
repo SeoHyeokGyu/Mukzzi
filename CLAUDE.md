@@ -1,9 +1,9 @@
-# Claude Code 설정
+# Claude Code Settings
 
-## 커밋 규칙
+## Commit Rules
 
-- 커밋 메시지에 `Co-Authored-By` 라인을 포함하지 않는다.
+- Do not include `Co-Authored-By` line in commit messages.
 
-## 문서 작성 규칙
+## Writing Rules
 
-- 파일(코드, 문서 등)에 이모지를 사용하지 않는다.
+- Do not use emojis in any files (code, docs, etc.).
