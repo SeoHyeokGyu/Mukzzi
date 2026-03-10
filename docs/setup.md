@@ -89,7 +89,28 @@ sudo netfilter-persistent save
 
 ---
 
-## 5. 프로젝트 배포
+## 5. GitHub Secrets 설정
+
+CI/CD 자동 배포를 위해 GitHub 저장소 Settings → Secrets and variables → Actions 에서 아래 값을 등록합니다.
+
+| Secret | 값 |
+|--------|-----|
+| `SSH_HOST` | 서버 공인 IP |
+| `SSH_USERNAME` | `ubuntu` |
+| `SSH_PRIVATE_KEY` | 인스턴스 생성 시 등록한 SSH 개인키 전체 내용 |
+
+### GHCR 패키지 가시성 설정
+
+GitHub Actions가 빌드한 이미지를 서버에서 pull하려면 패키지를 Public으로 설정해야 합니다.
+
+```
+GitHub → Packages → backend / frontend
+  → Package settings → Change visibility → Public
+```
+
+---
+
+## 6. 프로젝트 배포
 
 ### 저장소 클론
 
@@ -107,10 +128,12 @@ vi .env   # 각 값 입력
 
 `.env` 필수 입력값:
 
-```
-JWT_SECRET=<랜덤 시크릿>
-SERVER_IP=<서버 공인 IP>
-```
+| Variable | 설명 |
+|----------|------|
+| `JWT_SECRET` | 랜덤 시크릿 (예: `openssl rand -hex 32` 출력값) |
+| `SERVER_IP` | 서버 공인 IP (Bytebase external-url에 사용) |
+
+나머지 항목은 사용할 기능에 따라 선택 입력합니다 (소셜 로그인, 외부 API 등).
 
 ### 실행
 
@@ -130,7 +153,7 @@ docker compose ps
 
 ---
 
-## 6. 접속 주소
+## 7. 접속 주소
 
 | 서비스 | URL |
 |--------|-----|
