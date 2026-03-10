@@ -10,6 +10,13 @@ services:
       - backend
       - frontend
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 256m
+        reservations:
+          memory: 64m
 
   frontend:
     build: ./frontend
@@ -17,6 +24,11 @@ services:
       - flutter_web:/usr/share/nginx/html
     profiles:
       - web
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 128m
 
   backend:
     build: ./backend
@@ -34,6 +46,13 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2g
+        reservations:
+          memory: 256m
 
   postgres:
     image: postgres:15-alpine
@@ -50,6 +69,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 8g
+        reservations:
+          memory: 512m
 
   redis:
     image: redis:7-alpine
@@ -62,6 +89,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 2g
+        reservations:
+          memory: 128m
 
   dozzle:
     image: amir20/dozzle:latest
@@ -70,6 +105,11 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 128m
 
   uptime-kuma:
     image: louislam/uptime-kuma:latest
@@ -78,6 +118,13 @@ services:
     volumes:
       - uptime_kuma_data:/app/data
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 512m
+        reservations:
+          memory: 128m
 
   adminer:
     image: adminer:latest
@@ -87,6 +134,23 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 128m
+
+  # Oracle Cloud 유휴 자원 회수 방지 (CPU 10% 초과 유지)
+  # 1코어 x 50% = 전체 4코어 기준 12.5% 사용
+  stress:
+    image: alpine
+    command: sh -c "apk add --no-cache stress-ng && stress-ng --cpu 1 --cpu-load 50 --timeout 0"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.6"
+          memory: 64m
 
 volumes:
   postgres_data:
