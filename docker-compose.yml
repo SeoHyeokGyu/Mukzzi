@@ -71,7 +71,25 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
 
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    ports:
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - uptime_kuma_data:/app/data
+    restart: unless-stopped
+
+  adminer:
+    image: adminer:latest
+    ports:
+      - "127.0.0.1:8889:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
   flutter_web:
+  uptime_kuma_data:
