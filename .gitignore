@@ -1,0 +1,33 @@
+# Environment
+.env
+.env.local
+
+# IntelliJ / IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Go
+backend/vendor/
+backend/*.exe
+backend/*.test
+
+# Flutter / Dart
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/.packages
+frontend/build/
+frontend/pubspec.lock
+frontend/.fvm/
+
+# macOS
+.DS_Store
+
+# Node (if any tooling)
+node_modules/
+
+# Docker
+*.log
