@@ -22,7 +22,7 @@
 |------|------|------|
 | 메인 DB | PostgreSQL | 복잡한 영양소·캐릭터 관계 데이터 |
 | 캐싱 | Redis | 자주 검색되는 음식 캐싱, 세션 관리 |
-| 파일 저장 | AWS S3 | 음식 사진, 캐릭터 이미지 |
+| 파일 저장 | Oracle Object Storage | 음식 사진, 캐릭터 이미지 (무료 티어 포함) |
 
 ## AI / 외부 API
 | 항목 | 선택 | 이유 |
@@ -39,8 +39,9 @@
 | 소셜 | Kakao OAuth 2.0 / Google OAuth / Apple Sign In |
 
 ## 알림 / 인프라
-| 항목 | 선택 |
-|------|------|
-| 푸시 알림 | FCM (Firebase Cloud Messaging) |
-| 서버 | AWS EC2 + RDS |
-| 컨테이너 | Docker + GitHub Actions (CI/CD) |
+| 항목 | 선택 | 이유 |
+|------|------|------|
+| 서버 | Oracle Cloud (ARM Ampere A1) | 무료 티어 (4 OCPU / 24GB RAM) |
+| 컨테이너 | Docker + Docker Compose | 백엔드, DB, Redis, 웹 일괄 관리 |
+| 푸시 알림 | FCM (Firebase Cloud Messaging) | 앱 푸시 알림 표준 |
+| CI/CD | GitHub Actions | 빌드 → 이미지 푸시 → 서버 배포 자동화 |

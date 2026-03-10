@@ -124,7 +124,7 @@
 ### Database
 - **Main DB**: PostgreSQL 15+ (영양소·캐릭터 관계 데이터)
 - **Cache**: Redis 7+ (음식 검색 캐싱, 세션 관리)
-- **File Storage**: AWS S3 (음식 사진, 캐릭터 이미지)
+- **File Storage**: Oracle Object Storage (음식 사진, 캐릭터 이미지)
 
 ### AI / 외부 API
 - **음식 사진 인식**: Google Vision API (Tier 2)
@@ -137,9 +137,10 @@
 - **소셜**: Kakao OAuth 2.0 / Google OAuth / Apple Sign In
 
 ### 인프라
-- **Server**: AWS EC2 + RDS
+- **Server**: Oracle Cloud (ARM Ampere A1)
+- **Container**: Docker + Docker Compose
 - **Push**: FCM (Firebase Cloud Messaging)
-- **CI/CD**: Docker + GitHub Actions
+- **CI/CD**: GitHub Actions
 
 > 상세: [docs/tech-stack.md](docs/tech-stack.md)
 
