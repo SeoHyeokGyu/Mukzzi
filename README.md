@@ -4,17 +4,16 @@
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.24-02569B.svg)](https://flutter.dev/)
 [![Dart](https://img.shields.io/badge/Dart-3.5-0175C2.svg)](https://dart.dev/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![Kotlin](https://img.shields.io/badge/Kotlin-1.9-purple.svg)](https://kotlinlang.org/)
+[![Go](https://img.shields.io/badge/Go-1.23-00ADD8.svg)](https://go.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7+-red.svg)](https://redis.io/)
 [![Progress](https://img.shields.io/badge/Progress-기획%20단계-yellow.svg)]()
 
-**📚 상세 기획 문서**: [docs/](docs/) - 사용자 플로우, 캐릭터 시스템, 기능 티어, 기술 스택 상세
+**상세 기획 문서**: [docs/](docs/) - 사용자 플로우, 캐릭터 시스템, 기능 티어, 기술 스택 상세
 
 ---
 
-## 🎯 프로젝트 개요
+## 프로젝트 개요
 
 ### 문제 정의
 
@@ -35,7 +34,7 @@
 
 ---
 
-## ✨ 핵심 기능
+## 핵심 기능
 
 ### 1. 메뉴 결정
 
@@ -107,7 +106,7 @@
 
 ---
 
-## 🛠️ 기술 스택
+## 기술 스택
 
 ### Frontend (iOS / Android / Web)
 - **Framework**: Flutter 3.24, Dart 3.5
@@ -115,11 +114,14 @@
 - **Animation**: Rive (먹찌 변신 인터랙티브 연출)
 - **Routing**: GoRouter
 - **HTTP**: Dio
+- **Responsive**: 모바일 / 데스크톱 반응형 레이아웃 (LayoutBuilder)
 
 ### Backend
-- **Core**: Spring Boot 3.2, Kotlin
-- **Scheduler**: Spring Scheduler (패널티 시스템, 푸시 알림 배치)
-- **Real-time**: WebSocket (STOMP) — Tier 3 그룹 기능 대비
+- **Language**: Go 1.23
+- **Framework**: Gin (경량 HTTP 라우터)
+- **ORM**: GORM (PostgreSQL 연동)
+- **Scheduler**: robfig/cron (패널티 시스템, 푸시 알림 배치)
+- **Real-time**: gorilla/websocket — Tier 3 그룹 기능 대비
 
 ### Database
 - **Main DB**: PostgreSQL 15+ (영양소·캐릭터 관계 데이터)
@@ -146,7 +148,7 @@
 
 ---
 
-## 🏗️ 시스템 아키텍처
+## 시스템 아키텍처
 
 <!-- TODO: 개발 착수 후 확정 -->
 
@@ -167,7 +169,7 @@
 
 #### 패널티 플로우
 ```
-Spring Scheduler (매일 실행)
+Cron Scheduler (매일 실행)
        → 유저별 마지막 기록일 체크
        → 미기록 일수 산정
        → 2일: 먹찌 표정 변경
@@ -180,7 +182,7 @@ Spring Scheduler (매일 실행)
 
 ```
 ┌─────────────────────────────────────────────────┐
-│              Controller Layer                   │
+│              Handler Layer (Gin)                │
 │  Auth, User, Menu, MealRecord, Character,       │
 │  Calendar, Nutrition, Roulette, WorldCup        │
 └─────────────────────────────────────────────────┘
@@ -189,10 +191,9 @@ Spring Scheduler (매일 실행)
 │              Service Layer                      │
 │  비즈니스 로직, 영양소 계산, 변신 판정, 경험치 관리 │
 └─────────────────────────────────────────────────┘
-                      ↓ Entity
+                      ↓ Model
 ┌─────────────────────────────────────────────────┐
-│              Repository Layer                   │
-│  Spring Data JPA, Custom Queries                │
+│              Repository Layer (GORM)            │
 └─────────────────────────────────────────────────┘
                       ↓
 ┌──────────────────────────┬──────────────────────┐
@@ -203,7 +204,7 @@ Spring Scheduler (매일 실행)
 
 ---
 
-## 📊 개발 현황
+## 개발 현황
 
 | 항목 | 상태 |
 |------|------|
@@ -222,7 +223,7 @@ Spring Scheduler (매일 실행)
 
 ---
 
-## 🔮 개발 로드맵
+## 개발 로드맵
 
 ### Tier 1 — MVP (출시 목표)
 > 룰렛·이상형 월드컵·상황별 필터로 메뉴를 고르고, 텍스트로 식사를 기록하면 먹찌가 성장합니다.
@@ -244,9 +245,9 @@ Spring Scheduler (매일 실행)
 
 ---
 
-## 🖼️ 데모 & 스크린샷
+## 데모 & 스크린샷
 
-> 💡 **이미지 저장 위치**: `docs/images/` 폴더
+> **이미지 저장 위치**: `docs/images/` 폴더
 
 <!-- TODO: 개발 완료 후 스크린샷 추가 -->
 
@@ -279,7 +280,7 @@ Spring Scheduler (매일 실행)
 
 ---
 
-## 📚 문서
+## 문서
 
 | 문서 | 설명 |
 |------|------|
@@ -290,7 +291,7 @@ Spring Scheduler (매일 실행)
 
 ---
 
-## 👥 팀
+## 팀
 
 <!-- TODO: 팀원 확정 후 작성 -->
 
@@ -300,6 +301,6 @@ Spring Scheduler (매일 실행)
 
 ---
 
-## 📄 라이선스
+## 라이선스
 
 본 프로젝트는 팀 내부 프로젝트입니다.

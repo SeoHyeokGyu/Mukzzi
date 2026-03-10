@@ -9,13 +9,16 @@
 | 애니메이션 | Rive | 인터랙티브 벡터 애니메이션, 앱/웹 동일 품질 렌더링 |
 | 라우팅 | GoRouter | 선언적 라우팅, 딥링크 지원 |
 | HTTP | Dio | 인터셉터, 토큰 갱신 자동화 |
+| 반응형 | LayoutBuilder | 모바일/데스크톱 레이아웃 분기, 공통 로직 공유 |
 
 ## Backend
 | 항목 | 선택 | 이유 |
 |------|------|------|
-| 프레임워크 | Spring Boot (Kotlin) | JVM 기반, IntelliJ 환경, 한국 개발 생태계 |
-| 실시간 | WebSocket (STOMP) | Tier 3 그룹 챌린지·배틀 실시간 처리 |
-| 스케줄러 | Spring Scheduler | 패널티 시스템, 푸시 알림 배치 |
+| 언어 | Go 1.23 | 네이티브 컴파일, 경량 바이너리, goroutine 동시성 |
+| 프레임워크 | Gin | 경량 HTTP 라우터, 미들웨어 체인, 높은 처리량 |
+| ORM | GORM | Go 표준 ORM, 마이그레이션 지원 |
+| 스케줄러 | robfig/cron | 패널티 시스템, 푸시 알림 배치 |
+| 실시간 | gorilla/websocket | Tier 3 그룹 챌린지·배틀 실시간 처리 |
 
 ## Database
 | 항목 | 선택 | 이유 |
