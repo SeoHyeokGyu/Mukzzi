@@ -144,7 +144,7 @@
 - **Push**: FCM (Firebase Cloud Messaging)
 - **CI/CD**: GitHub Actions
 
-> 상세: [docs/tech-stack.md](docs/tech-stack.md)
+> 상세: [docs/infrastructure.md](docs/infrastructure.md)
 
 ---
 
@@ -241,7 +241,7 @@ Cron Scheduler (매일 실행)
 ### Tier 3 — 미래 확장
 > 그룹 챌린지, 1:1 배틀, 위치 기반 퀘스트, 대화형 AI 상담
 
-> 상세: [docs/feature-tiers.md](docs/feature-tiers.md)
+> 상세: [docs/planning.md](docs/planning.md)
 
 ---
 
@@ -284,10 +284,9 @@ Cron Scheduler (매일 실행)
 
 | 문서 | 설명 |
 |------|------|
-| [핵심 사용자 플로우](docs/user-flow.md) | 앱 실행부터 식사 기록·캐릭터 성장까지의 유저 여정 |
-| [캐릭터 시스템 상세](docs/character-system.md) | 레벨 체계, 경험치 규칙, 변신 조건, 패널티 시스템 |
-| [기능 단계별 개발 계획](docs/feature-tiers.md) | Tier 1(MVP) → Tier 2(고도화) → Tier 3(장기 로드맵) |
-| [기술 스택 상세](docs/tech-stack.md) | 기술 선택 및 사유 |
+| [기획](docs/planning.md) | 사용자 플로우, 캐릭터 시스템, 기능 티어 |
+| [인프라](docs/infrastructure.md) | 기술 스택, 로컬 개발, 프로덕션 아키텍처, CI/CD |
+| [서버 초기 설정](docs/setup.md) | Oracle Cloud 인스턴스 생성부터 배포까지 |
 
 ---
 
