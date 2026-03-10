@@ -2,7 +2,8 @@
 
 > 매일 반복되는 "오늘 뭐 먹지?"를 해결하고, 먹은 음식으로 나만의 캐릭터 **먹찌**를 성장시키는 게이미피케이션 식사 기록 앱
 
-[![React Native](https://img.shields.io/badge/React%20Native-0.70+-61DAFB.svg)](https://reactnative.dev/)
+[![Flutter](https://img.shields.io/badge/Flutter-3.24-02569B.svg)](https://flutter.dev/)
+[![Dart](https://img.shields.io/badge/Dart-3.5-0175C2.svg)](https://dart.dev/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9-purple.svg)](https://kotlinlang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)](https://www.postgresql.org/)
@@ -108,10 +109,12 @@
 
 ## 🛠️ 기술 스택
 
-### Mobile (Frontend)
-- **Framework**: React Native (iOS/Android 동시 개발)
-- **State Management**: Zustand
-- **Animation**: Reanimated 3 (먹찌 변신 연출)
+### Frontend (iOS / Android / Web)
+- **Framework**: Flutter 3.24, Dart 3.5
+- **State Management**: Riverpod
+- **Animation**: Rive (먹찌 변신 인터랙티브 연출)
+- **Routing**: GoRouter
+- **HTTP**: Dio
 
 ### Backend
 - **Core**: Spring Boot 3.2, Kotlin

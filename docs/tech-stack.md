@@ -1,11 +1,14 @@
 # 기술 스택
 
-## Mobile (Frontend)
+## Frontend (iOS / Android / Web)
 | 항목 | 선택 | 이유 |
 |------|------|------|
-| 프레임워크 | React Native | iOS/Android 동시 개발, Kakao SDK 지원 |
-| 상태관리 | Zustand | 가볍고 직관적 |
-| 애니메이션 | Reanimated 3 | 먹찌 변신 연출에 적합 |
+| 프레임워크 | Flutter 3.24 | 단일 코드베이스로 iOS/Android/Web 동시 개발 |
+| 언어 | Dart 3.5 | Flutter 네이티브 언어, Null Safety 기본 지원 |
+| 상태관리 | Riverpod | 컴파일 타임 안전성, 의존성 주입 통합 |
+| 애니메이션 | Rive | 인터랙티브 벡터 애니메이션, 앱/웹 동일 품질 렌더링 |
+| 라우팅 | GoRouter | 선언적 라우팅, 딥링크 지원 |
+| HTTP | Dio | 인터셉터, 토큰 갱신 자동화 |
 
 ## Backend
 | 항목 | 선택 | 이유 |
