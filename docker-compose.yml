@@ -81,10 +81,13 @@ services:
       - uptime_kuma_data:/app/data
     restart: unless-stopped
 
-  adminer:
-    image: adminer:latest
+  bytebase:
+    image: bytebase/bytebase:latest
     ports:
       - "127.0.0.1:8889:8080"
+    volumes:
+      - bytebase_data:/var/opt/bytebase
+    command: --data /var/opt/bytebase --external-url http://localhost:8889 --port 8080
     depends_on:
       postgres:
         condition: service_healthy
@@ -107,3 +110,4 @@ volumes:
   redis_data:
   flutter_web:
   uptime_kuma_data:
+  bytebase_data:
