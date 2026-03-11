@@ -8,7 +8,6 @@ services:
       - flutter_web:/usr/share/nginx/html:ro
     depends_on:
       - backend
-      - frontend
     restart: unless-stopped
 
   frontend:
