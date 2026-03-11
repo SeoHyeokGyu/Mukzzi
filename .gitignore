@@ -23,7 +23,6 @@ frontend/.flutter-plugins
 frontend/.flutter-plugins-dependencies
 frontend/.packages
 frontend/build/
-frontend/pubspec.lock
 frontend/.fvm/
 
 # macOS

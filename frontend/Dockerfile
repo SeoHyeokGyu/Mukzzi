@@ -1,6 +1,6 @@
 FROM ghcr.io/cirruslabs/flutter:3.24.0 AS builder
 WORKDIR /app
-COPY pubspec.yaml pubspec.lock ./
+COPY pubspec.yaml pubspec.lock* ./
 RUN flutter pub get
 COPY . .
 RUN flutter build web --release
