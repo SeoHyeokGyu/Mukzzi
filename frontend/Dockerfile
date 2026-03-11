@@ -8,3 +8,4 @@ RUN flutter build web --release
 FROM nginx:alpine
 COPY --from=builder /app/build/web /usr/share/nginx/html
 EXPOSE 80
+
