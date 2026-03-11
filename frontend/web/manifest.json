@@ -1,0 +1,11 @@
+{
+  "name": "mukzzi",
+  "short_name": "mukzzi",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "description": "Mukzzi - AI food recommendation app",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false
+}
