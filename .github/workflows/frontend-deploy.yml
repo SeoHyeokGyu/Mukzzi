@@ -53,5 +53,6 @@ jobs:
             cd ~/mukzzi
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose --profile web pull frontend
-            docker compose --profile web up -d frontend --remove-orphans
+            docker compose --profile web run --rm frontend
+            docker compose restart nginx
             docker image prune -f
