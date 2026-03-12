@@ -24,6 +24,16 @@
 | 스케줄러 | robfig/cron | 패널티 시스템, 푸시 알림 배치 |
 | 실시간 | gorilla/websocket | Tier 3 그룹 챌린지·배틀 실시간 처리 |
 
+### Infra
+
+| 항목 | 선택 | 이유 |
+|------|------|------|
+| 웹 서버 | nginx | 경량 리버스 프록시, Flutter Web 정적 파일 서빙과 백엔드 API 라우팅을 단일 진입점(포트 80)으로 통합 |
+| 컨테이너 | Docker + Docker Compose | 단일 명령으로 전체 서비스 관리, 환경 일관성 보장 |
+| 서버 | Oracle Cloud ARM (A1) | 4 OCPU / 24GB RAM 무료 티어 |
+| CI/CD | GitHub Actions | GitHub 저장소 통합, 무료 러너 제공 |
+| 푸시 알림 | FCM | iOS/Android 크로스 플랫폼 푸시 지원 |
+
 ### Database
 
 | 항목 | 선택 | 이유 |
@@ -183,16 +193,73 @@ Frontend: flutter:3.24.0 -> flutter build web -> nginx
 
 ## CI/CD
 
-GitHub Actions — `backend/**` 또는 `frontend/**` 변경 시 자동 배포.
+GitHub Actions + GHCR(GitHub Container Registry) 기반 자동 배포.
+
+워크플로우 파일: `.github/workflows/`
+
+### 전체 플로우
 
 ```
 push to main
   |
-  +-- backend/** 변경 --> 이미지 빌드/푸시 --> SSH --> docker compose up backend
-  +-- frontend/** 변경 --> 이미지 빌드/푸시 --> SSH --> docker compose up frontend
+  |-- [항상 실행] discord-notify.yml
+  |     Discord 웹훅으로 커밋 알림 전송
+  |
+  |-- [backend/** 변경 시] backend-deploy.yml
+  |     GHCR 이미지 빌드/푸시 -> SSH -> 컨테이너 교체
+  |
+  |-- [frontend/** 변경 시] frontend-deploy.yml
+        GHCR 이미지 빌드/푸시 -> SSH -> 빌드 파일 볼륨 복사 -> nginx 재시작
 ```
 
-워크플로우 파일: `.github/workflows/`
+### 워크플로우 상세
+
+#### 1. backend-deploy.yml
+
+- 트리거: main push + `backend/**` 변경
+- 플로우:
+
+```
+1. GHCR 로그인
+2. Docker 이미지 빌드 (태그: latest + 커밋SHA)
+3. GHCR에 이미지 푸시
+4. SSH로 서버 접속
+5. docker compose pull backend
+6. docker compose up -d backend (컨테이너 교체)
+7. docker image prune -f (미사용 이미지 정리)
+```
+
+#### 2. frontend-deploy.yml
+
+- 트리거: main push + `frontend/**` 변경
+- 플로우:
+
+```
+1. GHCR 로그인
+2. Docker 이미지 빌드 (태그: latest + 커밋SHA)
+3. GHCR에 이미지 푸시
+4. SSH로 서버 접속
+5. docker compose --profile web pull frontend
+6. docker compose --profile web run --rm frontend
+   (빌드 파일을 flutter_web 볼륨에 복사 후 컨테이너 자동 종료)
+7. docker compose restart nginx (새 빌드 파일 반영)
+8. docker image prune -f
+```
+
+#### 3. discord-notify.yml
+
+- 트리거: main push (모든 파일)
+- 동작: 커밋 메시지, 작성자, 브랜치 정보를 Discord embed로 전송
+
+### 필요 Secrets
+
+| Secret | 용도 |
+|--------|------|
+| `GITHUB_TOKEN` | GHCR 로그인 (자동 제공) |
+| `SSH_HOST` | 배포 서버 IP |
+| `SSH_USERNAME` | SSH 접속 유저 |
+| `SSH_PRIVATE_KEY` | SSH 인증 키 |
+| `DISCORD_WEBHOOK_URL` | Discord 알림 웹훅 URL |
 
 ---
 
