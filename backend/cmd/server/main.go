@@ -17,6 +17,6 @@ func main() {
 		w.Write([]byte("ok"))
 	})
 
-	log.Printf("server listening on :%s", port)
+	log.Printf("Mukzzi server listening on :%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
