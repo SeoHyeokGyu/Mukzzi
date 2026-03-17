@@ -12,7 +12,7 @@ concurrency:
 jobs:
   build-and-push:
     name: Build & Push Image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
       packages: write
@@ -55,6 +55,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ~/mukzzi
+            git pull
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose pull backend
             docker compose up -d backend --remove-orphans
