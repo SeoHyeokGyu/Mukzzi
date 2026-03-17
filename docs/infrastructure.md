@@ -28,7 +28,7 @@
 
 | 항목 | 선택 | 이유 |
 |------|------|------|
-| 웹 서버 | nginx | 경량 리버스 프록시, Flutter Web 정적 파일 서빙과 백엔드 API 라우팅을 단일 진입점(포트 80)으로 통합 |
+| 웹 서버 | nginx (frontend 이미지 내장) | Flutter Web 정적 파일 서빙 + 백엔드 API 리버스 프록시를 단일 컨테이너로 통합 |
 | 컨테이너 | Docker + Docker Compose | 단일 명령으로 전체 서비스 관리, 환경 일관성 보장 |
 | 서버 | Oracle Cloud ARM (A1) | 4 OCPU / 24GB RAM 무료 티어 |
 | CI/CD | GitHub Actions | GitHub 저장소 통합, 무료 러너 제공 |
@@ -111,7 +111,7 @@ Android 에뮬레이터에서 로컬 백엔드 접근 시 `localhost` 대신 `10
 Client (Mobile / Browser)
         |
         v
-   nginx :80
+   frontend (nginx) :80
    /api/*  -->  backend (Go) :8080
    /ws/*   -->  backend (Go) :8080  (WebSocket)
    /       -->  Flutter Web (static)
@@ -125,34 +125,19 @@ Client (Mobile / Browser)
 
 | Service | Image | Port | Role |
 |---------|-------|------|------|
-| nginx | nginx:alpine | 80 | Reverse proxy + Flutter Web 정적 서빙 |
-| backend | ./backend | 8080 | REST API + WebSocket |
+| frontend | ghcr.io/.../frontend:latest | 80 | Flutter Web 정적 서빙 + Reverse proxy |
+| backend | ghcr.io/.../backend:latest | 8080 | REST API + WebSocket |
 | postgres | postgres:15-alpine | 5432 | Main database |
 | redis | redis:7-alpine | 6379 | Cache + session |
-
-### Docker Compose 프로파일
-
-| Profile | 실행 서비스 |
-|---------|-----------|
-| (default) | nginx, backend, postgres, redis |
-| web | + frontend (Flutter web 빌드) |
-
-```bash
-# 모바일 개발 (기본)
-docker compose up --build
-
-# Flutter Web 포함 전체
-docker compose --profile web up --build
-```
 
 ### 빌드 플로우
 
 ```
 Backend:  golang:1.23-alpine -> go build -> alpine
-Frontend: flutter:3.24.0 -> flutter build web -> nginx
+Frontend: flutter:3.24.0 -> flutter build web -> nginx:alpine (정적 파일 + nginx 설정 내장)
 ```
 
-### nginx 라우팅
+### nginx 라우팅 (frontend 컨테이너 내장)
 
 ```
 /       ->  Flutter Web (SPA, index.html fallback)
@@ -207,16 +192,21 @@ push to main
   |
   |-- [backend/** 변경 시] backend-deploy.yml
   |     GHCR 이미지 빌드/푸시 -> SSH -> 컨테이너 교체
+  |     실패 시 Discord 알림 전송
   |
   |-- [frontend/** 변경 시] frontend-deploy.yml
-        GHCR 이미지 빌드/푸시 -> SSH -> 빌드 파일 볼륨 복사 -> nginx 재시작
+        GHCR 이미지 빌드/푸시 -> SSH -> 컨테이너 교체
+        실패 시 Discord 알림 전송
 ```
+
+- backend/frontend 워크플로우에 concurrency 설정 적용 (동시 배포 방지, 새 배포 시 이전 배포 취소)
 
 ### 워크플로우 상세
 
 #### 1. backend-deploy.yml
 
 - 트리거: main push + `backend/**` 변경
+- concurrency: `backend-deploy` (cancel-in-progress)
 - 플로우:
 
 ```
@@ -227,11 +217,13 @@ push to main
 5. docker compose pull backend
 6. docker compose up -d backend (컨테이너 교체)
 7. docker image prune -f (미사용 이미지 정리)
+* 실패 시: Discord 알림 전송 (Actions 실행 페이지 링크 포함)
 ```
 
 #### 2. frontend-deploy.yml
 
 - 트리거: main push + `frontend/**` 변경
+- concurrency: `frontend-deploy` (cancel-in-progress)
 - 플로우:
 
 ```
@@ -239,11 +231,10 @@ push to main
 2. Docker 이미지 빌드 (태그: latest + 커밋SHA)
 3. GHCR에 이미지 푸시
 4. SSH로 서버 접속
-5. docker compose --profile web pull frontend
-6. docker compose --profile web run --rm frontend
-   (빌드 파일을 flutter_web 볼륨에 복사 후 컨테이너 자동 종료)
-7. docker compose restart nginx (새 빌드 파일 반영)
-8. docker image prune -f
+5. docker compose pull frontend
+6. docker compose up -d frontend (컨테이너 교체)
+7. docker image prune -f (미사용 이미지 정리)
+* 실패 시: Discord 알림 전송 (Actions 실행 페이지 링크 포함)
 ```
 
 #### 3. discord-notify.yml
