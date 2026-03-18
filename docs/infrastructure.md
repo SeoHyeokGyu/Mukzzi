@@ -60,43 +60,46 @@
 
 ### 소프트웨어 설계 원칙 (Clean Architecture)
 
-도메인 주도 설계(DDD)의 전략적 설계를 통해 비즈니스 경계를 정의하고, 클린 아키텍처의 전술적 설계를 통해 계층 간 책임을 분리합니다. 외부 기술(HTTP, DB)이 핵심 비즈니스 로직에 영향을 주지 않도록 설계합니다.
+도메인 주도 설계(DDD)의 전략적 설계를 통해 비즈니스 경계를 정의하고, 클린 아키텍처의 전술적 설계를 통해 계층 간 책임을 분리합니다. 외부 기술(HTTP, DB)이 핵심 비즈니스 로직에 영향을 주지 않도록 설계하며, Go의 `internal` 패키지 특성을 활용하여 캡슐화를 강화합니다.
 
 #### 프로젝트 구조 가이드 (Layered Clean Architecture)
 
 **Backend (Go)**
-- **Domain**: 핵심 데이터 구조(Struct) 및 리포지토리 인터페이스 정의 (의존성 없음)
-- **Usecase**: 애플리케이션 비즈니스 규칙 구현 및 흐름 제어 (스프링의 Service 계층)
-- **Delivery**: 외부 요청 처리 및 응답 반환 (스프링의 Controller 계층)
-- **Repository**: 데이터 저장소 구현체 및 인프라 연동 (스프링의 Repository Impl 계층)
+- **cmd**: 애플리케이션의 진입점 (main.go)
+- **internal**: 외부 모듈에서 임포트가 불가능한 비공개 애플리케이션 레이어 (캡슐화)
+  - **domain**: 핵심 데이터 구조(Struct) 및 리포지토리 인터페이스 정의 (의존성 없음)
+  - **usecase**: 애플리케이션 비즈니스 규칙 구현 및 흐름 제어 (스프링의 Service 계층)
+  - **delivery**: 외부 요청 처리 및 응답 반환 (스프링의 Controller 계층)
+  - **repository**: 데이터 저장소 구현체 및 인프라 연동 (스프링의 Repository Impl 계층)
 
 ```
 backend/
 ├── cmd/
 │   └── api/
 │       └── main.go          # 애플리케이션 진입점 (의존성 주입 및 서버 실행)
-├── domain/                  # 1. 엔티티 (Entities) 계층
-│   ├── user.go              # 데이터 구조 및 인터페이스 정의
-│   ├── meal.go
-│   ├── character.go
-│   └── error.go             # 도메인 공통 에러 정의
-├── usecase/                 # 2. 유스케이스 (Usecase) 계층
-│   ├── user_usecase.go      # 비즈니스 로직 구현
-│   ├── meal_usecase.go
-│   └── character_usecase.go
-├── delivery/                # 3. 인터페이스 어댑터 (Delivery) 계층
-│   ├── http/
-│   │   ├── handler/         # HTTP 핸들러 (Controller)
-│   │   ├── middleware/      # 인증 및 공통 미들웨어
-│   │   ├── route/           # 라우팅 설정
-│   │   └── dto/             # Request/Response DTO
-│   └── grpc/                # (필요 시 확장)
-└── repository/              # 4. 인프라스트럭처 (Repository) 계층
-    ├── postgres/
-    │   ├── user_repo.go     # DB 연동 구현체 (GORM)
-    │   └── meal_repo.go
-    └── redis/
-        └── cache_repo.go    # 캐시 연동 구현체
+└── internal/                # 캡슐화된 애플리케이션 레이어
+    ├── domain/              # 1. 엔티티 (Entities) 계층
+    │   ├── user.go          # 데이터 구조 및 인터페이스 정의
+    │   ├── meal.go
+    │   ├── character.go
+    │   └── error.go         # 도메인 공통 에러 정의
+    ├── usecase/             # 2. 유스케이스 (Usecase) 계층
+    │   ├── user_usecase.go      # 비즈니스 로직 구현
+    │   ├── meal_usecase.go
+    │   └── character_usecase.go
+    ├── delivery/            # 3. 인터페이스 어댑터 (Delivery) 계층
+    │   ├── http/
+    │   │   ├── handler/         # HTTP 핸들러 (Controller)
+    │   │   ├── middleware/      # 인증 및 공통 미들웨어
+    │   │   ├── route/           # 라우팅 설정
+    │   │   └── dto/             # Request/Response DTO
+    │   └── ws/                # (필요 시 확장)
+    └── repository/          # 4. 인프라스트럭처 (Repository) 계층
+        ├── postgres/
+        │   ├── user_repo.go     # DB 연동 구현체 (GORM)
+        │   └── meal_repo.go
+        └── redis/
+            └── cache_repo.go    # 캐시 연동 구현체
 ```
 
 **Frontend (Flutter)**
