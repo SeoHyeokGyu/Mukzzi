@@ -18,7 +18,7 @@
 
 | 항목 | 선택 | 이유 |
 |------|------|------|
-| 언어 | Go 1.23 | 네이티브 컴파일, 경량 바이너리, goroutine 동시성 |
+| 언어 | Go 1.26 | 네이티브 컴파일, 경량 바이너리, goroutine 동시성 |
 | 프레임워크 | Gin | 경량 HTTP 라우터, 미들웨어 체인, 높은 처리량 |
 | ORM | GORM | Go 표준 ORM, 마이그레이션 지원 |
 | 스케줄러 | robfig/cron | 패널티 시스템, 푸시 알림 배치 |
@@ -66,7 +66,7 @@
 
 | Tool | Version |
 |------|---------|
-| Go | 1.23+ |
+| Go | 1.26+ |
 | Flutter | 3.24+ |
 | Docker Desktop | latest |
 
@@ -133,7 +133,7 @@ Client (Mobile / Browser)
 ### 빌드 플로우
 
 ```
-Backend:  golang:1.23-alpine -> go build -> alpine
+Backend:  golang:1.26-alpine -> go build -> alpine
 Frontend: flutter:3.24.0 -> flutter build web -> nginx:alpine (정적 파일 + nginx 설정 내장)
 ```
 
