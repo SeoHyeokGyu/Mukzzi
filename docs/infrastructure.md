@@ -71,6 +71,43 @@
 | Supporting | 소셜 (Social) | 사용자 간 소셜 상호작용 | 친구, 응원, 방명록 |
 | Generic | 인증 (Identity) | 인증 및 계정 관리 | 사용자, 계정, 토큰 |
 
+#### 프로젝트 구조 가이드 (DDD 반영)
+
+**Backend (Go)**
+- `internal/[context]/` 구조를 사용하여 컨텍스트 간 응집도를 높이고 결합도를 낮춥니다.
+```
+backend/
+  ├── cmd/server/main.go
+  ├── internal/
+  │     ├── character/      # Character 컨텍스트
+  │     │     ├── domain/   # 엔티티, VO, 리포지토리 인터페이스
+  │     │     ├── service/  # 애플리케이션 서비스 (유스케이스)
+  │     │     └── port/     # 핸들러 (HTTP/WS), 리포지토리 구현체 (GORM)
+  │     ├── meal/           # Meal Record 컨텍스트
+  │     ├── shared/         # 공통 도메인/유틸리티
+  │     └── auth/           # Identity 컨텍스트
+  └── pkg/                  # 외부 공유 가능한 라이브러리
+```
+
+**Frontend (Flutter)**
+- `lib/src/features/[feature]/` 구조를 사용하여 기능 단위로 코드를 관리합니다.
+```
+frontend/
+  ├── lib/
+  │     ├── main.dart
+  │     ├── src/
+  │     │    ├── features/
+  │     │    │    ├── character/    # 캐릭터 관련 UI 및 로직
+  │     │    │    │     ├── domain/
+  │     │    │    │     ├── data/
+  │     │    │    │     └── presentation/
+  │     │    │    ├── meal_record/  # 식사 기록 관련
+  │     │    │    └── social/       # 소셜 기능 관련
+  │     │    ├── core/              # 공통 위젯, 테마, 유틸리티
+  │     │    └── router/            # GoRouter 설정
+  └── assets/                       # Rive 파일 및 이미지
+```
+
 ---
 
 ## 로컬 개발
