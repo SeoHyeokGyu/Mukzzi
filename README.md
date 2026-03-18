@@ -4,7 +4,7 @@
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.24-02569B.svg)](https://flutter.dev/)
 [![Dart](https://img.shields.io/badge/Dart-3.5-0175C2.svg)](https://dart.dev/)
-[![Go](https://img.shields.io/badge/Go-1.23-00ADD8.svg)](https://go.dev/)
+[![Go](https://img.shields.io/badge/Go-1.26-00ADD8.svg)](https://go.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7+-red.svg)](https://redis.io/)
 [![Progress](https://img.shields.io/badge/Progress-기획%20단계-yellow.svg)]()
@@ -123,7 +123,7 @@
 - **Responsive**: 모바일 / 데스크톱 반응형 레이아웃 (LayoutBuilder)
 
 ### Backend
-- **Language**: Go 1.23
+- **Language**: Go 1.26
 - **Framework**: Gin (경량 HTTP 라우터)
 - **ORM**: GORM (PostgreSQL 연동)
 - **Scheduler**: robfig/cron (패널티 시스템, 푸시 알림 배치)
