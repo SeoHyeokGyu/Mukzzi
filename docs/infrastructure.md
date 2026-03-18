@@ -84,7 +84,7 @@ backend/
   │     ├── character/          # Character 컨텍스트
   │     │     ├── domain/       # 엔티티, VO, 리포지토리 인터페이스 (Pure Domain)
   │     │     ├── service/      # 애플리케이션 서비스 (유스케이스), 도메인-DTO 변환 로직
-  │     │     └── port/         # 인프라 및 외부 인터페이스
+  │     │     └── delivery/     # 인프라 및 외부 인터페이스
   │     │           ├── http/   # HTTP 핸들러
   │     │           │    └── dto/ # API Request/Response 정의 (DTO)
   │     │           └── repository/ # 리포지토리 구현체 (GORM, DB Model 분리)
