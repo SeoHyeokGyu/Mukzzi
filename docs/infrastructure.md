@@ -58,40 +58,45 @@
 | 토큰 | JWT (Access + Refresh) |
 | 소셜 | Kakao OAuth 2.0 / Google OAuth / Apple Sign In |
 
-### 소프트웨어 설계 원칙 (DDD)
+### 소프트웨어 설계 원칙 (Clean Architecture)
 
-도메인 주도 설계(DDD)를 적용하여 비즈니스 로직을 바운디드 컨텍스트(Bounded Context) 단위로 분리합니다.
+도메인 주도 설계(DDD)의 전략적 설계를 통해 비즈니스 경계를 정의하고, 클린 아키텍처의 전술적 설계를 통해 계층 간 책임을 분리합니다. 외부 기술(HTTP, DB)이 핵심 비즈니스 로직에 영향을 주지 않도록 설계합니다.
 
-| 분류 | 컨텍스트 | 설명 | 주요 엔티티/VO |
-|------|----------|------|----------------|
-| Core | 캐릭터 (Character) | 먹찌 성장 및 상태 관리 | 먹찌, 파츠, 진화단계, 패널티상태 |
-| Core | 식사 기록 (Meal Record) | 식사 기록 및 영양 분석 | 식사기록, 영양소정보, 섭취량 |
-| Supporting | 메뉴 결정 (Recommendation) | 메뉴 결정 전략 및 엔진 | 추천전략, 필터조건, 메뉴풀 |
-| Supporting | 게이미피케이션 (Gamification) | 퀘스트 및 보상 시스템 | 퀘스트, 업적, 보상, 뱃지 |
-| Supporting | 소셜 (Social) | 사용자 간 소셜 상호작용 | 친구, 응원, 방명록 |
-| Generic | 인증 (Identity) | 인증 및 계정 관리 | 사용자, 계정, 토큰 |
-
-#### 프로젝트 구조 가이드 (DDD 반영)
+#### 프로젝트 구조 가이드 (Layered Clean Architecture)
 
 **Backend (Go)**
-- `internal/[context]/` 구조를 사용하여 컨텍스트 간 응집도를 높이고 결합도를 낮춥니다.
-- **도메인 모델과 API 모델(DTO)을 엄격히 분리**하여 외부 요구사항 변경이 핵심 로직에 영향을 주지 않도록 합니다.
+- **Domain**: 핵심 데이터 구조(Struct) 및 리포지토리 인터페이스 정의 (의존성 없음)
+- **Usecase**: 애플리케이션 비즈니스 규칙 구현 및 흐름 제어 (스프링의 Service 계층)
+- **Delivery**: 외부 요청 처리 및 응답 반환 (스프링의 Controller 계층)
+- **Repository**: 데이터 저장소 구현체 및 인프라 연동 (스프링의 Repository Impl 계층)
 
 ```
 backend/
-  ├── cmd/server/main.go
-  ├── internal/
-  │     ├── character/          # Character 컨텍스트
-  │     │     ├── domain/       # 엔티티, VO, 리포지토리 인터페이스 (Pure Domain)
-  │     │     ├── service/      # 애플리케이션 서비스 (유스케이스), 도메인-DTO 변환 로직
-  │     │     └── delivery/     # 인프라 및 외부 인터페이스
-  │     │           ├── http/   # HTTP 핸들러
-  │     │           │    └── dto/ # API Request/Response 정의 (DTO)
-  │     │           └── repository/ # 리포지토리 구현체 (GORM, DB Model 분리)
-  │     ├── meal/               # Meal Record 컨텍스트
-  │     ├── shared/             # 공통 도메인/유틸리티
-  │     └── auth/               # Identity 컨텍스트
-  └── pkg/                      # 외부 공유 가능한 라이브러리
+├── cmd/
+│   └── api/
+│       └── main.go          # 애플리케이션 진입점 (의존성 주입 및 서버 실행)
+├── domain/                  # 1. 엔티티 (Entities) 계층
+│   ├── user.go              # 데이터 구조 및 인터페이스 정의
+│   ├── meal.go
+│   ├── character.go
+│   └── error.go             # 도메인 공통 에러 정의
+├── usecase/                 # 2. 유스케이스 (Usecase) 계층
+│   ├── user_usecase.go      # 비즈니스 로직 구현
+│   ├── meal_usecase.go
+│   └── character_usecase.go
+├── delivery/                # 3. 인터페이스 어댑터 (Delivery) 계층
+│   ├── http/
+│   │   ├── handler/         # HTTP 핸들러 (Controller)
+│   │   ├── middleware/      # 인증 및 공통 미들웨어
+│   │   ├── route/           # 라우팅 설정
+│   │   └── dto/             # Request/Response DTO
+│   └── grpc/                # (필요 시 확장)
+└── repository/              # 4. 인프라스트럭처 (Repository) 계층
+    ├── postgres/
+    │   ├── user_repo.go     # DB 연동 구현체 (GORM)
+    │   └── meal_repo.go
+    └── redis/
+        └── cache_repo.go    # 캐시 연동 구현체
 ```
 
 **Frontend (Flutter)**
