@@ -75,18 +75,23 @@
 
 **Backend (Go)**
 - `internal/[context]/` 구조를 사용하여 컨텍스트 간 응집도를 높이고 결합도를 낮춥니다.
+- **도메인 모델과 API 모델(DTO)을 엄격히 분리**하여 외부 요구사항 변경이 핵심 로직에 영향을 주지 않도록 합니다.
+
 ```
 backend/
   ├── cmd/server/main.go
   ├── internal/
-  │     ├── character/      # Character 컨텍스트
-  │     │     ├── domain/   # 엔티티, VO, 리포지토리 인터페이스
-  │     │     ├── service/  # 애플리케이션 서비스 (유스케이스)
-  │     │     └── port/     # 핸들러 (HTTP/WS), 리포지토리 구현체 (GORM)
-  │     ├── meal/           # Meal Record 컨텍스트
-  │     ├── shared/         # 공통 도메인/유틸리티
-  │     └── auth/           # Identity 컨텍스트
-  └── pkg/                  # 외부 공유 가능한 라이브러리
+  │     ├── character/          # Character 컨텍스트
+  │     │     ├── domain/       # 엔티티, VO, 리포지토리 인터페이스 (Pure Domain)
+  │     │     ├── service/      # 애플리케이션 서비스 (유스케이스), 도메인-DTO 변환 로직
+  │     │     └── port/         # 인프라 및 외부 인터페이스
+  │     │           ├── http/   # HTTP 핸들러
+  │     │           │    └── dto/ # API Request/Response 정의 (DTO)
+  │     │           └── repository/ # 리포지토리 구현체 (GORM, DB Model 분리)
+  │     ├── meal/               # Meal Record 컨텍스트
+  │     ├── shared/             # 공통 도메인/유틸리티
+  │     └── auth/               # Identity 컨텍스트
+  └── pkg/                      # 외부 공유 가능한 라이브러리
 ```
 
 **Frontend (Flutter)**
