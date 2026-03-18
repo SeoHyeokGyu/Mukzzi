@@ -231,6 +231,34 @@ Frontend: flutter:3.24.0 -> flutter build web -> nginx:alpine (정적 파일 + n
 
 ---
 
+## 테스트 전략
+
+프로젝트의 안정성과 유지보수성을 위해 계층별 테스트를 수행하며, 모든 테스트는 CI 파이프라인에서 자동 실행됩니다.
+
+### Backend (Go)
+
+| 수준 | 대상 | 도구 | 설명 |
+|------|------|------|------|
+| 단위 테스트 | domain, usecase | testing, testify | 비즈니스 로직 및 도메인 모델 검증 (Mock 사용) |
+| 통합 테스트 | repository | testcontainers-go | 실제 DB(PostgreSQL/Redis) 연동 및 쿼리 검증 |
+| API 테스트 | delivery/http | httptest | 엔드포인트 입력 유효성 및 응답 스펙 검증 |
+
+- Mocking: vektra/mockery를 사용하여 인터페이스 기반의 목 객체 자동 생성
+- Coverage: 핵심 비즈니스 로직(usecase)에 대해 커버리지 80% 이상 유지 권장
+
+### Frontend (Flutter)
+
+| 수준 | 대상 | 도구 | 설명 |
+|------|------|------|------|
+| 단위 테스트 | domain, provider | flutter_test | 상태 관리 로직 및 데이터 모델 변환 검증 |
+| 위젯 테스트 | widgets | flutter_test | 개별 UI 컴포넌트의 렌더링 및 인터랙션 검증 |
+| 통합 테스트 | 전체 앱 시나리오 | integration_test | 실제 기기/에뮬레이터에서 사용자 플로우(E2E) 검증 |
+
+- Golden Tests: golden_toolkit을 사용하여 UI 회귀 테스트 수행
+- Mocking: mocktail을 사용하여 외부 API 및 의존성 격리
+
+---
+
 ## CI/CD
 
 GitHub Actions + GHCR(GitHub Container Registry) 기반 자동 배포.
