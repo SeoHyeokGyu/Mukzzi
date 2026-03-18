@@ -58,6 +58,19 @@
 | 토큰 | JWT (Access + Refresh) |
 | 소셜 | Kakao OAuth 2.0 / Google OAuth / Apple Sign In |
 
+### 소프트웨어 설계 원칙 (DDD)
+
+도메인 주도 설계(DDD)를 적용하여 비즈니스 로직을 바운디드 컨텍스트(Bounded Context) 단위로 분리합니다.
+
+| 분류 | 컨텍스트 | 설명 | 주요 엔티티/VO |
+|------|----------|------|----------------|
+| Core | 캐릭터 (Character) | 먹찌 성장 및 상태 관리 | 먹찌, 파츠, 진화단계, 패널티상태 |
+| Core | 식사 기록 (Meal Record) | 식사 기록 및 영양 분석 | 식사기록, 영양소정보, 섭취량 |
+| Supporting | 메뉴 결정 (Recommendation) | 메뉴 결정 전략 및 엔진 | 추천전략, 필터조건, 메뉴풀 |
+| Supporting | 게이미피케이션 (Gamification) | 퀘스트 및 보상 시스템 | 퀘스트, 업적, 보상, 뱃지 |
+| Supporting | 소셜 (Social) | 사용자 간 소셜 상호작용 | 친구, 응원, 방명록 |
+| Generic | 인증 (Identity) | 인증 및 계정 관리 | 사용자, 계정, 토큰 |
+
 ---
 
 ## 로컬 개발
