@@ -197,23 +197,30 @@ Cron Scheduler (매일 실행)
        → 기록 재개 시 즉시 복구
 ```
 
-### 백엔드 아키텍처 (예정)
+### 백엔드 아키텍처 (Layered Clean Architecture)
 
 ```
 ┌─────────────────────────────────────────────────┐
-│              Handler Layer (Gin)                │
-│  Auth, User, Menu, MealRecord, Character,       │
-│  Calendar, Nutrition, Roulette, Friend          │
+│           Delivery Layer (Gin HTTP/WS)          │
+│  handler/ : Auth, User, Menu, MealRecord,       │
+│             Character, Calendar, Nutrition,      │
+│             Roulette, Friend                     │
+│  dto/     : Request/Response DTO                │
 └─────────────────────────────────────────────────┘
                       ↓ DTO
 ┌─────────────────────────────────────────────────┐
-│              Service Layer                      │
+│              Usecase Layer                      │
 │  비즈니스 로직, 영양소 계산, 파츠 조합 판정,       │
 │  퀘스트 관리, 친구 검색/추천/차단 관리              │
 └─────────────────────────────────────────────────┘
-                      ↓ Model
+                      ↓ Domain Model
 ┌─────────────────────────────────────────────────┐
-│              Repository Layer (GORM)            │
+│              Domain Layer                       │
+│  엔티티 구조체, 리포지토리 인터페이스, 도메인 에러   │
+└─────────────────────────────────────────────────┘
+                      ↑ implements
+┌─────────────────────────────────────────────────┐
+│            Repository Layer (GORM)              │
 └─────────────────────────────────────────────────┘
                       ↓
 ┌──────────────────────────┬──────────────────────┐
@@ -221,6 +228,8 @@ Cron Scheduler (매일 실행)
 │   (주 데이터베이스)        │   (캐싱 + 세션)      │
 └──────────────────────────┴──────────────────────┘
 ```
+
+> 상세 구조: [docs/infrastructure.md - 소프트웨어 설계 원칙](docs/infrastructure.md#소프트웨어-설계-원칙-clean-architecture)
 
 ---
 
@@ -233,8 +242,9 @@ Cron Scheduler (매일 실행)
 | 캐릭터 시스템 설계 | ✅ 완료 |
 | 기능 티어 분류 | ✅ 완료 |
 | 기술 스택 선정 | ✅ 완료 |
-| ERD / DB 설계 | 🔲 예정 |
-| API 설계 | 🔲 예정 |
+| DDD 도메인 설계 | 📝 플레이스홀더 |
+| ERD / DB 설계 | 📝 플레이스홀더 |
+| API 설계 | 📝 플레이스홀더 |
 | 와이어프레임 | 🔲 예정 |
 | 프론트엔드 개발 | 🔲 예정 |
 | 백엔드 개발 | 🔲 예정 |
@@ -306,6 +316,9 @@ Cron Scheduler (매일 실행)
 | 문서 | 설명 |
 |------|------|
 | [기획](docs/planning.md) | 사용자 플로우, 캐릭터 시스템, 기능 티어 |
+| [도메인 설계](docs/domain.md) | DDD 바운디드 컨텍스트, 도메인 간 관계, Go 패키지 매핑 |
+| [ERD / DB 스키마](docs/erd.md) | 테이블 정의, ER 다이어그램, 인덱스 전략 |
+| [API 명세](docs/api.md) | REST API 엔드포인트, 요청/응답 DTO |
 | [인프라](docs/infrastructure.md) | 기술 스택, 로컬 개발, 프로덕션 아키텍처, CI/CD |
 | [서버 초기 설정](docs/setup.md) | Oracle Cloud 인스턴스 생성부터 배포까지 |
 
