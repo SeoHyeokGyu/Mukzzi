@@ -21,8 +21,19 @@
 | 언어 | Go 1.26 | 네이티브 컴파일, 경량 바이너리, goroutine 동시성 |
 | 프레임워크 | Gin | 경량 HTTP 라우터, 미들웨어 체인, 높은 처리량 |
 | ORM | GORM | Go 표준 ORM, 마이그레이션 지원 |
-| 스케줄러 | robfig/cron | 패널티 시스템, 푸시 알림 배치 |
+| API 문서 | swaggo/swag | 소스코드 주석 기반 Swagger API 문서 자동화 |
+| 핫 리로드 | cosmtrek/air | 코드 수정 시 자동 빌드 및 서버 재시작 (개발 환경) |
+| 스케줄러 | robfig/cron | 표준 Cron 표현식 기반 작업 예약 (일일 퀘스트 초기화, 패널티 관리) |
 | 실시간 | gorilla/websocket | Tier 3 그룹 챌린지·배틀 실시간 처리 |
+
+### 스케줄링 및 배치 작업 (Cron)
+
+정해진 시간에 수행되어야 하는 작업들을 `robfig/cron`을 통해 관리합니다. 즉각적인 비동기 처리는 Go의 Goroutine을 사용합니다.
+
+1. 정기 및 예약 작업 (Scheduled Tasks)
+   - 매일 새벽 5시 일일 퀘스트 초기화 및 신규 할당
+   - 장기 미접속 사용자에 대한 캐릭터 만족도 패널티 부여
+   - 기간 만료된 미수령 보상에 대한 자동 소멸 처리
 
 ### Infra
 
@@ -132,21 +143,22 @@ frontend/
 | Go | 1.26+ |
 | Flutter | 3.24+ |
 | Docker Desktop | latest |
-
 ### 실행 순서
 
 ```bash
 # 1. DB / Redis만 Docker로 실행
 docker compose up postgres redis -d
 
-# 2. Backend 실행
+# 2. Backend 실행 (Air 핫 리로드 권장)
 cd backend
 cp ../.env.example ../.env   # 최초 1회
-go mod download
-go run ./cmd/server
+go install github.com/air-verse/air@latest  # Air 설치
+air                           # .air.toml 기반 자동 빌드 및 실행
 
 # 3. Frontend 실행
-cd frontend
+...
+```
+
 flutter pub get
 flutter run -d chrome        # 웹
 flutter run -d android       # Android 에뮬레이터
