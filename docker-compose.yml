@@ -74,6 +74,9 @@ services:
     image: bytebase/bytebase:latest
     ports:
       - "8889:8080"
+    environment:
+      - BB_ADMIN_EMAIL=admin@admin.com
+      - BB_ADMIN_PASSWORD=admin
     volumes:
       - bytebase_data:/var/opt/bytebase
     command: --data /var/opt/bytebase --external-url http://${SERVER_IP}:8889 --port 8080
