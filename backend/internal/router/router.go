@@ -6,7 +6,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	swaggerFiles "github.com/swaggo/files"
 
-	_ "github.com/SeoHyeokGyu/Mukzzi/backend/docs"
+	docs "github.com/SeoHyeokGyu/Mukzzi/backend/docs"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/handler"
 )
 
@@ -22,8 +22,12 @@ func NewRouter(collectionHandler *handler.CollectionHandler) *gin.Engine {
 		c.String(200, "ok")
 	})
 
-	// Swagger UI
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// Swagger UI - 요청의 Host를 동적으로 설정
+	r.GET("/swagger/*any", func(c *gin.Context) {
+		docs.SwaggerInfo.Host = c.Request.Host
+		docs.SwaggerInfo.Schemes = []string{"http", "https"}
+		ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
+	})
 
 	// API v1
 	v1 := r.Group("/api/v1")
