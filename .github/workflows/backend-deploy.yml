@@ -3,7 +3,9 @@ name: Backend Deploy
 on:
   push:
     branches: [main]
-    paths: [backend/**]
+    paths:
+      - backend/**
+      - docker-compose.yml
 
 concurrency:
   group: backend-deploy
