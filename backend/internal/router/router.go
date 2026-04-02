@@ -1,40 +1,43 @@
 package router
 
 import (
+	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/handler"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	ginSwagger "github.com/swaggo/gin-swagger"
 	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	docs "github.com/SeoHyeokGyu/Mukzzi/backend/docs"
-	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/handler"
 )
 
-// NewRouter Gin 엔진 생성 및 라우트 등록
-func NewRouter(collectionHandler *handler.CollectionHandler) *gin.Engine {
+func NewRouter(
+	collectionHandler *handler.CollectionHandler,
+	menuHandler *handler.MenuHandler,
+) *gin.Engine {
 	r := gin.Default()
 
-	// CORS 미들웨어
 	r.Use(cors.Default())
 
-	// 헬스체크
 	r.GET("/health", func(c *gin.Context) {
 		c.String(200, "ok")
 	})
 
-	// Swagger UI - 요청의 Host를 동적으로 설정
 	r.GET("/swagger/*any", func(c *gin.Context) {
 		docs.SwaggerInfo.Host = c.Request.Host
 		docs.SwaggerInfo.Schemes = []string{"http", "https"}
 		ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
 	})
 
-	// API v1
 	v1 := r.Group("/api/v1")
 	{
 		collections := v1.Group("/collections")
 		{
 			collections.GET("/badges", collectionHandler.GetBadges)
+		}
+
+		menus := v1.Group("/menus")
+		{
+			menus.GET("/search", menuHandler.Search)
 		}
 	}
 

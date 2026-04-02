@@ -1,14 +1,12 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
-	"github.com/gin-gonic/gin"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/usecase"
+	"github.com/gin-gonic/gin"
 )
 
 // CollectionHandler 컬렉션 핸들러
@@ -92,65 +90,6 @@ func (h *CollectionHandler) GetBadges(c *gin.Context) {
 			"next_cursor": result.NextCursor,
 			"has_next":    result.HasNext,
 			"limit":       result.Limit,
-		},
-	})
-}
-
-// extractUserIDFromGinContext Gin 컨텍스트에서 사용자 ID 추출
-func extractUserIDFromGinContext(c *gin.Context) (int64, error) {
-	auth := c.GetHeader("Authorization")
-	if auth == "" {
-		return 0, fmt.Errorf("missing authorization header")
-	}
-
-	// Bearer token 추출
-	parts := strings.Split(auth, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		return 0, fmt.Errorf("invalid authorization format")
-	}
-
-	// TODO: JWT 토큰 검증 및 사용자 ID 추출
-	// 임시로 1 반환 (실제 구현에서는 JWT 검증 필요)
-	return 1, nil
-}
-
-// 공통 응답 구조
-type ApiResponse struct {
-	Success    bool        `json:"success"`
-	Data       interface{} `json:"data,omitempty"`
-	Pagination interface{} `json:"pagination,omitempty"`
-	Error      interface{} `json:"error,omitempty"`
-}
-
-type ErrorDetail struct {
-	Code    string      `json:"code"`
-	Message string      `json:"message"`
-	Details interface{} `json:"details"`
-}
-
-// writeSuccessResponse Gin 성공 응답
-func writeSuccessResponse(c *gin.Context, statusCode int, data interface{}) {
-	response := ApiResponse{Success: true}
-
-	dataMap, ok := data.(map[string]interface{})
-	if ok {
-		response.Data = dataMap["data"]
-		response.Pagination = dataMap["pagination"]
-	} else {
-		response.Data = data
-	}
-
-	c.JSON(statusCode, response)
-}
-
-// writeErrorResponse Gin 에러 응답
-func writeErrorResponse(c *gin.Context, statusCode int, code string, message string) {
-	c.JSON(statusCode, ApiResponse{
-		Success: false,
-		Error: ErrorDetail{
-			Code:    code,
-			Message: message,
-			Details: nil,
 		},
 	})
 }

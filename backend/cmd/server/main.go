@@ -40,7 +40,11 @@ func main() {
 	}
 
 	// DB 마이그레이션
-	if err := db.AutoMigrate(&domain.Badge{}, &domain.UserBadge{}); err != nil {
+	if err := db.AutoMigrate(
+		&domain.Badge{},
+		&domain.UserBadge{},
+		&domain.Menu{},
+	); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
@@ -49,7 +53,11 @@ func main() {
 	badgeUC := usecase.NewBadgeUsecase(badgeRepo, db)
 	collectionHandler := handler.NewCollectionHandler(badgeUC)
 
-	r := router.NewRouter(collectionHandler)
+	menuRepo := repository.NewMenuRepository()
+	menuUC := usecase.NewMenuUsecase(menuRepo, db)
+	menuHandler := handler.NewMenuHandler(menuUC)
+
+	r := router.NewRouter(collectionHandler, menuHandler)
 
 	log.Printf("Mukzzi server listening on :%s", port)
 	log.Fatal(r.Run(":" + port))
