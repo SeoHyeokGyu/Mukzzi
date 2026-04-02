@@ -4,6 +4,9 @@ import (
 	"log"
 	"os"
 
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/handler"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/router"
@@ -24,9 +27,20 @@ func main() {
 		port = "8080"
 	}
 
+	// DB 연결
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		log.Fatal("DATABASE_URL environment variable not set")
+	}
+
+	db, err := gorm.Open(postgres.Open(databaseURL), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
 	// 의존성 조립 (DI)
 	badgeRepo := repository.NewBadgeRepository()
-	badgeUC := usecase.NewBadgeUsecase(badgeRepo, nil)
+	badgeUC := usecase.NewBadgeUsecase(badgeRepo, db)
 	collectionHandler := handler.NewCollectionHandler(badgeUC)
 
 	r := router.NewRouter(collectionHandler)
