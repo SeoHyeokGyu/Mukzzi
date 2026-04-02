@@ -1,6 +1,7 @@
 package router
 
 import (
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	swaggerFiles "github.com/swaggo/files"
@@ -12,6 +13,9 @@ import (
 // NewRouter Gin 엔진 생성 및 라우트 등록
 func NewRouter(collectionHandler *handler.CollectionHandler) *gin.Engine {
 	r := gin.Default()
+
+	// CORS 미들웨어
+	r.Use(cors.Default())
 
 	// 헬스체크
 	r.GET("/health", func(c *gin.Context) {
