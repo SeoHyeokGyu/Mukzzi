@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/dto"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/usecase"
 	"github.com/gin-gonic/gin"
