@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/dto"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/usecase"
 	"github.com/gin-gonic/gin"
@@ -84,17 +85,14 @@ func (h *CollectionHandler) GetBadges(c *gin.Context) {
 		return
 	}
 
-	// 성공 응답 (기존 Response 구조체 사용)
-	c.JSON(http.StatusOK, Response{
+	// 성공 응답 (CollectionResponse DTO 사용)
+	c.JSON(http.StatusOK, dto.CollectionResponse{
 		Success: true,
 		Data:    result.Badges,
-		Pagination: &Pagination{
-			Limit:   result.Limit,
-			HasNext: result.HasNext,
-			// 커서 기반 페이지네이션의 경우 TotalCount 가 없을 수 있으므로 0 혹은 생략 가능
-			// 여기서는 NextCursor 를 Data 혹은 별도 필드에 포함할 수 있음
+		Pagination: &dto.PaginationInfo{
+			Limit:      result.Limit,
+			HasNext:    result.HasNext,
+			NextCursor: result.NextCursor,
 		},
 	})
-	// 주의: Pagination 구조체에 NextCursor 필드가 없으므로, 필요하다면 Data 에 포함하거나 구조체를 확장해야 함
-	// 현재 response.go 의 Pagination 은 TotalCount 를 요구함.
 }

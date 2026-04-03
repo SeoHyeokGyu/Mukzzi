@@ -1,17 +1,11 @@
 package dto
 
-import "time"
+import (
+	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
+)
 
-// BadgeResponse API 응답용 뱃지 정보
-type BadgeResponse struct {
-	ID          int64      `json:"id,string"`
-	Code        string     `json:"code"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	IconURL     string     `json:"icon_url"`
-	Acquired    bool       `json:"acquired"`
-	AcquiredAt  *time.Time `json:"acquired_at,omitempty"`
-}
+// BadgeResponse domain.BadgeResponse의 alias
+type BadgeResponse = domain.BadgeResponse
 
 // CollectionResponse 뱃지 목록 조회 응답
 type CollectionResponse struct {
