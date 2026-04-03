@@ -30,7 +30,7 @@ func InitDB() *gorm.DB {
 	log.Printf("데이터베이스 연결 성공! (Host: %s, DB: %s)", host, dbName)
 
 	// 오토 마이그레이션
-	err = db.AutoMigrate(&domain.User{})
+	err = db.AutoMigrate(&domain.User{}, &domain.Badge{}, &domain.UserBadge{})
 	if err != nil {
 		log.Fatalf("마이그레이션 실패: %v", err)
 	}

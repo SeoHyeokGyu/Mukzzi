@@ -4,16 +4,28 @@ import (
 	"log"
 	"os"
 
+	_ "github.com/SeoHyeokGyu/Mukzzi/backend/docs"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/config"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/handler"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/middleware"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/route"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/usecase"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// @title           Mukzzi API
+// @version         1.0
+// @description     Mukzzi 서비스 API 문서입니다.
+// @host            localhost:8080
+// @BasePath        /
+// @securityDefinitions.apikey  BearerAuth
+// @in              header
+// @name            Authorization
 func main() {
 	// 환경 변수 로드 (현재 디렉토리 또는 상위 디렉토리에서 .env 탐색)
 	if err := godotenv.Load("../.env"); err != nil {
@@ -30,6 +42,7 @@ func main() {
 	r.Use(gin.Recovery())                   // 패닉 방지
 	r.Use(middleware.RequestIDMiddleware()) // 요청마다 고유 ID 부여
 	r.Use(middleware.LoggerMiddleware())    // 상세 API 로그 기록
+	r.Use(cors.Default())                   // CORS 설정
 
 	// 포트 설정
 	port := os.Getenv("SERVER_PORT")
@@ -42,8 +55,12 @@ func main() {
 		c.String(200, "ok")
 	})
 
+	// Swagger UI
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// 의존성 주입 (DI)
 	userRepo := repository.NewUserRepository(db)
+	badgeRepo := repository.NewBadgeRepository()
 
 	// Auth 도메인
 	authUsecase := usecase.NewAuthUsecase(userRepo)
@@ -53,10 +70,15 @@ func main() {
 	userUsecase := usecase.NewUserUsecase(userRepo)
 	userHandler := handler.NewUserHandler(userUsecase)
 
+	// Collection 도메인
+	badgeUsecase := usecase.NewBadgeUsecase(badgeRepo, db)
+	collectionHandler := handler.NewCollectionHandler(badgeUsecase)
+
 	// 라우트 등록
 	api := r.Group("/api")
 	route.AuthRoute(api, authHandler)
 	route.UserRoute(api, userHandler)
+	route.CollectionRoute(api, collectionHandler)
 
 	// 서버 실행
 	log.Printf("Mukzzi server listening on :%s", port)
