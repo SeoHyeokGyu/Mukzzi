@@ -9,6 +9,9 @@ require (
 	github.com/sony/sonyflake v1.3.0
 	golang.org/x/crypto v0.49.0
 	gorm.io/driver/postgres v1.6.0
+	github.com/swaggo/files v1.0.1
+	github.com/swaggo/gin-swagger v1.6.1
+	github.com/swaggo/swag v1.16.6
 	gorm.io/gorm v1.31.1
 )
 
