@@ -19,7 +19,18 @@ func NewUserHandler(userUsecase usecase.UserUsecase) *UserHandler {
 	return &UserHandler{userUsecase: userUsecase}
 }
 
-// GetMe 는 현재 로그인한 사용자의 프로필을 조회합니다.
+// GetMe 현재 사용자 프로필 조회
+// @Summary      현재 사용자 프로필 조회
+// @Description  로그인한 현재 사용자의 프로필 정보를 조회합니다.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  Response  "사용자 프로필 조회 성공"
+// @Failure      401  {object}  Response  "인증 토큰 누락 또는 유효하지 않음"
+// @Failure      404  {object}  Response  "사용자를 찾을 수 없습니다"
+// @Failure      500  {object}  Response  "서버 내부 에러"
+// @Router       /api/users/me [get]
 func (h *UserHandler) GetMe(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -36,7 +47,18 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 	Success(c, user)
 }
 
-// GetProfile 은 특정 사용자의 프로필을 조회합니다.
+// GetProfile 사용자 프로필 조회
+// @Summary      사용자 프로필 조회
+// @Description  특정 사용자의 프로필 정보를 조회합니다.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int64   true  "사용자 ID"
+// @Success      200  {object}  Response  "사용자 프로필 조회 성공"
+// @Failure      400  {object}  Response  "잘못된 사용자 ID"
+// @Failure      404  {object}  Response  "사용자를 찾을 수 없습니다"
+// @Failure      500  {object}  Response  "서버 내부 에러"
+// @Router       /api/users/{id} [get]
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
@@ -54,7 +76,21 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 	Success(c, user)
 }
 
-// UpdateProfile 은 특정 사용자의 프로필 정보를 수정합니다.
+// UpdateProfile 사용자 프로필 수정
+// @Summary      사용자 프로필 수정
+// @Description  자신의 프로필 정보를 수정합니다. 본인만 수정 가능합니다.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id                  path      int64                   true  "사용자 ID"
+// @Param        UserUpdateRequest   body      dto.UserUpdateRequest   true  "프로필 수정 정보"
+// @Success      200  {object}  Response  "프로필 수정 성공"
+// @Failure      400  {object}  Response  "잘못된 사용자 ID 또는 요청 형식"
+// @Failure      401  {object}  Response  "인증 토큰 누락 또는 유효하지 않음"
+// @Failure      403  {object}  Response  "자신의 프로필만 수정 가능"
+// @Failure      500  {object}  Response  "서버 내부 에러"
+// @Router       /api/users/{id} [put]
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	// 1. 요청 파라미터 확인
 	idStr := c.Param("id")
@@ -95,7 +131,19 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	Success(c, updatedUser)
 }
 
-// DeleteAccount 는 특정 사용자의 계정을 삭제합니다.
+// DeleteAccount 계정 삭제
+// @Summary      계정 삭제
+// @Description  계정을 삭제합니다. 삭제된 계정은 복구할 수 없습니다.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      int64   true  "사용자 ID"
+// @Success      200  {object}  Response  "계정 삭제 성공"
+// @Failure      400  {object}  Response  "잘못된 사용자 ID"
+// @Failure      401  {object}  Response  "인증 토큰 누락 또는 유효하지 않음"
+// @Failure      500  {object}  Response  "서버 내부 에러"
+// @Router       /api/users/{id} [delete]
 func (h *UserHandler) DeleteAccount(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)

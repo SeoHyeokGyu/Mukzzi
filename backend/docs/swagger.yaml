@@ -24,8 +24,6 @@ definitions:
         items:
           $ref: '#/definitions/dto.BadgeResponse'
         type: array
-      error:
-        $ref: '#/definitions/dto.ErrorInfo'
       pagination:
         $ref: '#/definitions/dto.PaginationInfo'
       success:
@@ -84,6 +82,16 @@ definitions:
     - email
     - password
     - username
+    type: object
+  dto.UserUpdateRequest:
+    properties:
+      email:
+        type: string
+      nickname:
+        type: string
+      password:
+        minLength: 6
+        type: string
     type: object
   handler.ErrorResponse:
     properties:
@@ -281,6 +289,149 @@ paths:
       summary: 메뉴 검색
       tags:
       - menus
+  /api/users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 계정을 삭제합니다. 삭제된 계정은 복구할 수 없습니다.
+      parameters:
+      - description: 사용자 ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 계정 삭제 성공
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "400":
+          description: 잘못된 사용자 ID
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "401":
+          description: 인증 토큰 누락 또는 유효하지 않음
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: 서버 내부 에러
+          schema:
+            $ref: '#/definitions/handler.Response'
+      security:
+      - BearerAuth: []
+      summary: 계정 삭제
+      tags:
+      - users
+    get:
+      consumes:
+      - application/json
+      description: 특정 사용자의 프로필 정보를 조회합니다.
+      parameters:
+      - description: 사용자 ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 사용자 프로필 조회 성공
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "400":
+          description: 잘못된 사용자 ID
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "404":
+          description: 사용자를 찾을 수 없습니다
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: 서버 내부 에러
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: 사용자 프로필 조회
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: 자신의 프로필 정보를 수정합니다. 본인만 수정 가능합니다.
+      parameters:
+      - description: 사용자 ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 프로필 수정 정보
+        in: body
+        name: UserUpdateRequest
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 프로필 수정 성공
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "400":
+          description: 잘못된 사용자 ID 또는 요청 형식
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "401":
+          description: 인증 토큰 누락 또는 유효하지 않음
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "403":
+          description: 자신의 프로필만 수정 가능
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: 서버 내부 에러
+          schema:
+            $ref: '#/definitions/handler.Response'
+      security:
+      - BearerAuth: []
+      summary: 사용자 프로필 수정
+      tags:
+      - users
+  /api/users/me:
+    get:
+      consumes:
+      - application/json
+      description: 로그인한 현재 사용자의 프로필 정보를 조회합니다.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 사용자 프로필 조회 성공
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "401":
+          description: 인증 토큰 누락 또는 유효하지 않음
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "404":
+          description: 사용자를 찾을 수 없습니다
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: 서버 내부 에러
+          schema:
+            $ref: '#/definitions/handler.Response'
+      security:
+      - BearerAuth: []
+      summary: 현재 사용자 프로필 조회
+      tags:
+      - users
 securityDefinitions:
   BearerAuth:
     in: header
