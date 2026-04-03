@@ -17,7 +17,17 @@ func NewAuthHandler(authUsecase usecase.AuthUsecase) *AuthHandler {
 	return &AuthHandler{authUsecase: authUsecase}
 }
 
-// Register 는 사용자 회원가입을 처리합니다.
+// Register 사용자 회원가입
+// @Summary      사용자 회원가입
+// @Description  새로운 사용자를 등록합니다.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        RegisterRequest  body      dto.RegisterRequest  true  "회원가입 정보"
+// @Success      201  {object}  Response
+// @Failure      400  {object}  Response
+// @Failure      500  {object}  Response
+// @Router       /api/auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req dto.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -42,7 +52,18 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	Created(c, createdUser)
 }
 
-// Login 은 사용자 로그인을 처리합니다.
+// Login 사용자 로그인
+// @Summary      사용자 로그인
+// @Description  아이디와 비밀번호로 로그인하고 JWT 토큰을 반환합니다.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        LoginRequest  body      dto.LoginRequest  true  "로그인 정보"
+// @Success      200  {object}  Response
+// @Failure      400  {object}  Response
+// @Failure      401  {object}  Response
+// @Failure      500  {object}  Response
+// @Router       /api/auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req dto.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
