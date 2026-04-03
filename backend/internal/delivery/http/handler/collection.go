@@ -33,15 +33,21 @@ func NewCollectionHandler(badgeUsecase usecase.BadgeUsecase) *CollectionHandler 
 // @Param        limit             query     int     false  "페이지당 항목 수 (기본값: 20, 최대: 50)"
 // @Param        cursor            query     string  false  "다음 페이지 커서"
 // @Success      200  {object}  dto.CollectionResponse  "뱃지 목록 조회 성공"
-// @Failure      400  {object}  dto.ErrorResponse  "잘못된 쿼리 파라미터"
-// @Failure      401  {object}  dto.ErrorResponse  "인증 토큰 누락 또는 유효하지 않음"
-// @Failure      500  {object}  dto.ErrorResponse  "서버 내부 에러"
+// @Failure      400  {object}  dto.CollectionResponse  "잘못된 쿼리 파라미터"
+// @Failure      401  {object}  dto.CollectionResponse  "인증 토큰 누락 또는 유효하지 않음"
+// @Failure      500  {object}  dto.CollectionResponse  "서버 내부 에러"
 // @Router       /api/collections/badges [get]
 func (h *CollectionHandler) GetBadges(c *gin.Context) {
 	// 인증 확인 (미들웨어에서 설정한 userID 사용)
 	userIDVal, exists := c.Get("userID")
 	if !exists {
-		Unauthorized(c, "UNAUTHORIZED", "인증 정보가 없습니다.")
+		c.JSON(http.StatusUnauthorized, dto.CollectionResponse{
+			Success: false,
+			Error: &dto.ErrorInfo{
+				Code:    "UNAUTHORIZED",
+				Message: "인증 정보가 없습니다.",
+			},
+		})
 		return
 	}
 	userID := userIDVal.(int64)
@@ -57,7 +63,13 @@ func (h *CollectionHandler) GetBadges(c *gin.Context) {
 		if includeAcquiredStr == "false" {
 			includeAcquired = false
 		} else if includeAcquiredStr != "true" {
-			BadRequest(c, "INVALID_PARAMETER", "include_acquired 는 'true' 또는 'false' 여야 합니다.")
+			c.JSON(http.StatusBadRequest, dto.CollectionResponse{
+				Success: false,
+				Error: &dto.ErrorInfo{
+					Code:    "INVALID_PARAMETER",
+					Message: "include_acquired 는 'true' 또는 'false' 여야 합니다.",
+				},
+			})
 			return
 		}
 	}
@@ -67,7 +79,13 @@ func (h *CollectionHandler) GetBadges(c *gin.Context) {
 	if limitStr != "" {
 		parsedLimit, err := strconv.Atoi(limitStr)
 		if err != nil || parsedLimit <= 0 || parsedLimit > 50 {
-			BadRequest(c, "INVALID_PARAMETER", "limit 은 1 에서 50 사이여야 합니다.")
+			c.JSON(http.StatusBadRequest, dto.CollectionResponse{
+				Success: false,
+				Error: &dto.ErrorInfo{
+					Code:    "INVALID_PARAMETER",
+					Message: "limit 은 1 에서 50 사이여야 합니다.",
+				},
+			})
 			return
 		}
 		limit = parsedLimit
@@ -81,7 +99,13 @@ func (h *CollectionHandler) GetBadges(c *gin.Context) {
 		Limit:           limit,
 	})
 	if err != nil {
-		InternalError(c, "뱃지 목록을 가져오는 데 실패했습니다.")
+		c.JSON(http.StatusInternalServerError, dto.CollectionResponse{
+			Success: false,
+			Error: &dto.ErrorInfo{
+				Code:    "INTERNAL_SERVER_ERROR",
+				Message: "뱃지 목록을 가져오는 데 실패했습니다.",
+			},
+		})
 		return
 	}
 
@@ -89,6 +113,7 @@ func (h *CollectionHandler) GetBadges(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.CollectionResponse{
 		Success: true,
 		Data:    result.Badges,
+		Error:   nil,
 		Pagination: &dto.PaginationInfo{
 			Limit:      result.Limit,
 			HasNext:    result.HasNext,

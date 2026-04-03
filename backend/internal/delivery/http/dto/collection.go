@@ -7,10 +7,11 @@ import (
 // BadgeResponse domain.BadgeResponse의 alias
 type BadgeResponse = domain.BadgeResponse
 
-// CollectionResponse 뱃지 목록 조회 성공 응답
+// CollectionResponse 뱃지 목록 조회 응답
 type CollectionResponse struct {
 	Success    bool              `json:"success"`
-	Data       []BadgeResponse   `json:"data"`
+	Data       []BadgeResponse   `json:"data,omitempty"`
+	Error      *ErrorInfo        `json:"error,omitempty"`
 	Pagination *PaginationInfo   `json:"pagination,omitempty"`
 }
 
