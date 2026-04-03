@@ -57,6 +57,53 @@ paths:
       summary: 뱃지 목록 조회
       tags:
       - collections
+  /api/v1/menus/search:
+    get:
+      consumes:
+      - application/json
+      description: 메뉴명으로 검색합니다. USER 소스 포함, 공식 소스 우선 정렬.
+      parameters:
+      - description: 검색어
+        in: query
+        name: query
+        required: true
+        type: string
+      - description: 카테고리 (KOREAN, CHINESE, JAPANESE, WESTERN, SNACK, CAFE, OTHER)
+        in: query
+        name: category
+        type: string
+      - description: 다음 페이지 커서
+        in: query
+        name: cursor
+        type: string
+      - description: '페이지당 항목 수 (기본값: 20, 최대: 50)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.ApiResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ApiResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: 메뉴 검색
+      tags:
+      - menus
 securityDefinitions:
   BearerAuth:
     in: header
