@@ -1,6 +1,7 @@
 package route
 
 import (
+	"github.com/SeoHyeokGyu/Mukzzi/backend/docs"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/handler"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/middleware"
 	"github.com/gin-contrib/cors"
@@ -29,8 +30,12 @@ func NewRouter(
 		c.String(200, "ok")
 	})
 
-	// Swagger UI
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// Swagger UI - 요청의 Host를 동적으로 설정
+	r.GET("/swagger/*any", func(c *gin.Context) {
+		docs.SwaggerInfo.Host = c.Request.Host
+		docs.SwaggerInfo.Schemes = []string{"http", "https"}
+		ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
+	})
 
 	// API 라우트 그룹
 	api := r.Group("/api")
