@@ -39,6 +39,13 @@ definitions:
       message:
         type: string
     type: object
+  dto.ErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/dto.ErrorInfo'
+      success:
+        type: boolean
+    type: object
   dto.LoginRequest:
     properties:
       password:
@@ -213,15 +220,15 @@ paths:
         "400":
           description: 잘못된 쿼리 파라미터
           schema:
-            $ref: '#/definitions/handler.Response'
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: 인증 토큰 누락 또는 유효하지 않음
           schema:
-            $ref: '#/definitions/handler.Response'
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: 서버 내부 에러
           schema:
-            $ref: '#/definitions/handler.Response'
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
       summary: 뱃지 목록 조회

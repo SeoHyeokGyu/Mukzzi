@@ -32,9 +32,9 @@ func NewCollectionHandler(badgeUsecase usecase.BadgeUsecase) *CollectionHandler 
 // @Param        limit             query     int     false  "페이지당 항목 수 (기본값: 20, 최대: 50)"
 // @Param        cursor            query     string  false  "다음 페이지 커서"
 // @Success      200  {object}  dto.CollectionResponse  "뱃지 목록 조회 성공"
-// @Failure      400  {object}  Response  "잘못된 쿼리 파라미터"
-// @Failure      401  {object}  Response  "인증 토큰 누락 또는 유효하지 않음"
-// @Failure      500  {object}  Response  "서버 내부 에러"
+// @Failure      400  {object}  dto.ErrorResponse  "잘못된 쿼리 파라미터"
+// @Failure      401  {object}  dto.ErrorResponse  "인증 토큰 누락 또는 유효하지 않음"
+// @Failure      500  {object}  dto.ErrorResponse  "서버 내부 에러"
 // @Router       /api/collections/badges [get]
 func (h *CollectionHandler) GetBadges(c *gin.Context) {
 	// 인증 확인 (미들웨어에서 설정한 userID 사용)

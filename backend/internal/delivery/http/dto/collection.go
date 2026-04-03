@@ -36,3 +36,9 @@ type ErrorInfo struct {
 	Message string      `json:"message"`
 	Details interface{} `json:"details,omitempty"`
 }
+
+// ErrorResponse 에러 응답
+type ErrorResponse struct {
+	Success bool      `json:"success"`
+	Error   *ErrorInfo `json:"error"`
+}
