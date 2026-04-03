@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/dto"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/usecase"
 	"github.com/gin-gonic/gin"
@@ -31,10 +32,10 @@ func NewCollectionHandler(badgeUsecase usecase.BadgeUsecase) *CollectionHandler 
 // @Param        include_acquired  query     bool    false  "획득한 뱃지 포함 여부 (기본값: true)"
 // @Param        limit             query     int     false  "페이지당 항목 수 (기본값: 20, 최대: 50)"
 // @Param        cursor            query     string  false  "다음 페이지 커서"
-// @Success      200  {object}  Response
-// @Failure      400  {object}  Response
-// @Failure      401  {object}  Response
-// @Failure      500  {object}  Response
+// @Success      200  {object}  dto.CollectionResponse  "뱃지 목록 조회 성공"
+// @Failure      400  {object}  Response  "잘못된 쿼리 파라미터"
+// @Failure      401  {object}  Response  "인증 토큰 누락 또는 유효하지 않음"
+// @Failure      500  {object}  Response  "서버 내부 에러"
 // @Router       /api/collections/badges [get]
 func (h *CollectionHandler) GetBadges(c *gin.Context) {
 	// 인증 확인 (미들웨어에서 설정한 userID 사용)

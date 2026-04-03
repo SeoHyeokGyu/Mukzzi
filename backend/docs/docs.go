@@ -153,25 +153,25 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "뱃지 목록 조회 성공",
                         "schema": {
-                            "$ref": "#/definitions/handler.Response"
+                            "$ref": "#/definitions/dto.CollectionResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "잘못된 쿼리 파라미터",
                         "schema": {
                             "$ref": "#/definitions/handler.Response"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "인증 토큰 누락 또는 유효하지 않음",
                         "schema": {
                             "$ref": "#/definitions/handler.Response"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "서버 내부 에러",
                         "schema": {
                             "$ref": "#/definitions/handler.Response"
                         }
@@ -254,6 +254,65 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.BadgeResponse": {
+            "type": "object",
+            "properties": {
+                "acquired": {
+                    "type": "boolean"
+                },
+                "acquired_at": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "icon_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "0"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CollectionResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BadgeResponse"
+                    }
+                },
+                "error": {
+                    "$ref": "#/definitions/dto.ErrorInfo"
+                },
+                "pagination": {
+                    "$ref": "#/definitions/dto.PaginationInfo"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.ErrorInfo": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "details": {},
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.LoginRequest": {
             "type": "object",
             "required": [
@@ -266,6 +325,26 @@ const docTemplate = `{
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.PaginationInfo": {
+            "type": "object",
+            "properties": {
+                "has_next": {
+                    "type": "boolean"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "next_cursor": {
+                    "type": "string"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total_count": {
+                    "type": "integer"
                 }
             }
         },
