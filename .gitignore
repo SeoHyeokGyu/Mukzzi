@@ -33,3 +33,4 @@ node_modules/
 
 # Docker
 *.log
+backend/tmp/
