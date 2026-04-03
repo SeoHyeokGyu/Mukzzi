@@ -61,6 +61,7 @@ func main() {
 	// 의존성 주입 (DI)
 	userRepo := repository.NewUserRepository(db)
 	badgeRepo := repository.NewBadgeRepository()
+	menuRepo := repository.NewMenuRepository()
 
 	// Auth 도메인
 	authUsecase := usecase.NewAuthUsecase(userRepo)
@@ -74,11 +75,16 @@ func main() {
 	badgeUsecase := usecase.NewBadgeUsecase(badgeRepo, db)
 	collectionHandler := handler.NewCollectionHandler(badgeUsecase)
 
+	// Menu 도메인
+	menuUsecase := usecase.NewMenuUsecase(menuRepo, db)
+	menuHandler := handler.NewMenuHandler(menuUsecase)
+
 	// 라우트 등록
 	api := r.Group("/api")
 	route.AuthRoute(api, authHandler)
 	route.UserRoute(api, userHandler)
 	route.CollectionRoute(api, collectionHandler)
+	route.MenuRoute(api, menuHandler)
 
 	// 서버 실행
 	log.Printf("Mukzzi server listening on :%s", port)
