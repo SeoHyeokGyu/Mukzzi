@@ -7,15 +7,10 @@ import (
 	_ "github.com/SeoHyeokGyu/Mukzzi/backend/docs"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/config"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/handler"
-	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/middleware"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/route"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/usecase"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // @title           Mukzzi API
@@ -35,28 +30,11 @@ func main() {
 	// DB 초기화
 	db := config.InitDB()
 
-	// Gin 엔진 생성
-	r := gin.New()
-
-	// 전역 미들웨어 설정
-	r.Use(gin.Recovery())                   // 패닉 방지
-	r.Use(middleware.RequestIDMiddleware()) // 요청마다 고유 ID 부여
-	r.Use(middleware.LoggerMiddleware())    // 상세 API 로그 기록
-	r.Use(cors.Default())                   // CORS 설정
-
 	// 포트 설정
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
 		port = "8080"
 	}
-
-	// Health Check
-	r.GET("/health", func(c *gin.Context) {
-		c.String(200, "ok")
-	})
-
-	// Swagger UI
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// 의존성 주입 (DI)
 	userRepo := repository.NewUserRepository(db)
@@ -79,12 +57,13 @@ func main() {
 	menuUsecase := usecase.NewMenuUsecase(menuRepo, db)
 	menuHandler := handler.NewMenuHandler(menuUsecase)
 
-	// 라우트 등록
-	api := r.Group("/api")
-	route.AuthRoute(api, authHandler)
-	route.UserRoute(api, userHandler)
-	route.CollectionRoute(api, collectionHandler)
-	route.MenuRoute(api, menuHandler)
+	// 라우터 초기화 (모든 미들웨어 및 라우트 등록)
+	r := route.NewRouter(
+		authHandler,
+		userHandler,
+		collectionHandler,
+		menuHandler,
+	)
 
 	// 서버 실행
 	log.Printf("Mukzzi server listening on :%s", port)

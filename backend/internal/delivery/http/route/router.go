@@ -1,0 +1,45 @@
+package route
+
+import (
+	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/handler"
+	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/middleware"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+)
+
+// NewRouter 는 Gin 엔진을 생성하고 미들웨어와 모든 라우트를 등록합니다.
+func NewRouter(
+	authHandler *handler.AuthHandler,
+	userHandler *handler.UserHandler,
+	collectionHandler *handler.CollectionHandler,
+	menuHandler *handler.MenuHandler,
+) *gin.Engine {
+	r := gin.New()
+
+	// 전역 미들웨어 설정
+	r.Use(gin.Recovery())                   // 패닉 방지
+	r.Use(middleware.RequestIDMiddleware()) // 요청마다 고유 ID 부여
+	r.Use(middleware.LoggerMiddleware())    // 상세 API 로그 기록
+	r.Use(cors.Default())                   // CORS 설정
+
+	// 헬스체크
+	r.GET("/health", func(c *gin.Context) {
+		c.String(200, "ok")
+	})
+
+	// Swagger UI
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// API 라우트 그룹
+	api := r.Group("/api")
+	{
+		AuthRoute(api, authHandler)
+		UserRoute(api, userHandler)
+		CollectionRoute(api, collectionHandler)
+		MenuRoute(api, menuHandler)
+	}
+
+	return r
+}
