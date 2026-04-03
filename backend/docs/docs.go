@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/collections/badges": {
+        "/api/collections/badges": {
             "get": {
                 "security": [
                     {
@@ -57,31 +57,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handler.ApiResponse"
+                            "$ref": "#/definitions/handler.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/handler.ApiResponse"
+                            "$ref": "#/definitions/handler.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/handler.ApiResponse"
+                            "$ref": "#/definitions/handler.Response"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/handler.ApiResponse"
+                            "$ref": "#/definitions/handler.Response"
                         }
                     }
                 }
             }
         },
-        "/api/v1/menus/search": {
+        "/api/menus/search": {
             "get": {
                 "security": [
                     {
@@ -130,25 +130,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handler.ApiResponse"
+                            "$ref": "#/definitions/handler.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/handler.ApiResponse"
+                            "$ref": "#/definitions/handler.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/handler.ApiResponse"
+                            "$ref": "#/definitions/handler.Response"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/handler.ApiResponse"
+                            "$ref": "#/definitions/handler.Response"
                         }
                     }
                 }
@@ -156,14 +156,54 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "handler.ApiResponse": {
+        "handler.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "USER_NOT_FOUND"
+                },
+                "details": {},
+                "message": {
+                    "type": "string",
+                    "example": "해당 사용자를 찾을 수 없습니다."
+                }
+            }
+        },
+        "handler.Pagination": {
+            "type": "object",
+            "properties": {
+                "has_next": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "limit": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "total_count": {
+                    "type": "integer",
+                    "example": 100
+                }
+            }
+        },
+        "handler.Response": {
             "type": "object",
             "properties": {
                 "data": {},
-                "error": {},
-                "pagination": {},
+                "error": {
+                    "$ref": "#/definitions/handler.ErrorResponse"
+                },
+                "pagination": {
+                    "$ref": "#/definitions/handler.Pagination"
+                },
                 "success": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": true
                 }
             }
         }
