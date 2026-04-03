@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -29,11 +28,16 @@ func InitDB() *gorm.DB {
 
 	log.Printf("데이터베이스 연결 성공! (Host: %s, DB: %s)", host, dbName)
 
-	// 오토 마이그레이션
-	err = db.AutoMigrate(&domain.User{}, &domain.Badge{}, &domain.UserBadge{})
-	if err != nil {
-		log.Fatalf("마이그레이션 실패: %v", err)
-	}
+	//// 오토 마이그레이션
+	//err = db.AutoMigrate(
+	//	&domain.User{},
+	//	&domain.Badge{},
+	//	&domain.UserBadge{},
+	//	&domain.Menu{},
+	//)
+	//if err != nil {
+	//	log.Fatalf("마이그레이션 실패: %v", err)
+	//}
 
 	return db
 }
