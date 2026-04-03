@@ -42,9 +42,10 @@
   "success": true,
   "data": [ ... ],
   "pagination": {
-    "next_cursor": "1234567890",
-    "has_next": true,
-    "limit": 20
+    "total_count": 100,
+    "page": 1,
+    "limit": 20,
+    "has_next": true
   }
 }
 ```
