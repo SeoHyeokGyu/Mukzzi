@@ -4,7 +4,11 @@ import 'src/router/app_router.dart';
 import 'src/core/theme/app_theme.dart';
 
 void main() {
-  runApp(const MukzziApp());
+  runApp(
+    const ProviderScope(
+      child: MukzziApp(),
+    ),
+  );
 }
 
 class MukzziApp extends ConsumerWidget {
