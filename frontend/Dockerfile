@@ -3,7 +3,7 @@ WORKDIR /app
 COPY pubspec.yaml pubspec.lock* ./
 RUN flutter pub get
 COPY . .
-RUN flutter build web --release
+RUN flutter build web --release --verbose
 
 FROM nginx:alpine
 COPY --from=builder /app/build/web /usr/share/nginx/html
