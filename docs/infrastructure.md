@@ -152,20 +152,57 @@ backend/
 - `lib/src/features/[feature]/` 구조를 사용하여 기능 단위로 코드를 관리합니다.
 ```
 frontend/
-  ├── lib/
-  │     ├── main.dart
-  │     ├── src/
-  │     │    ├── features/
-  │     │    │    ├── character/    # 캐릭터 관련 UI 및 로직
-  │     │    │    │     ├── domain/
-  │     │    │    │     ├── data/
-  │     │    │    │     └── presentation/
-  │     │    │    ├── meal_record/  # 식사 기록 관련
-  │     │    │    └── social/       # 소셜 기능 관련
-  │     │    ├── core/              # 공통 위젯, 테마, 유틸리티
-  │     │    └── router/            # GoRouter 설정
-  └── assets/                       # Rive 파일 및 이미지
+├── lib/
+│   ├── main.dart                           # 애플리케이션 진입점
+│   └── src/
+│       ├── features/                       # 기능별 폴더 (도메인 기반)
+│       │   ├── auth/
+│       │   │   ├── domain/                 # 엔티티, 리포지토리 인터페이스, 유스케이스
+│       │   │   │   ├── entities/
+│       │   │   │   ├── repositories/
+│       │   │   │   └── usecases/
+│       │   │   ├── data/                   # 데이터소스, 모델, 리포지토리 구현
+│       │   │   │   ├── datasources/
+│       │   │   │   ├── models/
+│       │   │   │   └── repositories/
+│       │   │   └── presentation/           # 화면, 프로바이더, 위젯
+│       │   │       ├── pages/
+│       │   │       ├── providers/          # Riverpod 상태 관리
+│       │   │       └── widgets/
+│       │   ├── character/                  # 캐릭터 관련
+│       │   ├── home/                       # 홈 화면
+│       │   ├── meal_record/                # 식사 기록
+│       │   └── social/                     # 소셜 기능
+│       ├── core/                           # 공통 레이어 (모든 feature에서 사용)
+│       │   ├── constants/                  # 상수 정의
+│       │   ├── theme/                      # 테마, 스타일 (AppTheme)
+│       │   ├── utils/                      # 유틸 함수
+│       │   ├── widgets/                    # 공통 위젯
+│       │   └── network/                    # HTTP 클라이언트 (Dio 래퍼)
+│       └── router/                         # GoRouter 설정 및 라우팅 로직
+├── assets/
+│   ├── images/                             # 이미지 에셋
+│   └── animations/                         # Rive 애니메이션 파일
+├── web/                                    # Flutter Web 설정
+├── pubspec.yaml                            # Flutter 패키지 관리
+└── analysis_options.yaml                   # 린트 설정
 ```
+
+#### 기술 스택 (pubspec.yaml)
+| 라이브러리 | 버전 | 용도 |
+|-----------|------|------|
+| flutter_riverpod | ^2.5.1 | 상태 관리 |
+| riverpod_annotation | ^2.3.5 | Riverpod 코드 생성 |
+| riverpod_generator | ^2.4.3 | Riverpod 생성 도구 |
+| go_router | ^14.2.7 | 내비게이션/라우팅 |
+| dio | ^5.7.0 | HTTP 클라이언트 |
+| rive | ^0.13.14 | 인터랙티브 애니메이션 |
+| shared_preferences | ^2.3.2 | 로컬 저장소 |
+| flutter_secure_storage | ^9.2.2 | 보안 저장소 (토큰) |
+| intl | ^0.19.0 | 국제화 및 날짜 포맷 |
+| cached_network_image | ^3.4.1 | 이미지 캐싱 |
+| json_annotation | ^4.9.0 | JSON 직렬화 |
+| json_serializable | ^6.8.0 | JSON 생성 도구 |
 
 ---
 
