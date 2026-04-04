@@ -2,11 +2,24 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
 	"gorm.io/gorm"
 )
+
+// BadgeError 뱃지 관련 에러
+type BadgeError struct {
+	Code    string
+	Message string
+	Details string
+}
+
+// Error BadgeError 에러 구현
+func (e *BadgeError) Error() string {
+	return fmt.Sprintf("[%s] %s: %s", e.Code, e.Message, e.Details)
+}
 
 // BadgeUsecase 뱃지 유즈케이스 인터페이스
 type BadgeUsecase interface {
@@ -52,7 +65,11 @@ func (u *badgeUsecaseImpl) GetBadges(ctx context.Context, query domain.GetBadges
 	// 모든 뱃지 조회
 	allBadges, err := u.badgeRepository.FindAllBadges(u.db, limit+1, offset)
 	if err != nil {
-		return nil, err
+		return nil, &BadgeError{
+			Code:    "BADGE_FETCH_ERROR",
+			Message: "뱃지 목록을 조회하는 중에 오류가 발생했습니다.",
+			Details: err.Error(),
+		}
 	}
 
 	// 사용자가 획득한 뱃지 조회
@@ -62,7 +79,11 @@ func (u *badgeUsecaseImpl) GetBadges(ctx context.Context, query domain.GetBadges
 	if query.UserID > 0 {
 		userBadges, err := u.badgeRepository.FindUserAcquiredBadges(u.db, query.UserID)
 		if err != nil {
-			return nil, err
+			return nil, &BadgeError{
+				Code:    "USER_BADGE_FETCH_ERROR",
+				Message: "사용자의 뱃지 정보를 조회하는 중에 오류가 발생했습니다.",
+				Details: err.Error(),
+			}
 		}
 		for i := range userBadges {
 			acquiredBadges[userBadges[i].BadgeID] = &userBadges[i]

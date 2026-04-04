@@ -134,19 +134,19 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "boolean",
-                        "description": "획득한 뱃지 포함 여부 (기본값: true)",
+                        "description": "획득한 뱃지 포함 여부 (기본값: true, 허용값: 'true'|'false')",
                         "name": "include_acquired",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "페이지당 항목 수 (기본값: 20, 최대: 50)",
+                        "description": "페이지당 항목 수 (기본값: 20, 범위: 1-50)",
                         "name": "limit",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "다음 페이지 커서",
+                        "description": "다음 페이지 커서 (이전 응답의 next_cursor 값 사용)",
                         "name": "cursor",
                         "in": "query"
                     }
@@ -155,25 +155,25 @@ const docTemplate = `{
                     "200": {
                         "description": "뱃지 목록 조회 성공",
                         "schema": {
-                            "$ref": "#/definitions/dto.CollectionResponse"
+                            "$ref": "#/definitions/dto.BadgeSuccessResponse"
                         }
                     },
                     "400": {
                         "description": "잘못된 쿼리 파라미터",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.BadgeErrorResponse"
                         }
                     },
                     "401": {
                         "description": "인증 토큰 누락 또는 유효하지 않음",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.BadgeErrorResponse"
                         }
                     },
                     "500": {
                         "description": "서버 내부 에러",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.BadgeErrorResponse"
                         }
                     }
                 }
@@ -474,6 +474,20 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.BadgeErrorResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "error": {
+                    "$ref": "#/definitions/dto.ErrorInfo"
+                },
+                "pagination": {},
+                "success": {
+                    "type": "boolean",
+                    "example": false
+                }
+            }
+        },
         "dto.BadgeResponse": {
             "type": "object",
             "properties": {
@@ -501,7 +515,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.CollectionResponse": {
+        "dto.BadgeSuccessResponse": {
             "type": "object",
             "properties": {
                 "data": {
@@ -510,11 +524,15 @@ const docTemplate = `{
                         "$ref": "#/definitions/dto.BadgeResponse"
                     }
                 },
+                "error": {
+                    "$ref": "#/definitions/dto.ErrorInfo"
+                },
                 "pagination": {
                     "$ref": "#/definitions/dto.PaginationInfo"
                 },
                 "success": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },
@@ -527,17 +545,6 @@ const docTemplate = `{
                 "details": {},
                 "message": {
                     "type": "string"
-                }
-            }
-        },
-        "dto.ErrorResponse": {
-            "type": "object",
-            "properties": {
-                "error": {
-                    "$ref": "#/definitions/dto.ErrorInfo"
-                },
-                "success": {
-                    "type": "boolean"
                 }
             }
         },
@@ -618,13 +625,11 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "code": {
-                    "type": "string",
-                    "example": "USER_NOT_FOUND"
+                    "type": "string"
                 },
                 "details": {},
                 "message": {
-                    "type": "string",
-                    "example": "해당 사용자를 찾을 수 없습니다."
+                    "type": "string"
                 }
             }
         },
@@ -639,6 +644,9 @@ const docTemplate = `{
                     "type": "integer",
                     "example": 20
                 },
+                "next_cursor": {
+                    "type": "string"
+                },
                 "page": {
                     "type": "integer",
                     "example": 1
@@ -652,7 +660,12 @@ const docTemplate = `{
         "handler.Response": {
             "type": "object",
             "properties": {
-                "data": {},
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "type": "object"
+                    }
+                },
                 "error": {
                     "$ref": "#/definitions/handler.ErrorResponse"
                 },

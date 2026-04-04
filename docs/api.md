@@ -8,7 +8,7 @@
 
 ## 공통 규칙
 
-- Base URL: /api/v1
+- Base URL: /api
 - 인증: Bearer JWT (Access Token)
 - 응답 형식: JSON (모든 응답은 공통 래퍼로 감싸져 반환됩니다.)
 - 요청 형식: JSON (Content-Type: application/json)
@@ -191,6 +191,45 @@
 | PATCH | /collections/titles/equip | O | 칭호 장착/해제 |
 | GET | /collections/rewards | O | 보상 아이템 목록 (배경/이펙트/동작/악세서리) |
 
+#### GET /collections/badges
+
+**쿼리 파라미터:**
+- `include_acquired` (boolean, 선택): 획득한 뱃지 포함 여부 (기본값: true, 허용값: 'true'|'false')
+- `limit` (integer, 선택): 페이지당 항목 수 (기본값: 20, 범위: 1-50)
+- `cursor` (string, 선택): 다음 페이지 커서 (이전 응답의 next_cursor 값 사용)
+
+**성공 응답 (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "1",
+      "code": "FIRST_MEAL",
+      "name": "첫 식사",
+      "description": "첫 식사를 기록했어요",
+      "icon_url": "https://...",
+      "acquired": true,
+      "acquired_at": "2026-04-01T10:30:00Z"
+    }
+  ],
+  "pagination": {
+    "total_count": 50,
+    "page": 1,
+    "limit": 20,
+    "has_next": true,
+    "next_cursor": "BADGE_CODE"
+  }
+}
+```
+
+**에러 응답:**
+- `400 INVALID_PARAMETER`: include_acquired/limit 파라미터 검증 실패
+- `401 UNAUTHORIZED`: 인증 토큰 누락 또는 유효하지 않음
+- `500 BADGE_FETCH_ERROR`: 뱃지 목록 조회 실패
+- `500 USER_BADGE_FETCH_ERROR`: 사용자 뱃지 정보 조회 실패
+- `500 INTERNAL_SERVER_ERROR`: 서버 내부 에러
+
 ### 9. 소셜 - 친구 (Friend)
 
 | Method | Endpoint | 인증 | 설명 |
@@ -238,4 +277,6 @@
 ## Swagger (자동화)
 
 - 엔드포인트: /swagger/index.html
-- 생성 명령: `swag init -g cmd/api/main.go -o docs/swagger`
+- 생성 명령: `swag init -g cmd/api/main.go`
+- 문서 경로: `backend/docs/`
+- 스펙 형식: OpenAPI 2.0 (Swagger)

@@ -36,3 +36,30 @@ type ErrorResponse struct {
 	Success bool      `json:"success"`
 	Error   *ErrorInfo `json:"error"`
 }
+
+// BadgeSuccessResponse 뱃지 성공 응답 (OpenAPI 3.0용)
+type BadgeSuccessResponse struct {
+	Success    bool            `json:"success" example:"true"`
+	Data       []BadgeResponse `json:"data"`
+	Error      *ErrorInfo      `json:"error"`
+	Pagination *PaginationInfo `json:"pagination"`
+}
+
+// BadgeErrorResponse 뱃지 에러 응답 (OpenAPI 3.0용)
+type BadgeErrorResponse struct {
+	Success    bool       `json:"success" example:"false"`
+	Data       interface{} `json:"data"`
+	Error      *ErrorInfo `json:"error"`
+	Pagination interface{} `json:"pagination"`
+}
+
+// BadgeErrorCode 뱃지 API 에러 코드
+type BadgeErrorCode string
+
+const (
+	BadgeErrorUnauthorized          BadgeErrorCode = "UNAUTHORIZED"
+	BadgeErrorInvalidParameter      BadgeErrorCode = "INVALID_PARAMETER"
+	BadgeErrorBadgeFetchFailed      BadgeErrorCode = "BADGE_FETCH_ERROR"
+	BadgeErrorUserBadgeFetchFailed  BadgeErrorCode = "USER_BADGE_FETCH_ERROR"
+	BadgeErrorInternalServerError   BadgeErrorCode = "INTERNAL_SERVER_ERROR"
+)
