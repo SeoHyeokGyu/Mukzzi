@@ -61,23 +61,32 @@ jobs:
             docker compose up -d frontend --remove-orphans
             docker image prune -f
 
-  notify-failure:
-    name: Notify Deploy Failure
+  notify-deploy:
+    name: Notify Deploy Status
     runs-on: ubuntu-latest
     needs: [build-and-push, deploy]
-    if: failure()
+    if: always()
     steps:
-      - name: Send Discord Failure Notification
+      - name: Send Discord Notification
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
+          if [ "${{ needs.deploy.result }}" = "success" ]; then
+            STATUS="Deploy Succeeded"
+            COLOR="3066993"
+            EMOJI="✅"
+          else
+            STATUS="Deploy Failed"
+            COLOR="15548997"
+            EMOJI="❌"
+          fi
           curl -H "Content-Type: application/json" \
             -d "{
               \"embeds\": [{
-                \"title\": \"[Frontend] Deploy Failed\",
+                \"title\": \"[Frontend] $EMOJI $STATUS\",
                 \"description\": \"Commit: ${{ github.event.head_commit.message }}\",
                 \"url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\",
-                \"color\": 15548997,
+                \"color\": $COLOR,
                 \"fields\": [
                   {\"name\": \"Author\", \"value\": \"${{ github.event.head_commit.author.name }}\", \"inline\": true},
                   {\"name\": \"Commit\", \"value\": \"${{ github.sha }}\", \"inline\": true}
