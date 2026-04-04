@@ -1,6 +1,6 @@
 # ERD / DB 스키마
 
-> 상태: 설계 완료
+> 상태: 진행 중
 
 기획 문서([planning.md](planning.md))의 도메인 정의를 기반으로 데이터베이스 스키마를 설계합니다.
 
@@ -31,6 +31,7 @@
 
 ### 사용자 (users)
 
+#### 설계 스키마
 | 컬럼 | 타입 | 제약 조건 | 설명 |
 |------|------|----------|------|
 | nickname | VARCHAR(50) | UNIQUE, NOT NULL | 서비스 내 닉네임 |
@@ -51,6 +52,28 @@
 | equipped_title_id | BIGINT | FK (titles.id), NULL | 장착 중인 칭호 |
 | privacy_level | VARCHAR(20) | DEFAULT 'PUBLIC' | PUBLIC, FRIENDS, PRIVATE |
 | notification_settings | JSONB | DEFAULT '{}' | 알림 유형별 on/off 설정 |
+
+#### 현재 구현 스키마
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| **username** ⚠️ | VARCHAR(50) | UNIQUE, NOT NULL | **설계에 없음** - 기본 인증 기반 |
+| email | VARCHAR(100) | UNIQUE, NOT NULL | ✓ 설계와 일치 |
+| **password** ⚠️ | VARCHAR(255) | NOT NULL | **설계에 없음** - 기본 인증 기반 |
+| nickname | VARCHAR(50) | NOT NULL | ✓ 설계와 일치 |
+| (다른 필드들은 미구현) | - | - | **설계: OAuth, 신체정보, 영양목표, 설정 필드 모두 미구현** |
+
+#### 필드 차이 분석
+
+**현재 구현에만 있는 필드:**
+- `username` - 기본 회원가입용 (설계에서는 OAuth 기반이므로 불필요)
+- `password` - 기본 인증용 (설계에서는 OAuth 기반이므로 불필요)
+
+**설계에만 있는 필드 (미구현):**
+- OAuth: provider, provider_id
+- 신체정보: height, weight, activity_level
+- 영양목표: daily_kcal_target, daily_carbs_target, daily_protein_target, daily_fat_target
+- 프로필: profile_image_url, last_login_at, point
+- 설정: equipped_title_id, privacy_level, notification_settings
 
 ### 캐릭터 (characters)
 

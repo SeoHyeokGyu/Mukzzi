@@ -1,8 +1,13 @@
 # DDD 도메인 설계
 
-> 상태: 설계 완료
+> 상태: 진행 중 (Badge/Menu 구현 완료, MVP 핵심 도메인 미완성)
 
 기획 문서([planning.md](planning.md))의 기능 정의를 기반으로 바운디드 컨텍스트를 정의하고, 도메인 간 관계를 설계합니다.
+
+**구현 현황:**
+- ✓ **구현 완료**: Collection (Badge), Menu
+- ⚠️ **부분 구현**: Auth (기본 회원가입 + Bearer JWT), User (기본 필드만)
+- ❌ **미구현**: Character, Meal, Nutrition, Quest, Social, Notification
 
 ---
 
@@ -65,7 +70,9 @@ type BaseDomain struct {
 
 ## 컨텍스트별 책임 및 핵심 엔티티 상세
 
-### Auth (인증)
+### Auth (인증) - ⚠️ 부분 구현
+
+**설계:**
 - 책임: 회원가입, 로그인, 토큰 관리, 소셜 로그인 연동, 로그아웃
 - 핵심 엔티티: Credential, Token
 - 비즈니스 규칙:
@@ -73,7 +80,18 @@ type BaseDomain struct {
   - 로그아웃 시 Refresh Token을 무효화하여 재발급을 방지함.
   - Refresh Token은 Redis에 `refresh:{user_id}` 키로 저장하며, TTL을 토큰 만료 시간과 동일하게 설정함. 로그아웃 시 해당 키를 삭제하여 즉시 무효화함.
 
-### User (사용자)
+**현재 구현:**
+- ✓ Bearer JWT 기반 인증 미들웨어 구현
+- ✓ 기본 회원가입 (`POST /auth/register`) - username/email/password
+- ❌ OAuth 소셜 로그인 미구현 (Kakao/Google/Apple)
+- ❌ Refresh Token Redis 저장 미구현
+- ❌ 로그아웃 엔드포인트 미구현
+
+**TODO:** OAuth2 통합 필요 (Kakao, Google, Apple)
+
+### User (사용자) - ❌ 미구현
+
+**설계:**
 - 책임: 프로필 관리, 닉네임, 칭호, 재화 관리, 개인별 영양 목표 설정 및 온보딩, 설정 관리, 회원 탈퇴
 - 핵심 엔티티: User, Profile
 - 비즈니스 규칙:
@@ -82,7 +100,22 @@ type BaseDomain struct {
   - 보유 포인트(방울)는 캐릭터 성장 보상이나 퀘스트 완료 시 지급됨.
   - 회원 탈퇴 시 개인 데이터는 soft delete 처리되며, 30일 후 물리 삭제됨.
 
-### Character (캐릭터/성장)
+**현재 구현:**
+- ✓ 기본 User 엔티티 (username, email, password, nickname)
+- ✓ GetMe 엔드포인트 (현재 사용자 조회)
+- ❌ OAuth 필드 미구현 (provider, provider_id)
+- ❌ 신체 정보 필드 미구현 (height, weight, activity_level)
+- ❌ 영양 목표 필드 미구현 (daily_kcal_target 등)
+- ❌ 칭호 장착 필드 미구현 (equipped_title_id)
+- ❌ 설정 필드 미구현 (privacy_level, notification_settings)
+- ❌ 온보딩 엔드포인트 미구현
+- ❌ 회원 탈퇴 엔드포인트 미구현
+
+**TODO:** User 엔티티 필드 확장 필요 (OAuth + 신체정보 + 영양목표 + 설정)
+
+### Character (캐릭터/성장) - ❌ 미구현
+
+**설계:**
 - 책임: 먹찌 생성, 파츠 조합, 진화 단계 관리, 영양 성분에 따른 외형 변화, 배경/악세서리 장착
 - 핵심 엔티티: Character, Appearance (body_type, muscle, skin_tone, expression)
 - 비즈니스 규칙:
@@ -93,7 +126,9 @@ type BaseDomain struct {
   - 패널티 상태: NORMAL -> HUNGRY(미기록 2일 경과) -> STARVING(미기록 3일 경과) -> WEAKENED(미기록 5일 이상). 식사 1회 기록 시 즉시 NORMAL 복구.
   - 달성한 외형은 도감에 기록되며, 이전 외형으로 변경 가능 (가역적).
 
-### Meal (식사 기록)
+### Meal (식사 기록) - ❌ 미구현
+
+**설계:**
 - 책임: 식사 등록/수정/삭제, 메뉴 검색, 즐겨찾기, 메뉴 선호도 관리, 식사 타임라인 및 캘린더 관리
 - 핵심 엔티티: MealRecord, Menu, Favorite, MenuPreference
 - 비즈니스 규칙:
@@ -105,14 +140,18 @@ type BaseDomain struct {
   - DB에 없는 메뉴 입력 시 메뉴명만 저장하고, 영양소는 유사 카테고리 평균값으로 추정 적용함.
   - 식사 기록 시 친구를 태그할 수 있으며, 태그는 친구 관계인 사용자에게만 가능함. 태그된 친구가 수락하면 양쪽 모두에게 보너스 경험치(5 EXP)가 지급됨.
 
-### Nutrition (영양소)
+### Nutrition (영양소) - ❌ 미구현
+
+**설계:**
 - 책임: 영양소 DB 연동, 섭취 비율 계산, 밸런스 피드백
 - 핵심 엔티티: NutritionInfo, DailyIntake
 - 비즈니스 규칙:
   - 일일 섭취량 통계는 매일 00시에 초기화되나, 캐릭터 성장을 위한 누적 통계는 별도로 관리함.
   - 3대 영양소(탄수화물/단백질/지방) 외에 식이섬유(fiber), 비타민 달성률(vitamin_score)을 관리하여 파츠 조합(피부색)에 반영함.
 
-### Quest (퀘스트)
+### Quest (퀘스트) - ❌ 미구현
+
+**설계:**
 - 책임: 일일/주간/업적 퀘스트 관리, 보상 지급
 - 핵심 엔티티: QuestDefinition, UserQuest, Reward, UserReward
 - 비즈니스 규칙:
@@ -122,16 +161,30 @@ type BaseDomain struct {
   - 주간 퀘스트는 매주 월요일 새벽 5시에 초기화됨.
   - 업적 퀘스트는 최초 달성 시 1회만 보상이 지급됨.
 
-### Collection (도감/뱃지)
+### Collection (도감/뱃지) - ⚠️ 부분 구현 (Badge만)
+
+**설계:**
 - 책임: 먹찌 도감, 메뉴 마스터리, 뱃지, 칭호 관리, 보상 아이템 관리
 - 핵심 엔티티: CharacterCollection, Mastery, Badge, UserBadge, Title, UserTitle, Reward, UserReward
+
+**현재 구현:**
+- ✓ Badge 엔티티 및 API (`GET /collections/badges`)
+- ✓ Badge 응답 DTO (BadgeSuccessResponse/BadgeErrorResponse)
+- ❌ CharacterCollection 미구현 (먹찌 도감)
+- ❌ Mastery 미구현 (메뉴 마스터리)
+- ❌ Title/UserTitle 미구현 (칭호 관리)
+- ❌ Reward/UserReward 미구현 (보상 아이템)
+
+**TODO:** Mastery, Title, Reward 도메인 구현 필요
 - 비즈니스 규칙:
   - 특정 메뉴를 일정 횟수 이상 섭취 시 해당 메뉴에 대한 마스터리 레벨이 상승함 (BEGINNER 1회 -> MANIA 5회 -> ARTISAN 20회 -> MASTER 50회).
   - 뱃지는 조건 달성 시 자동 부여됨.
   - 칭호는 획득한 목록 중 하나를 선택하여 프로필에 장착할 수 있음.
   - 먹찌 도감에는 달성한 적 있는 모든 파츠 조합이 기록됨.
 
-### Social (소셜)
+### Social (소셜) - ❌ 미구현
+
+**설계:**
 - 책임: 친구 관리, 추천 사용자, 응원하기(Nudge), 방명록, 차단/신고
 - 핵심 엔티티: Friendship, Nudge, GuestbookEntry, Report
 - 비즈니스 규칙:
@@ -140,7 +193,9 @@ type BaseDomain struct {
   - 응원하기(Nudge): 같은 친구에게 1일 1회 제한. 친구의 먹찌가 허기짐/배고픔 상태일 때 발송 가능. 친구가 기록을 재개하면 양쪽에 보상 지급.
   - 신고: 같은 대상에 대해 1일 1회 제한. PENDING -> REVIEWED -> RESOLVED 상태 관리.
 
-### Notification (알림)
+### Notification (알림) - ❌ 미구현
+
+**설계:**
 - 책임: 인앱 알림 목록 관리, FCM 푸시 알림 발송, 알림 읽음 처리
 - 핵심 엔티티: Notification
 - 비즈니스 규칙:

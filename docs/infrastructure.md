@@ -101,30 +101,51 @@
 backend/
 ├── cmd/
 │   └── api/
-│       └── main.go          # 애플리케이션 진입점 (의존성 주입 및 서버 실행)
-└── internal/                # 캡슐화된 애플리케이션 레이어
-    ├── domain/              # 1. 엔티티 (Entities) 계층
-    │   ├── user.go          # 데이터 구조 및 인터페이스 정의
-    │   ├── meal.go
-    │   ├── character.go
-    │   └── error.go         # 도메인 공통 에러 정의
-    ├── usecase/             # 2. 유스케이스 (Usecase) 계층
-    │   ├── user_usecase.go      # 비즈니스 로직 구현
-    │   ├── meal_usecase.go
-    │   └── character_usecase.go
-    ├── delivery/            # 3. 인터페이스 어댑터 (Delivery) 계층
-    │   ├── http/
-    │   │   ├── handler/         # HTTP 핸들러 (Controller)
-    │   │   ├── middleware/      # 인증 및 공통 미들웨어
-    │   │   ├── route/           # 라우팅 설정
-    │   │   └── dto/             # Request/Response DTO
-    │   └── ws/                # (필요 시 확장)
-    └── repository/          # 4. 인프라스트럭처 (Repository) 계층
-        ├── postgres/
-        │   ├── user_repo.go     # DB 연동 구현체 (GORM)
-        │   └── meal_repo.go
-        └── redis/
-            └── cache_repo.go    # 캐시 연동 구현체
+│       └── main.go                  # 애플리케이션 진입점 (의존성 주입 및 서버 실행)
+├── docs/                            # Swagger 자동 생성 문서 (swaggo)
+│   ├── docs.go
+│   ├── swagger.json
+│   └── swagger.yaml
+└── internal/                        # 캡슐화된 애플리케이션 레이어
+    ├── config/                      # 설정 (DB, Redis 연결)
+    │   └── db.go
+    ├── domain/                      # 1. 엔티티 (Entities) 계층
+    │   ├── base.go                  # BaseDomain (Sonyflake ID, 타임스탬프, Soft Delete)
+    │   ├── user.go                  # 데이터 구조 정의
+    │   ├── menu.go
+    │   ├── collection.go            # Badge, UserBadge 엔티티
+    │   └── auth.go
+    ├── usecase/                     # 2. 유스케이스 (Usecase) 계층
+    │   ├── auth.go                  # 인증 비즈니스 로직
+    │   ├── user.go
+    │   ├── badge_usecase.go         # Badge 조회 로직
+    │   ├── menu_usecase.go
+    │   └── menu_usecase_test.go     # 유스케이스 단위 테스트
+    ├── delivery/                    # 3. 인터페이스 어댑터 (Delivery) 계층
+    │   └── http/
+    │       ├── handler/             # HTTP 핸들러 (Controller)
+    │       │   ├── auth.go
+    │       │   ├── user.go
+    │       │   ├── menu.go
+    │       │   ├── collection.go    # Badge API 핸들러
+    │       │   └── response.go      # 공통 응답 헬퍼
+    │       ├── middleware/          # 인증 및 공통 미들웨어
+    │       │   └── auth.go
+    │       ├── route/               # 라우팅 설정
+    │       │   ├── auth.go
+    │       │   ├── user.go
+    │       │   ├── menu.go
+    │       │   ├── collection.go
+    │       │   └── router.go        # 전체 라우터 통합
+    │       └── dto/                 # Request/Response DTO
+    │           ├── auth.go
+    │           ├── user.go
+    │           ├── menu.go
+    │           └── collection.go    # Badge 응답 구조
+    └── repository/                  # 4. 인프라스트럭처 (Repository) 계층
+        ├── user.go                  # User DB 연동 (GORM)
+        ├── badge_repository.go      # Badge 관련 DB 쿼리
+        └── menu_repository.go       # Menu 관련 DB 쿼리
 ```
 
 **Frontend (Flutter)**
