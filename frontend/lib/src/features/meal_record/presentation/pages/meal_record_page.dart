@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/gradient_scaffold.dart';
+import '../../../../core/widgets/bento_card.dart';
+import '../../../../core/widgets/app_button.dart';
 
 class MealRecordPage extends StatefulWidget {
   const MealRecordPage({super.key});
@@ -7,7 +11,8 @@ class MealRecordPage extends StatefulWidget {
   State<MealRecordPage> createState() => _MealRecordPageState();
 }
 
-class _MealRecordPageState extends State<MealRecordPage> with SingleTickerProviderStateMixin {
+class _MealRecordPageState extends State<MealRecordPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late TextEditingController _menuController;
   String _selectedMealType = 'BREAKFAST';
@@ -28,7 +33,7 @@ class _MealRecordPageState extends State<MealRecordPage> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GradientScaffold(
       appBar: AppBar(
         title: const Text('식사 기록'),
         bottom: TabBar(
@@ -51,7 +56,7 @@ class _MealRecordPageState extends State<MealRecordPage> with SingleTickerProvid
             },
           ),
           // 기록 목록 탭
-          _MealListTab(),
+          const _MealListTab(),
         ],
       ),
     );
@@ -125,7 +130,8 @@ class _MealInputTabState extends State<_MealInputTab> {
                       setState(() => _selectedTime = picked);
                     }
                   },
-                  child: Text('${_selectedTime.hour}:${_selectedTime.minute.toString().padLeft(2, '0')}'),
+                  child: Text(
+                      '${_selectedTime.hour}:${_selectedTime.minute.toString().padLeft(2, '0')}'),
                 ),
               ),
             ],
@@ -198,13 +204,15 @@ class _MealInputTabState extends State<_MealInputTab> {
                     Text('날씨', style: Theme.of(context).textTheme.bodyMedium),
                     const SizedBox(height: 8),
                     DropdownButton<String>(
+                      isExpanded: true,
                       value: _selectedWeather,
-                      onChanged: (value) => setState(() => _selectedWeather = value),
                       items: const [
                         DropdownMenuItem(value: 'SUNNY', child: Text('☀️ 맑음')),
                         DropdownMenuItem(value: 'CLOUDY', child: Text('☁️ 흐림')),
                         DropdownMenuItem(value: 'RAINY', child: Text('🌧️ 비')),
                       ],
+                      onChanged: (value) =>
+                          setState(() => _selectedWeather = value),
                     ),
                   ],
                 ),
@@ -217,13 +225,16 @@ class _MealInputTabState extends State<_MealInputTab> {
                     Text('기분', style: Theme.of(context).textTheme.bodyMedium),
                     const SizedBox(height: 8),
                     DropdownButton<String>(
+                      isExpanded: true,
                       value: _selectedMood,
-                      onChanged: (value) => setState(() => _selectedMood = value),
                       items: const [
                         DropdownMenuItem(value: 'HAPPY', child: Text('😊 좋음')),
                         DropdownMenuItem(value: 'TIRED', child: Text('😴 피곤')),
-                        DropdownMenuItem(value: 'STRESSED', child: Text('😤 스트레스')),
+                        DropdownMenuItem(
+                            value: 'STRESSED', child: Text('😤 스트레스')),
                       ],
+                      onChanged: (value) =>
+                          setState(() => _selectedMood = value),
                     ),
                   ],
                 ),
@@ -233,17 +244,14 @@ class _MealInputTabState extends State<_MealInputTab> {
           const SizedBox(height: 32),
 
           // 저장 버튼
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('식사 기록이 저장되었습니다')),
-                );
-                widget.menuController.clear();
-              },
-              child: const Text('기록 저장'),
-            ),
+          AppGradientButton(
+            label: '기록 저장',
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('식사 기록이 저장되었습니다')),
+              );
+              widget.menuController.clear();
+            },
           ),
         ],
       ),
@@ -262,11 +270,12 @@ class _MealListTab extends StatelessWidget {
       itemBuilder: (context, index) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: Card(
+          child: BentoCard(
             child: ListTile(
               leading: _getMealIcon(index),
               title: Text(_getMealName(index)),
-              subtitle: Text('${DateTime.now().subtract(Duration(days: index)).toString().split('.')[0]}'),
+              subtitle: Text(
+                  '${DateTime.now().subtract(Duration(days: index)).toString().split('.')[0]}'),
               trailing: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -275,7 +284,7 @@ class _MealListTab extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     'Lv.${(index % 3) + 1}',
-                    style: const TextStyle(fontSize: 12, color: Colors.orange),
+                    style: const TextStyle(fontSize: 12, color: AppColors.orange),
                   ),
                 ],
               ),

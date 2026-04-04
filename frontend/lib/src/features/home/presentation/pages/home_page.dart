@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/gradient_scaffold.dart';
+import '../../../../core/widgets/bento_card.dart';
+import '../../../../core/widgets/gradient_progress_bar.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,7 +18,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GradientScaffold(
       appBar: AppBar(
         title: const Text('먹찌'),
         actions: [
@@ -28,137 +33,287 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 캐릭터 섹션
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    // 캐릭터 이미지 자리
-                    Container(
-                      height: 200,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Center(
-                        child: Text('먹찌 (Coming Soon)'),
-                      ),
+            // 캐릭터 섹션 - Bento Grid 첫 줄 (전체 너비)
+            BentoCard(
+              height: 220,
+              child: Column(
+                children: [
+                  // 캐릭터 이미지 자리
+                  Container(
+                    height: 140,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(height: 16),
-                    // 캐릭터 정보
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _CharacterStat(label: '레벨', value: '1'),
-                        _CharacterStat(label: '경험치', value: '0/100'),
-                        _CharacterStat(label: '상태', value: 'NORMAL'),
-                      ],
+                    child: const Center(
+                      child: Text('먹찌 (Coming Soon)'),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 12),
+                  // 캐릭터 정보
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _CharacterStat(label: '레벨', value: '1'),
+                      _CharacterStat(label: '경험치', value: '0/100'),
+                      _CharacterStat(label: '상태', value: 'NORMAL'),
+                    ],
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 24),
+            )
+                .animate()
+                .fadeIn(duration: 300.ms)
+                .slideY(begin: 0.1, end: 0, duration: 300.ms),
+            const SizedBox(height: 16),
 
-            // 오늘의 식사 현황
-            Text(
-              '오늘의 식사 현황',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _MealProgress(
-                      label: '칼로리',
-                      current: 1200,
-                      target: 2000,
-                      unit: 'kcal',
-                    ),
-                    const SizedBox(height: 16),
-                    _MealProgress(
-                      label: '단백질',
-                      current: 45,
-                      target: 60,
-                      unit: 'g',
-                    ),
-                    const SizedBox(height: 16),
-                    _MealProgress(
-                      label: '탄수화물',
-                      current: 150,
-                      target: 300,
-                      unit: 'g',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // 빠른 액션
-            Text(
-              '다음 단계',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 12),
+            // 오늘의 식사 현황 - Bento Grid 두 번째 줄 (2열)
             Row(
               children: [
                 Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.restaurant_menu),
-                    label: const Text('메뉴 선택'),
+                  child: BentoCard(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '칼로리',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        GradientProgressBar(
+                          value: 1200 / 2000,
+                          height: 6,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '1200 / 2000 kcal',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.add),
-                    label: const Text('식사 기록'),
+                  child: BentoCard(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '단백질',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        GradientProgressBar(
+                          value: 45 / 60,
+                          height: 6,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '45 / 60 g',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
-            ),
+            )
+                .animate()
+                .fadeIn(delay: 100.ms, duration: 300.ms)
+                .slideY(begin: 0.1, end: 0, duration: 300.ms),
+            const SizedBox(height: 12),
+
+            // 탄수화물과 오늘 식사수 - Bento Grid 세 번째 줄 (2열)
+            Row(
+              children: [
+                Expanded(
+                  child: BentoCard(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '탄수화물',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        GradientProgressBar(
+                          value: 150 / 300,
+                          height: 6,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '150 / 300 g',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: BentoCard(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '오늘 식사',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          '3끼',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.orange,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            )
+                .animate()
+                .fadeIn(delay: 200.ms, duration: 300.ms)
+                .slideY(begin: 0.1, end: 0, duration: 300.ms),
+            const SizedBox(height: 12),
+
+            // 빠른 액션 버튼들 - Bento Grid 네 번째 줄 (2열)
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {},
+                    child: BentoCard(
+                      height: 100,
+                      gradient: AppColors.primaryGradient,
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.restaurant_menu,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            '메뉴 선택',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {},
+                    child: BentoCard(
+                      height: 100,
+                      gradient: AppColors.primaryGradient,
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.add,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            '식사 기록',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            )
+                .animate()
+                .fadeIn(delay: 300.ms, duration: 300.ms)
+                .slideY(begin: 0.1, end: 0, duration: 300.ms),
             const SizedBox(height: 24),
 
             // 최근 식사
-            Text(
-              '최근 식사 기록',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 12),
-            ...List.generate(
-              3,
-              (index) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.restaurant),
-                    title: Text('식사 ${index + 1}'),
-                    subtitle: const Text('오늘 12:30'),
-                    trailing: const Text('320kcal'),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '최근 식사 기록',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                ...List.generate(
+                  3,
+                  (index) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: BentoCard(
+                      child: ListTile(
+                        leading: const Icon(Icons.restaurant),
+                        title: Text('식사 ${index + 1}'),
+                        subtitle: const Text('오늘 12:30'),
+                        trailing: const Text('320kcal'),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
+              ],
+            )
+                .animate()
+                .fadeIn(delay: 400.ms, duration: 300.ms)
+                .slideY(begin: 0.1, end: 0, duration: 300.ms),
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) {
           setState(() => _selectedIndex = index);
           switch (index) {
             case 0:
-              // 홈은 현재 페이지이므로 그냥 유지
               break;
             case 1:
               context.pushNamed('meal-record');
@@ -171,11 +326,27 @@ class _HomePageState extends State<HomePage> {
               break;
           }
         },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
-          BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: '식사'),
-          BottomNavigationBarItem(icon: Icon(Icons.pets), label: '먹찌'),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: '소셜'),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: '홈',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.restaurant_outlined),
+            selectedIcon: Icon(Icons.restaurant),
+            label: '식사',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.pets_outlined),
+            selectedIcon: Icon(Icons.pets),
+            label: '먹찌',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.people_outlined),
+            selectedIcon: Icon(Icons.people),
+            label: '소셜',
+          ),
         ],
       ),
     );
@@ -198,7 +369,7 @@ class _CharacterStat extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey,
+                color: AppColors.textSecondary,
               ),
         ),
         const SizedBox(height: 4),
@@ -207,48 +378,6 @@ class _CharacterStat extends StatelessWidget {
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MealProgress extends StatelessWidget {
-  final String label;
-  final int current;
-  final int target;
-  final String unit;
-
-  const _MealProgress({
-    required this.label,
-    required this.current,
-    required this.target,
-    required this.unit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final percent = (current / target).clamp(0.0, 1.0);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label),
-            Text('$current / $target $unit'),
-          ],
-        ),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: LinearProgressIndicator(
-            value: percent,
-            minHeight: 8,
-            backgroundColor: Colors.grey[200],
-            valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange),
-          ),
         ),
       ],
     );

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/gradient_scaffold.dart';
+import '../../../../core/widgets/bento_card.dart';
 
 class SocialPage extends StatefulWidget {
   const SocialPage({super.key});
@@ -7,7 +10,8 @@ class SocialPage extends StatefulWidget {
   State<SocialPage> createState() => _SocialPageState();
 }
 
-class _SocialPageState extends State<SocialPage> with SingleTickerProviderStateMixin {
+class _SocialPageState extends State<SocialPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -24,7 +28,7 @@ class _SocialPageState extends State<SocialPage> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GradientScaffold(
       appBar: AppBar(
         title: const Text('소셜'),
         bottom: TabBar(
@@ -39,9 +43,9 @@ class _SocialPageState extends State<SocialPage> with SingleTickerProviderStateM
       body: TabBarView(
         controller: _tabController,
         children: [
-          _FriendListTab(),
-          _FriendRequestTab(),
-          _RecommendedUsersTab(),
+          const _FriendListTab(),
+          const _FriendRequestTab(),
+          const _RecommendedUsersTab(),
         ],
       ),
     );
@@ -59,28 +63,28 @@ class _FriendListTab extends StatelessWidget {
       itemBuilder: (context, index) {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Card(
+          child: BentoCard(
             child: ListTile(
               leading: CircleAvatar(
                 child: Text('${index + 1}'),
               ),
               title: Text('친구 ${index + 1}'),
-              subtitle: Row(
+              subtitle: const Row(
                 children: [
-                  const Text('🌟 Lv.${1}'),
-                  const SizedBox(width: 12),
-                  const Text('😊 기분좋음'),
+                  Text('🌟 Lv.1'),
+                  SizedBox(width: 12),
+                  Text('😊 기분좋음'),
                 ],
               ),
               trailing: PopupMenuButton(
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
+                itemBuilder: (context) => const [
+                  PopupMenuItem(
                     child: Text('프로필 보기'),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     child: Text('응원하기'),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     child: Text('친구 삭제'),
                   ),
                 ],
@@ -109,7 +113,7 @@ class _FriendRequestTabState extends State<_FriendRequestTab> {
       itemBuilder: (context, index) {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Card(
+          child: BentoCard(
             child: ListTile(
               leading: CircleAvatar(
                 child: Text('R${index + 1}'),
@@ -158,7 +162,7 @@ class _RecommendedUsersTab extends StatelessWidget {
       itemBuilder: (context, index) {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Card(
+          child: BentoCard(
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -181,7 +185,7 @@ class _RecommendedUsersTab extends StatelessWidget {
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                const Text('🌟 Lv.${1}'),
+                                const Text('🌟 Lv.1'),
                                 const SizedBox(width: 12),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
@@ -189,14 +193,19 @@ class _RecommendedUsersTab extends StatelessWidget {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.orange[100],
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        AppColors.softPeach,
+                                        const Color(0xFFFFE4D0),
+                                      ],
+                                    ),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: const Text(
                                     '비슷한 식습관',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.orange,
+                                      color: AppColors.orange,
                                     ),
                                   ),
                                 ),
@@ -219,8 +228,8 @@ class _RecommendedUsersTab extends StatelessWidget {
                   Text(
                     '먹부림 도감: 주요 메뉴는 김치찌개, 스파게티, 계란말이',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
-                    ),
+                          color: AppColors.textSecondary,
+                        ),
                   ),
                 ],
               ),

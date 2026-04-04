@@ -46,6 +46,77 @@ flutter build web --release
 
 이 명령어는 `build/web/` 디렉토리에 빌드 결과물을 생성합니다.
 
+## 디자인 시스템
+
+### 색상 토큰 (AppColors)
+모든 색상은 `lib/src/core/theme/app_theme.dart`의 `AppColors` 클래스에서 중앙화됩니다:
+
+```dart
+import 'package:mukzzi/src/core/theme/app_theme.dart';
+
+// 색상 사용
+color: AppColors.orange         // #FF6B35
+color: AppColors.peach          // #FFB347
+color: AppColors.softPeach      // #FFF0E8
+```
+
+**주요 색상:**
+- `orange`: 메인 강조색
+- `peach`: 그라데이션 끝색
+- `softPeach`: 배경 그라데이션 끝색
+- `kakaoYellow`, `googleWhite`, `appleBlack`: 소셜 로그인 브랜드색
+
+### 그라데이션
+```dart
+gradient: AppColors.primaryGradient       // 오렌지→피치 버튼/카드
+gradient: AppColors.backgroundGradient   // 배경 전체
+gradient: AppColors.progressGradient     // 프로그레스 바
+```
+
+## 공용 위젯
+
+### GradientScaffold
+그라데이션 배경이 적용된 Scaffold 래퍼. 모든 페이지는 이를 사용합니다:
+
+```dart
+GradientScaffold(
+  appBar: AppBar(...),
+  body: SingleChildScrollView(...),
+  bottomNavigationBar: NavigationBar(...),
+)
+```
+
+### BentoCard
+Bento Grid 레이아웃 카드. Soft 그림자와 선택적 그라데이션:
+
+```dart
+BentoCard(
+  child: Text('content'),
+  height: 220,
+  gradient: AppColors.primaryGradient,  // 선택사항
+)
+```
+
+### GradientProgressBar
+그라데이션이 적용된 프로그레스 바 (LinearProgressIndicator 대체):
+
+```dart
+GradientProgressBar(
+  value: 0.75,  // 0.0 ~ 1.0
+  height: 8,
+)
+```
+
+### AppGradientButton
+그라데이션 배경 버튼:
+
+```dart
+AppGradientButton(
+  label: '저장',
+  onPressed: () {},
+)
+```
+
 ## 주의사항
 
 ### ProviderScope 필수
@@ -63,23 +134,62 @@ void main() {
 
 `ProviderScope` 없이 프로덕션 빌드 시 빈 화면만 표시되고 에러 메시지가 나타나지 않습니다.
 
+### 색상 하드코딩 금지
+`Colors.orange` 같은 하드코딩 대신 항상 `AppColors` 토큰 사용:
+
+```dart
+// ❌ 잘못됨
+color: Colors.orange
+
+// ✅ 올바름
+color: AppColors.orange
+```
+
+### Google Fonts (Noto Sans KR)
+한국어 폰트는 자동으로 Google Fonts에서 로드됩니다. 오프라인 환경에서는 로드 실패 가능성 있음.
+
 ### 웹 빌드 시 자동으로 트리 쉐이킹되는 아이콘
 Material Design 아이콘 중 사용하지 않는 것들은 자동으로 제거되어 용량이 줄어듭니다.
 필요시 `--no-tree-shake-icons` 플래그를 사용할 수 있습니다.
 
-## 패키지 호환성
+### 패키지 호환성
 
-### 웹에서 미지원하는 패키지
+#### 웹에서 미지원하는 패키지
 다음 패키지들은 웹 플랫폼에서 작동하지 않으므로 사용할 수 없습니다:
 - `flutter_secure_storage` - 웹에서 지원 안 함
-- `rive` - 웹 호환성 문제
+- 기타 플랫폼 특화 패키지들
+
+#### 현재 사용 중인 주요 패키지
+- `flutter_riverpod`: 상태 관리
+- `go_router`: 라우팅
+- `dio`: HTTP 클라이언트
+- `flutter_animate`: 페이드인/슬라이드 애니메이션
+- `google_fonts`: Noto Sans KR 한국어 폰트
+
+## 애니메이션
+
+`flutter_animate` 패키지를 사용하여 간단한 애니메이션 적용:
+
+```dart
+BentoCard(child: ...)
+  .animate()
+  .fadeIn(duration: 300.ms)
+  .slideY(begin: 0.1, end: 0, duration: 300.ms)
+```
+
+**사용 예:**
+- 페이드인: `.fadeIn(duration: 300.ms)`
+- 슬라이드: `.slideY(begin: 0.1, end: 0)`
+- 스케일: `.scale(begin: Offset(0.8, 0.8))`
+- 순차 등장: `.animate(delay: (index * 100).ms)`
 
 ## 빌드 전 체크리스트
 
 1. ✅ `flutter pub get` 실행하여 의존성 최신화
-2. ✅ 로컬 빌드 테스트 성공
-3. ✅ 프로덕션 빌드 테스트 성공 (`flutter build web --release`)
-4. ✅ Git 커밋
+2. ✅ 로컬 빌드 테스트 성공: `flutter build web --release`
+3. ✅ 색상은 AppColors 토큰 사용 (하드코딩 금지)
+4. ✅ 모든 페이지는 GradientScaffold 사용
+5. ✅ Git 커밋 (커밋 전 테스트 필수)
 
 ## CI/CD
 
