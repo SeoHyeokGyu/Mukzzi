@@ -197,12 +197,13 @@ class _MealInputTabState extends State<_MealInputTab> {
                   children: [
                     Text('날씨', style: Theme.of(context).textTheme.bodyMedium),
                     const SizedBox(height: 8),
-                    DropdownMenu<String>(
-                      onSelected: (value) => setState(() => _selectedWeather = value),
-                      dropdownEntries: const [
-                        DropdownMenuEntry(value: 'SUNNY', label: '☀️ 맑음'),
-                        DropdownMenuEntry(value: 'CLOUDY', label: '☁️ 흐림'),
-                        DropdownMenuEntry(value: 'RAINY', label: '🌧️ 비'),
+                    DropdownButton<String>(
+                      value: _selectedWeather,
+                      onChanged: (value) => setState(() => _selectedWeather = value),
+                      items: const [
+                        DropdownMenuItem(value: 'SUNNY', child: Text('☀️ 맑음')),
+                        DropdownMenuItem(value: 'CLOUDY', child: Text('☁️ 흐림')),
+                        DropdownMenuItem(value: 'RAINY', child: Text('🌧️ 비')),
                       ],
                     ),
                   ],
@@ -215,12 +216,13 @@ class _MealInputTabState extends State<_MealInputTab> {
                   children: [
                     Text('기분', style: Theme.of(context).textTheme.bodyMedium),
                     const SizedBox(height: 8),
-                    DropdownMenu<String>(
-                      onSelected: (value) => setState(() => _selectedMood = value),
-                      dropdownEntries: const [
-                        DropdownMenuEntry(value: 'HAPPY', label: '😊 좋음'),
-                        DropdownMenuEntry(value: 'TIRED', label: '😴 피곤'),
-                        DropdownMenuEntry(value: 'STRESSED', label: '😤 스트레스'),
+                    DropdownButton<String>(
+                      value: _selectedMood,
+                      onChanged: (value) => setState(() => _selectedMood = value),
+                      items: const [
+                        DropdownMenuItem(value: 'HAPPY', child: Text('😊 좋음')),
+                        DropdownMenuItem(value: 'TIRED', child: Text('😴 피곤')),
+                        DropdownMenuItem(value: 'STRESSED', child: Text('😤 스트레스')),
                       ],
                     ),
                   ],
