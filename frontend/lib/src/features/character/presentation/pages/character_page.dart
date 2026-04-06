@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+// import 'package:rive/rive.dart' hide LinearGradient; // mukzzi.riv 추가 시 활성화
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
@@ -11,7 +12,8 @@ class CharacterPage extends StatefulWidget {
 }
 
 class _CharacterPageState extends State<CharacterPage> {
-  String _selectedAppearance = 'current';
+  // Rive 애니메이션 컨트롤러 - .riv 파일 추가 시 활성화
+  // RiveAnimationController? _controller;
 
   @override
   Widget build(BuildContext context) {
@@ -26,15 +28,14 @@ class _CharacterPageState extends State<CharacterPage> {
             BentoCard(
               child: Column(
                 children: [
-                  // 캐릭터 이미지
-                  Container(
-                    height: 250,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Center(
-                      child: Text('먹찌 애니메이션 (Rive)'),
+                  // 캐릭터 애니메이션 영역
+                  // assets/animations/mukzzi.riv 파일 추가 시 RiveAnimation.asset()으로 교체
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      height: 250,
+                      color: AppColors.softPeach,
+                      child: const _CharacterPlaceholder(),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -208,6 +209,33 @@ class _PartCard extends StatelessWidget {
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// assets/animations/mukzzi.riv 파일 추가 전까지 사용하는 플레이스홀더
+// 추후 RiveAnimation.asset('assets/animations/mukzzi.riv') 으로 교체
+class _CharacterPlaceholder extends StatelessWidget {
+  const _CharacterPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.pets, size: 72, color: AppColors.orange.withValues(alpha: 0.5)),
+          const SizedBox(height: 12),
+          const Text(
+            '먹찌 애니메이션',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          ),
+          const Text(
+            'assets/animations/mukzzi.riv 추가 필요',
+            style: TextStyle(color: AppColors.textTertiary, fontSize: 11),
           ),
         ],
       ),

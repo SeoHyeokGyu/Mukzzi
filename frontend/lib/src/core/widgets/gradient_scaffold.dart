@@ -6,7 +6,6 @@ class GradientScaffold extends StatelessWidget {
   final PreferredSizeWidget? appBar;
   final Widget? bottomNavigationBar;
   final Widget? floatingActionButton;
-  final int? currentIndex;
 
   const GradientScaffold({
     super.key,
@@ -14,7 +13,6 @@ class GradientScaffold extends StatelessWidget {
     this.appBar,
     this.bottomNavigationBar,
     this.floatingActionButton,
-    this.currentIndex,
   });
 
   @override

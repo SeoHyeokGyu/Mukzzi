@@ -58,6 +58,13 @@ class AppTheme {
       ),
       textTheme: GoogleFonts.notoSansKrTextTheme(
         ThemeData.light().textTheme,
+      ).copyWith(
+        displayLarge: GoogleFonts.poppins(fontSize: 57, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+        displayMedium: GoogleFonts.poppins(fontSize: 45, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+        displaySmall: GoogleFonts.poppins(fontSize: 36, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+        headlineLarge: GoogleFonts.poppins(fontSize: 32, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+        headlineMedium: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+        headlineSmall: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
       ),
     );
 
