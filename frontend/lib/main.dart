@@ -22,7 +22,7 @@ class MukzziApp extends ConsumerWidget {
       title: 'Mukzzi',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.light,
+      themeMode: ThemeMode.dark,
       routerConfig: router,
     );
   }

@@ -23,7 +23,7 @@ class GradientProgressBar extends StatelessWidget {
         return Container(
           height: barHeight,
           decoration: BoxDecoration(
-            color: const Color(0xFFF0F0F0),
+            color: AppColors.divider,
             borderRadius: BorderRadius.circular(barHeight / 2),
           ),
           child: Stack(

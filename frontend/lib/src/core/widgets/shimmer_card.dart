@@ -16,13 +16,13 @@ class ShimmerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: const Color(0xFFE8E8E8),
-      highlightColor: const Color(0xFFF8F8F8),
+      baseColor: const Color(0xFF1E1E2A),
+      highlightColor: const Color(0xFF2A2A38),
       child: Container(
         height: height ?? 80,
         width: width ?? double.infinity,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFF1E1E2A),
           borderRadius: borderRadius ?? BorderRadius.circular(20),
         ),
       ),
@@ -36,13 +36,13 @@ class ShimmerListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: const Color(0xFFE8E8E8),
-      highlightColor: const Color(0xFFF8F8F8),
+      baseColor: const Color(0xFF1E1E2A),
+      highlightColor: const Color(0xFF2A2A38),
       child: Container(
         height: 72,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFF1E1E2A),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -51,7 +51,7 @@ class ShimmerListItem extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: const BoxDecoration(
-                color: Colors.white,
+                color: const Color(0xFF1E1E2A),
                 shape: BoxShape.circle,
               ),
             ),

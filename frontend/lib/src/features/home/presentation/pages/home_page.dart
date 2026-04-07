@@ -166,7 +166,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       PieChartSectionData(
                         value: remaining,
-                        color: const Color(0xFFEEEEEE),
+                        color: AppColors.divider,
                         radius: 22,
                         showTitle: false,
                       ),
@@ -566,7 +566,7 @@ class _MacroRow extends StatelessWidget {
           child: LinearProgressIndicator(
             value: (consumed / goal).clamp(0.0, 1.0),
             minHeight: 5,
-            backgroundColor: const Color(0xFFEEEEEE),
+            backgroundColor: AppColors.divider,
             valueColor: AlwaysStoppedAnimation<Color>(color),
           ),
         ),

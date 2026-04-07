@@ -2,11 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
+  // Background
+  static const Color background = Color(0xFF0D0F14);
+  static const Color backgroundEnd = Color(0xFF16100A);
+
+  // Surface (카드, NavigationBar 등)
+  static const Color white = Color(0xFF1C1C26);          // 하위 호환 유지
+  static const Color surface = Color(0xFF1C1C26);
+  static const Color surfaceElevated = Color(0xFF252532);
+
   // Primary palette
   static const Color orange = Color(0xFFFF6B35);
   static const Color peach = Color(0xFFFFB347);
-  static const Color softPeach = Color(0xFFFFF0E8);
-  static const Color white = Color(0xFFFFFFFF);
+  static const Color softPeach = Color(0xFF2A1C10);
 
   // Gradient definitions
   static const LinearGradient primaryGradient = LinearGradient(
@@ -16,9 +24,9 @@ class AppColors {
   );
 
   static const LinearGradient backgroundGradient = LinearGradient(
-    colors: [white, softPeach],
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
+    colors: [background, backgroundEnd],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
   );
 
   static const LinearGradient progressGradient = LinearGradient(
@@ -27,10 +35,10 @@ class AppColors {
     end: Alignment.centerRight,
   );
 
-  // Card shadows (elevation 대체)
+  // Card shadows
   static List<BoxShadow> cardShadow = [
     BoxShadow(
-      color: Colors.black.withOpacity(0.06),
+      color: Colors.black.withValues(alpha: 0.3),
       blurRadius: 16,
       offset: const Offset(0, 4),
     ),
@@ -42,53 +50,69 @@ class AppColors {
   static const Color appleBlack = Color(0xFF000000);
 
   // Neutral colors
-  static const Color textPrimary = Color(0xFF1A1A1A);
-  static const Color textSecondary = Color(0xFF666666);
-  static const Color textTertiary = Color(0xFF999999);
-  static const Color divider = Color(0xFFEEEEEE);
+  static const Color textPrimary = Color(0xFFF2F2F2);
+  static const Color textSecondary = Color(0xFF8A8A9A);
+  static const Color textTertiary = Color(0xFF555565);
+  static const Color divider = Color(0xFF2A2A38);
 }
 
 class AppTheme {
-  static ThemeData get lightTheme {
+  static ThemeData get lightTheme => darkTheme;
+
+  static ThemeData get darkTheme {
+    final textTheme = GoogleFonts.notoSansKrTextTheme(
+      ThemeData.dark().textTheme,
+    ).copyWith(
+      displayLarge: GoogleFonts.poppins(fontSize: 57, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+      displayMedium: GoogleFonts.poppins(fontSize: 45, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+      displaySmall: GoogleFonts.poppins(fontSize: 36, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+      headlineLarge: GoogleFonts.poppins(fontSize: 32, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+      headlineMedium: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+      headlineSmall: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+    ).apply(
+      bodyColor: AppColors.textPrimary,
+      displayColor: AppColors.textPrimary,
+    );
+
     final base = ThemeData(
       useMaterial3: true,
+      brightness: Brightness.dark,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.orange,
-        brightness: Brightness.light,
-      ),
-      textTheme: GoogleFonts.notoSansKrTextTheme(
-        ThemeData.light().textTheme,
+        brightness: Brightness.dark,
       ).copyWith(
-        displayLarge: GoogleFonts.poppins(fontSize: 57, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
-        displayMedium: GoogleFonts.poppins(fontSize: 45, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-        displaySmall: GoogleFonts.poppins(fontSize: 36, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-        headlineLarge: GoogleFonts.poppins(fontSize: 32, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-        headlineMedium: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-        headlineSmall: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+        surface: AppColors.surface,
+        onSurface: AppColors.textPrimary,
       ),
+      textTheme: textTheme,
     );
 
     return base.copyWith(
-      scaffoldBackgroundColor: AppColors.white,
+      scaffoldBackgroundColor: AppColors.background,
 
       cardTheme: CardThemeData(
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        color: AppColors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        color: AppColors.surface,
         shadowColor: Colors.transparent,
       ),
 
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         elevation: 0,
         centerTitle: true,
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
+        foregroundColor: AppColors.textPrimary,
+        titleTextStyle: GoogleFonts.poppins(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+        iconTheme: const IconThemeData(color: AppColors.textSecondary),
       ),
 
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         indicatorColor: AppColors.softPeach,
         labelTextStyle: WidgetStateProperty.resolveWith(
@@ -99,22 +123,33 @@ class AppTheme {
                 : AppColors.textSecondary,
           ),
         ),
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? AppColors.orange
+                : AppColors.textSecondary,
+          ),
+        ),
       ),
 
       sliderTheme: SliderThemeData(
         activeTrackColor: AppColors.orange,
         thumbColor: AppColors.orange,
-        inactiveTrackColor: const Color(0xFFE0E0E0),
+        inactiveTrackColor: AppColors.divider,
       ),
 
-      progressIndicatorTheme: ProgressIndicatorThemeData(
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: AppColors.orange,
         linearMinHeight: 8,
       ),
 
       inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.surfaceElevated,
+        hintStyle: const TextStyle(color: AppColors.textTertiary),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -129,33 +164,44 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.orange,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
       ),
 
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          foregroundColor: AppColors.textPrimary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           side: const BorderSide(color: AppColors.divider),
         ),
       ),
-    );
-  }
 
-  static ThemeData get darkTheme {
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.orange,
-        brightness: Brightness.dark,
+      tabBarTheme: const TabBarThemeData(
+        labelColor: AppColors.orange,
+        unselectedLabelColor: AppColors.textSecondary,
+        indicatorColor: AppColors.orange,
       ),
-      textTheme: GoogleFonts.notoSansKrTextTheme(
-        ThemeData.dark().textTheme,
+
+      dividerTheme: const DividerThemeData(color: AppColors.divider),
+
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.surfaceElevated,
+        contentTextStyle: const TextStyle(color: AppColors.textPrimary),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        behavior: SnackBarBehavior.floating,
+      ),
+
+      dropdownMenuTheme: DropdownMenuThemeData(
+        menuStyle: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(AppColors.surfaceElevated),
+        ),
       ),
     );
   }

@@ -196,7 +196,7 @@ class _RecommendedUsersTab extends StatelessWidget {
                                     gradient: LinearGradient(
                                       colors: [
                                         AppColors.softPeach,
-                                        const Color(0xFFFFE4D0),
+                                        const Color(0xFF2A1C10),
                                       ],
                                     ),
                                     borderRadius: BorderRadius.circular(12),
