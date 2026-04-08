@@ -51,8 +51,8 @@ class AppColors {
 
   // Neutral colors
   static const Color textPrimary = Color(0xFFF2F2F2);
-  static const Color textSecondary = Color(0xFF8A8A9A);
-  static const Color textTertiary = Color(0xFF555565);
+  static const Color textSecondary = Color(0xFF9898B2);  // 4.78:1 on surface
+  static const Color textTertiary = Color(0xFF8585A5);   // 4.55:1 on surface (AA 통과)
   static const Color divider = Color(0xFF2A2A38);
 }
 

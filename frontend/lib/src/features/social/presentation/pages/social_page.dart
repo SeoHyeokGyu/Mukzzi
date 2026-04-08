@@ -55,11 +55,21 @@ class _SocialPageState extends State<SocialPage>
 class _FriendListTab extends StatelessWidget {
   const _FriendListTab();
 
+  // mock — API 연결 시 교체
+  static const int _itemCount = 8;
+
   @override
   Widget build(BuildContext context) {
+    if (_itemCount == 0) {
+      return const _EmptyState(
+        icon: Icons.people_outline,
+        message: '아직 친구가 없어요',
+        sub: '추천 탭에서 친구를 찾아보세요',
+      );
+    }
     return ListView.builder(
       padding: const EdgeInsets.all(12),
-      itemCount: 8,
+      itemCount: _itemCount,
       itemBuilder: (context, index) {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
@@ -71,21 +81,32 @@ class _FriendListTab extends StatelessWidget {
               title: Text('친구 ${index + 1}'),
               subtitle: const Row(
                 children: [
-                  Text('🌟 Lv.1'),
-                  SizedBox(width: 12),
-                  Text('😊 기분좋음'),
+                  Text('Lv.1', style: TextStyle(fontSize: 12)),
+                  SizedBox(width: 8),
+                  Text('·', style: TextStyle(color: AppColors.textTertiary)),
+                  SizedBox(width: 8),
+                  Text('기분좋음', style: TextStyle(fontSize: 12)),
                 ],
               ),
-              trailing: PopupMenuButton(
-                itemBuilder: (context) => const [
-                  PopupMenuItem(
-                    child: Text('프로필 보기'),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: '응원하기',
+                    icon: const Icon(Icons.favorite_outline, size: 20),
+                    color: AppColors.orange,
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('응원을 보냈어요!')),
+                      );
+                    },
                   ),
-                  PopupMenuItem(
-                    child: Text('응원하기'),
-                  ),
-                  PopupMenuItem(
-                    child: Text('친구 삭제'),
+                  PopupMenuButton<String>(
+                    onSelected: (_) {},
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: 'profile', child: Text('프로필 보기')),
+                      PopupMenuItem(value: 'delete', child: Text('친구 삭제')),
+                    ],
                   ),
                 ],
               ),
@@ -105,11 +126,21 @@ class _FriendRequestTab extends StatefulWidget {
 }
 
 class _FriendRequestTabState extends State<_FriendRequestTab> {
+  // mock — API 연결 시 교체
+  static const int _itemCount = 5;
+
   @override
   Widget build(BuildContext context) {
+    if (_itemCount == 0) {
+      return const _EmptyState(
+        icon: Icons.inbox_outlined,
+        message: '받은 친구 요청이 없어요',
+        sub: '추천 탭에서 먼저 친구 요청을 보내보세요',
+      );
+    }
     return ListView.builder(
       padding: const EdgeInsets.all(12),
-      itemCount: 5,
+      itemCount: _itemCount,
       itemBuilder: (context, index) {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
@@ -124,6 +155,7 @@ class _FriendRequestTabState extends State<_FriendRequestTab> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
+                    tooltip: '친구 요청 수락',
                     icon: const Icon(Icons.check, color: Colors.green),
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -133,6 +165,7 @@ class _FriendRequestTabState extends State<_FriendRequestTab> {
                     },
                   ),
                   IconButton(
+                    tooltip: '친구 요청 거절',
                     icon: const Icon(Icons.close, color: Colors.red),
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -185,7 +218,7 @@ class _RecommendedUsersTab extends StatelessWidget {
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                const Text('🌟 Lv.1'),
+                                const Text('Lv.1'),
                                 const SizedBox(width: 12),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
@@ -193,12 +226,7 @@ class _RecommendedUsersTab extends StatelessWidget {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        AppColors.softPeach,
-                                        const Color(0xFF2A1C10),
-                                      ],
-                                    ),
+                                    color: AppColors.softPeach,
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: const Text(
@@ -215,6 +243,7 @@ class _RecommendedUsersTab extends StatelessWidget {
                         ),
                       ),
                       IconButton(
+                        tooltip: '친구 요청 보내기',
                         icon: const Icon(Icons.person_add),
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -237,6 +266,37 @@ class _RecommendedUsersTab extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final IconData icon;
+  final String message;
+  final String sub;
+
+  const _EmptyState({
+    required this.icon,
+    required this.message,
+    required this.sub,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 64, color: AppColors.textTertiary),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 6),
+          Text(sub, style: const TextStyle(fontSize: 13, color: AppColors.textTertiary)),
+        ],
+      ),
     );
   }
 }

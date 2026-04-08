@@ -92,49 +92,23 @@ class _MealInputTabState extends State<_MealInputTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 날짜/시간 선택
+          // 메뉴 입력 (가장 중요한 필드를 최상단)
           Text(
-            '식사 시간',
+            '메뉴명',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: _selectedDate,
-                      firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                      lastDate: DateTime.now(),
-                    );
-                    if (picked != null) {
-                      setState(() => _selectedDate = picked);
-                    }
-                  },
-                  child: Text(
-                    '${_selectedDate.year}-${_selectedDate.month}-${_selectedDate.day}',
-                  ),
-                ),
+          TextField(
+            controller: widget.menuController,
+            textInputAction: TextInputAction.done,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: '예: 김치찌개',
+              prefixIcon: const Icon(Icons.restaurant_menu),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () async {
-                    final picked = await showTimePicker(
-                      context: context,
-                      initialTime: _selectedTime,
-                    );
-                    if (picked != null) {
-                      setState(() => _selectedTime = picked);
-                    }
-                  },
-                  child: Text(
-                      '${_selectedTime.hour}:${_selectedTime.minute.toString().padLeft(2, '0')}'),
-                ),
-              ),
-            ],
+            ),
           ),
           const SizedBox(height: 24),
 
@@ -158,30 +132,63 @@ class _MealInputTabState extends State<_MealInputTab> {
           ),
           const SizedBox(height: 24),
 
-          // 메뉴 입력
+          // 날짜/시간 선택
           Text(
-            '메뉴명',
+            '식사 시간',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: widget.menuController,
-            decoration: InputDecoration(
-              hintText: '예: 김치찌개',
-              prefixIcon: const Icon(Icons.restaurant_menu),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _selectedDate,
+                      firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setState(() => _selectedDate = picked);
+                    }
+                  },
+                  child: Text(
+                    '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}',
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: _selectedTime,
+                    );
+                    if (picked != null) {
+                      setState(() => _selectedTime = picked);
+                    }
+                  },
+                  child: Text(
+                      '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}'),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
 
           // 인분 선택
-          Text(
-            '인분 (${_servingSize.toStringAsFixed(1)}인분)',
-            style: Theme.of(context).textTheme.titleMedium,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('인분', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                '${_servingSize.toStringAsFixed(1)}인분',
+                style: const TextStyle(color: AppColors.orange, fontWeight: FontWeight.w600),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
           Slider(
             value: _servingSize,
             min: 0.5,
@@ -194,7 +201,15 @@ class _MealInputTabState extends State<_MealInputTab> {
           ),
           const SizedBox(height: 24),
 
-          // 날씨/기분
+          // 날씨/기분 (선택사항)
+          Row(
+            children: [
+              Text('날씨 / 기분', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(width: 8),
+              const Text('선택사항', style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),
+            ],
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -203,16 +218,16 @@ class _MealInputTabState extends State<_MealInputTab> {
                   children: [
                     Text('날씨', style: Theme.of(context).textTheme.bodyMedium),
                     const SizedBox(height: 8),
-                    DropdownButton<String>(
-                      isExpanded: true,
-                      value: _selectedWeather,
-                      items: const [
-                        DropdownMenuItem(value: 'SUNNY', child: Text('☀️ 맑음')),
-                        DropdownMenuItem(value: 'CLOUDY', child: Text('☁️ 흐림')),
-                        DropdownMenuItem(value: 'RAINY', child: Text('🌧️ 비')),
-                      ],
-                      onChanged: (value) =>
+                    DropdownMenu<String>(
+                      initialSelection: _selectedWeather,
+                      expandedInsets: EdgeInsets.zero,
+                      onSelected: (value) =>
                           setState(() => _selectedWeather = value),
+                      dropdownMenuEntries: const [
+                        DropdownMenuEntry(value: 'SUNNY', label: '맑음'),
+                        DropdownMenuEntry(value: 'CLOUDY', label: '흐림'),
+                        DropdownMenuEntry(value: 'RAINY', label: '비'),
+                      ],
                     ),
                   ],
                 ),
@@ -224,17 +239,16 @@ class _MealInputTabState extends State<_MealInputTab> {
                   children: [
                     Text('기분', style: Theme.of(context).textTheme.bodyMedium),
                     const SizedBox(height: 8),
-                    DropdownButton<String>(
-                      isExpanded: true,
-                      value: _selectedMood,
-                      items: const [
-                        DropdownMenuItem(value: 'HAPPY', child: Text('😊 좋음')),
-                        DropdownMenuItem(value: 'TIRED', child: Text('😴 피곤')),
-                        DropdownMenuItem(
-                            value: 'STRESSED', child: Text('😤 스트레스')),
-                      ],
-                      onChanged: (value) =>
+                    DropdownMenu<String>(
+                      initialSelection: _selectedMood,
+                      expandedInsets: EdgeInsets.zero,
+                      onSelected: (value) =>
                           setState(() => _selectedMood = value),
+                      dropdownMenuEntries: const [
+                        DropdownMenuEntry(value: 'HAPPY', label: '좋음'),
+                        DropdownMenuEntry(value: 'TIRED', label: '피곤'),
+                        DropdownMenuEntry(value: 'STRESSED', label: '스트레스'),
+                      ],
                     ),
                   ],
                 ),
@@ -262,11 +276,21 @@ class _MealInputTabState extends State<_MealInputTab> {
 class _MealListTab extends StatelessWidget {
   const _MealListTab();
 
+  // mock — API 연결 시 교체
+  static const int _itemCount = 10;
+
   @override
   Widget build(BuildContext context) {
+    if (_itemCount == 0) {
+      return const _EmptyState(
+        icon: Icons.restaurant_outlined,
+        message: '아직 기록된 식사가 없어요',
+        sub: '첫 번째 식사를 기록해보세요',
+      );
+    }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: 10,
+      itemCount: _itemCount,
       itemBuilder: (context, index) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
@@ -274,8 +298,7 @@ class _MealListTab extends StatelessWidget {
             child: ListTile(
               leading: _getMealIcon(index),
               title: Text(_getMealName(index)),
-              subtitle: Text(
-                  '${DateTime.now().subtract(Duration(days: index)).toString().split('.')[0]}'),
+              subtitle: Text(_formatDate(DateTime.now().subtract(Duration(days: index)))),
               trailing: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -326,13 +349,60 @@ class _MealListTab extends StatelessWidget {
     );
   }
 
+  String _formatDate(DateTime dt) {
+    final y = dt.year;
+    final m = dt.month.toString().padLeft(2, '0');
+    final d = dt.day.toString().padLeft(2, '0');
+    final h = dt.hour.toString().padLeft(2, '0');
+    final min = dt.minute.toString().padLeft(2, '0');
+    return '$y-$m-$d $h:$min';
+  }
+
   Widget _getMealIcon(int index) {
-    final icons = ['🍜', '🍲', '🍱', '🍛', '🥘', '🍲', '🍜', '🍱', '🍛', '🥘'];
-    return Text(icons[index % icons.length], style: const TextStyle(fontSize: 28));
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: AppColors.softPeach,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Icon(Icons.restaurant, color: AppColors.orange, size: 22),
+    );
   }
 
   String _getMealName(int index) {
     final names = ['김치찌개', '부대찌개', '도시락', '카레', '파에야', '스튜', '국밥', '한정식', '카레', '해물탕'];
     return names[index % names.length];
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final IconData icon;
+  final String message;
+  final String sub;
+
+  const _EmptyState({
+    required this.icon,
+    required this.message,
+    required this.sub,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 64, color: AppColors.textTertiary),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 6),
+          Text(sub, style: const TextStyle(fontSize: 13, color: AppColors.textTertiary)),
+        ],
+      ),
+    );
   }
 }

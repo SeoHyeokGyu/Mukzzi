@@ -53,12 +53,7 @@ class _CharacterPageState extends State<CharacterPage> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.softPeach,
-                          const Color(0xFF2A1C10),
-                        ],
-                      ),
+                      color: AppColors.softPeach,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(
@@ -85,23 +80,23 @@ class _CharacterPageState extends State<CharacterPage> {
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
               children: [
-                _PartCard(
-                  icon: '🍖',
+                const _PartCard(
+                  icon: Icons.person_outline,
                   label: '체형',
                   value: '보통',
                 ),
-                _PartCard(
-                  icon: '💪',
+                const _PartCard(
+                  icon: Icons.fitness_center,
                   label: '근육',
                   value: '보통',
                 ),
-                _PartCard(
-                  icon: '🌤',
+                const _PartCard(
+                  icon: Icons.palette_outlined,
                   label: '피부색',
                   value: '건강',
                 ),
-                _PartCard(
-                  icon: '😊',
+                const _PartCard(
+                  icon: Icons.sentiment_satisfied_outlined,
                   label: '표정',
                   value: '기분좋음',
                 ),
@@ -151,22 +146,26 @@ class _CharacterPageState extends State<CharacterPage> {
               physics: const NeverScrollableScrollPhysics(),
               itemCount: 6,
               itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('외형이 변경되었습니다')),
-                    );
-                  },
-                  child: BentoCard(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Center(
-                      child: Text(
-                        '외형\n${index + 1}',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 12),
+                return Semantics(
+                  label: '외형 ${index + 1} 선택',
+                  button: true,
+                  child: GestureDetector(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('외형이 변경되었습니다')),
+                      );
+                    },
+                    child: BentoCard(
+                      borderRadius: BorderRadius.circular(12),
+                      padding: EdgeInsets.zero,
+                      child: Center(
+                        child: Text(
+                          '외형\n${index + 1}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 12),
+                        ),
                       ),
                     ),
-                    padding: EdgeInsets.zero,
                   ),
                 );
               },
@@ -179,7 +178,7 @@ class _CharacterPageState extends State<CharacterPage> {
 }
 
 class _PartCard extends StatelessWidget {
-  final String icon;
+  final IconData icon;
   final String label;
   final String value;
 
@@ -195,7 +194,7 @@ class _PartCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(icon, style: const TextStyle(fontSize: 32)),
+          Icon(icon, size: 32, color: AppColors.orange),
           const SizedBox(height: 8),
           Text(
             label,

@@ -118,29 +118,74 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildCharacterCard() {
+    const double xp = 0;
+    const double xpGoal = 100;
     final card = BentoCard(
-      height: 220,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.softPeach,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Center(
-                child: Text('먹찌 (Coming Soon)', style: TextStyle(color: AppColors.textSecondary)),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _CharacterStat(label: '레벨', value: '1'),
-              _CharacterStat(label: '경험치', value: '0/100'),
-              _CharacterStat(label: '상태', value: 'NORMAL'),
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppColors.softPeach,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.egg_outlined, size: 44, color: AppColors.orange),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text('먹찌', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.softPeach,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text('부화 단계', style: TextStyle(fontSize: 11, color: AppColors.orange)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    const Text('Lv.1 · NORMAL', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('EXP', style: TextStyle(fontSize: 11, color: AppColors.textTertiary)),
+                        Text(
+                          '${xp.toInt()} / ${xpGoal.toInt()}',
+                          style: const TextStyle(fontSize: 11, color: AppColors.orange),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: (xp / xpGoal).clamp(0.0, 1.0),
+                        minHeight: 6,
+                        backgroundColor: AppColors.divider,
+                        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.orange),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '식사를 기록하면 먹찌가 성장해요',
+            style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
           ),
         ],
       ),
@@ -515,24 +560,6 @@ class _HomePageState extends State<HomePage> {
       ],
     );
     return _animated(col, delay: 400.ms, slideY: true);
-  }
-}
-
-class _CharacterStat extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _CharacterStat({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-        const SizedBox(height: 2),
-        Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-      ],
-    );
   }
 }
 
