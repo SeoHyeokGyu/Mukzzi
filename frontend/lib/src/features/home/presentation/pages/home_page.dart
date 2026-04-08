@@ -44,8 +44,8 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text('먹찌'),
         actions: [
-          IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.settings_outlined), onPressed: () {}),
+          IconButton(tooltip: '알림', icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
+          IconButton(tooltip: '설정', icon: const Icon(Icons.settings_outlined), onPressed: () {}),
         ],
       ),
       body: _isLoading ? _buildShimmer() : _buildContent(),
@@ -85,6 +85,16 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // 시스템 모션 감소 설정 적용 헬퍼
+  Widget _animated(Widget child, {Duration? delay, bool slideY = false}) {
+    if (MediaQuery.of(context).disableAnimations) return child;
+    var effect = child.animate().fadeIn(
+      delay: delay ?? Duration.zero,
+      duration: const Duration(milliseconds: 300),
+    );
+    return slideY ? effect.slideY(begin: 0.08, end: 0, duration: const Duration(milliseconds: 300)) : effect;
+  }
+
   Widget _buildContent() {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -108,7 +118,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildCharacterCard() {
-    return BentoCard(
+    final card = BentoCard(
       height: 220,
       child: Column(
         children: [
@@ -134,15 +144,13 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-    )
-        .animate()
-        .fadeIn(duration: 300.ms)
-        .slideY(begin: 0.08, end: 0, duration: 300.ms);
+    );
+    return _animated(card, slideY: true);
   }
 
   Widget _buildMacroChartCard() {
     final remaining = _caloriesGoal - _caloriesConsumed;
-    return BentoCard(
+    final card = BentoCard(
       child: Row(
         children: [
           // 도넛 차트
@@ -240,14 +248,12 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-    )
-        .animate()
-        .fadeIn(delay: 80.ms, duration: 300.ms)
-        .slideY(begin: 0.08, end: 0, duration: 300.ms);
+    );
+    return _animated(card, delay: 80.ms, slideY: true);
   }
 
   Widget _buildQuickStatsRow() {
-    return Row(
+    final row = Row(
       children: [
         Expanded(
           child: BentoCard(
@@ -311,15 +317,13 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ],
-    )
-        .animate()
-        .fadeIn(delay: 160.ms, duration: 300.ms)
-        .slideY(begin: 0.08, end: 0, duration: 300.ms);
+    );
+    return _animated(row, delay: 160.ms, slideY: true);
   }
 
   Widget _buildWeeklyChartCard() {
     const days = ['월', '화', '수', '목', '금', '토', '일'];
-    return BentoCard(
+    final card = BentoCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -403,61 +407,65 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-    )
-        .animate()
-        .fadeIn(delay: 240.ms, duration: 300.ms)
-        .slideY(begin: 0.08, end: 0, duration: 300.ms);
+    );
+    return _animated(card, delay: 240.ms, slideY: true);
   }
 
   Widget _buildQuickActions() {
-    return Row(
+    final row = Row(
       children: [
         Expanded(
-          child: GestureDetector(
-            onTap: () {},
-            child: BentoCard(
-              height: 100,
-              gradient: AppColors.primaryGradient,
-              padding: const EdgeInsets.all(12),
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.restaurant_menu, color: Colors.white, size: 30),
-                  SizedBox(height: 8),
-                  Text('메뉴 선택', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                ],
+          child: Semantics(
+            label: '메뉴 선택',
+            button: true,
+            child: GestureDetector(
+              onTap: () {},
+              child: BentoCard(
+                height: 100,
+                gradient: AppColors.primaryGradient,
+                padding: const EdgeInsets.all(12),
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.restaurant_menu, color: Colors.white, size: 30, semanticLabel: '메뉴'),
+                    SizedBox(height: 8),
+                    Text('메뉴 선택', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                  ],
+                ),
               ),
             ),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: GestureDetector(
-            onTap: () {},
-            child: BentoCard(
-              height: 100,
-              gradient: AppColors.primaryGradient,
-              padding: const EdgeInsets.all(12),
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add_circle_outline, color: Colors.white, size: 30),
-                  SizedBox(height: 8),
-                  Text('식사 기록', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                ],
+          child: Semantics(
+            label: '식사 기록 추가',
+            button: true,
+            child: GestureDetector(
+              onTap: () {},
+              child: BentoCard(
+                height: 100,
+                gradient: AppColors.primaryGradient,
+                padding: const EdgeInsets.all(12),
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.add_circle_outline, color: Colors.white, size: 30, semanticLabel: '추가'),
+                    SizedBox(height: 8),
+                    Text('식사 기록', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ],
-    )
-        .animate()
-        .fadeIn(delay: 320.ms, duration: 300.ms)
-        .slideY(begin: 0.08, end: 0, duration: 300.ms);
+    );
+    return _animated(row, delay: 320.ms, slideY: true);
   }
 
   Widget _buildRecentMeals() {
-    return Column(
+    final col = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -505,10 +513,8 @@ class _HomePageState extends State<HomePage> {
           );
         }),
       ],
-    )
-        .animate()
-        .fadeIn(delay: 400.ms, duration: 300.ms)
-        .slideY(begin: 0.08, end: 0, duration: 300.ms);
+    );
+    return _animated(col, delay: 400.ms, slideY: true);
   }
 }
 

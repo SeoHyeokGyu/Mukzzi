@@ -35,6 +35,7 @@ class _AuthPageState extends State<AuthPage> {
 
   @override
   Widget build(BuildContext context) {
+    final d = MediaQuery.of(context).disableAnimations ? Duration.zero : null;
     return GradientScaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -51,8 +52,8 @@ class _AuthPageState extends State<AuthPage> {
                     ),
               )
                   .animate()
-                  .fadeIn(duration: 600.ms)
-                  .scale(begin: const Offset(0.8, 0.8), duration: 600.ms),
+                  .fadeIn(duration: d ?? 600.ms)
+                  .scale(begin: const Offset(0.8, 0.8), duration: d ?? 600.ms),
               const SizedBox(height: 8),
               Text(
                 '음식과 함께 성장하는 캐릭터',
@@ -61,71 +62,76 @@ class _AuthPageState extends State<AuthPage> {
                     ),
               )
                   .animate()
-                  .fadeIn(delay: 200.ms, duration: 400.ms),
+                  .fadeIn(delay: d ?? 200.ms, duration: d ?? 400.ms),
               const SizedBox(height: 48),
 
               // 탭 선택
               Row(
                 children: [
                   Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _isLogin = true),
-                      child: Column(
-                        children: [
-                          Text(
-                            '로그인',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color:
-                                  _isLogin ? AppColors.orange : AppColors.textSecondary,
+                    child: Semantics(
+                      label: '로그인 탭',
+                      selected: _isLogin,
+                      button: true,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _isLogin = true),
+                        child: Column(
+                          children: [
+                            Text(
+                              '로그인',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: _isLogin ? AppColors.orange : AppColors.textSecondary,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          if (_isLogin)
-                            Container(
-                              height: 3,
-                              color: AppColors.orange,
-                            ),
-                        ],
+                            const SizedBox(height: 8),
+                            if (_isLogin)
+                              Container(height: 3, color: AppColors.orange),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                   Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _isLogin = false),
-                      child: Column(
-                        children: [
-                          Text(
-                            '회원가입',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color:
-                                  !_isLogin ? AppColors.orange : AppColors.textSecondary,
+                    child: Semantics(
+                      label: '회원가입 탭',
+                      selected: !_isLogin,
+                      button: true,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _isLogin = false),
+                        child: Column(
+                          children: [
+                            Text(
+                              '회원가입',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: !_isLogin ? AppColors.orange : AppColors.textSecondary,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          if (!_isLogin)
-                            Container(
-                              height: 3,
-                              color: AppColors.orange,
-                            ),
-                        ],
+                            const SizedBox(height: 8),
+                            if (!_isLogin)
+                              Container(height: 3, color: AppColors.orange),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ],
               )
                   .animate()
-                  .fadeIn(delay: 300.ms, duration: 400.ms),
+                  .fadeIn(delay: d ?? 300.ms, duration: d ?? 400.ms),
               const SizedBox(height: 32),
 
               // 폼
               TextField(
                 controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
-                  hintText: '이메일',
+                  labelText: '이메일',
+                  hintText: 'example@email.com',
                   prefixIcon: const Icon(Icons.email_outlined),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -133,14 +139,15 @@ class _AuthPageState extends State<AuthPage> {
                 ),
               )
                   .animate()
-                  .fadeIn(delay: 400.ms, duration: 300.ms)
-                  .slideX(begin: -0.2, end: 0, duration: 300.ms),
+                  .fadeIn(delay: d ?? 400.ms, duration: d ?? 300.ms)
+                  .slideX(begin: -0.2, end: 0, duration: d ?? 300.ms),
               const SizedBox(height: 16),
               TextField(
                 controller: _passwordController,
                 obscureText: true,
+                textInputAction: _isLogin ? TextInputAction.done : TextInputAction.next,
                 decoration: InputDecoration(
-                  hintText: '비밀번호',
+                  labelText: '비밀번호',
                   prefixIcon: const Icon(Icons.lock_outlined),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -148,14 +155,16 @@ class _AuthPageState extends State<AuthPage> {
                 ),
               )
                   .animate()
-                  .fadeIn(delay: 450.ms, duration: 300.ms)
-                  .slideX(begin: -0.2, end: 0, duration: 300.ms),
+                  .fadeIn(delay: d ?? 450.ms, duration: d ?? 300.ms)
+                  .slideX(begin: -0.2, end: 0, duration: d ?? 300.ms),
               if (!_isLogin) ...[
                 const SizedBox(height: 16),
                 TextField(
                   controller: _nicknameController,
+                  textInputAction: TextInputAction.done,
                   decoration: InputDecoration(
-                    hintText: '닉네임 (2-12자)',
+                    labelText: '닉네임',
+                    hintText: '2-12자',
                     prefixIcon: const Icon(Icons.person_outlined),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -163,8 +172,8 @@ class _AuthPageState extends State<AuthPage> {
                   ),
                 )
                     .animate()
-                    .fadeIn(delay: 500.ms, duration: 300.ms)
-                    .slideX(begin: -0.2, end: 0, duration: 300.ms),
+                    .fadeIn(delay: d ?? 500.ms, duration: d ?? 300.ms)
+                    .slideX(begin: -0.2, end: 0, duration: d ?? 300.ms),
               ],
               const SizedBox(height: 24),
 
@@ -174,7 +183,7 @@ class _AuthPageState extends State<AuthPage> {
                 onPressed: () {},
               )
                   .animate()
-                  .fadeIn(delay: 550.ms, duration: 300.ms),
+                  .fadeIn(delay: d ?? 550.ms, duration: d ?? 300.ms),
               const SizedBox(height: 16),
 
               // 소셜 로그인
@@ -184,25 +193,25 @@ class _AuthPageState extends State<AuthPage> {
                   style: Theme.of(context).textTheme.bodySmall,
                 )
                     .animate()
-                    .fadeIn(delay: 600.ms, duration: 300.ms),
+                    .fadeIn(delay: d ?? 600.ms, duration: d ?? 300.ms),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _AppleButton(onPressed: () {})
                         .animate()
-                        .fadeIn(delay: 650.ms, duration: 300.ms)
-                        .scale(begin: const Offset(0.8, 0.8), duration: 300.ms),
+                        .fadeIn(delay: d ?? 650.ms, duration: d ?? 300.ms)
+                        .scale(begin: const Offset(0.8, 0.8), duration: d ?? 300.ms),
                     const SizedBox(width: 16),
                     _GoogleButton(onPressed: () {})
                         .animate()
-                        .fadeIn(delay: 700.ms, duration: 300.ms)
-                        .scale(begin: const Offset(0.8, 0.8), duration: 300.ms),
+                        .fadeIn(delay: d ?? 700.ms, duration: d ?? 300.ms)
+                        .scale(begin: const Offset(0.8, 0.8), duration: d ?? 300.ms),
                     const SizedBox(width: 16),
                     _KakaoButton(onPressed: () {})
                         .animate()
-                        .fadeIn(delay: 750.ms, duration: 300.ms)
-                        .scale(begin: const Offset(0.8, 0.8), duration: 300.ms),
+                        .fadeIn(delay: d ?? 750.ms, duration: d ?? 300.ms)
+                        .scale(begin: const Offset(0.8, 0.8), duration: d ?? 300.ms),
                   ],
                 ),
               ],
