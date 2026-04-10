@@ -1,9 +1,9 @@
 package handler
 
 import (
-	"net/http"
 	"strconv"
 
+	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/dto"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/usecase"
 	"github.com/gin-gonic/gin"
@@ -30,58 +30,59 @@ func NewMenuHandler(menuUsecase usecase.MenuUsecase) *MenuHandler {
 // @Param        category  query     string  false  "카테고리 (KOREAN, CHINESE, JAPANESE, WESTERN, SNACK, CAFE, OTHER)"
 // @Param        cursor    query     string  false  "다음 페이지 커서"
 // @Param        limit     query     int     false  "페이지당 항목 수 (기본값: 20, 최대: 50)"
-// @Success      200  {object}  Response
-// @Failure      400  {object}  Response
-// @Failure      401  {object}  Response
-// @Failure      500  {object}  Response
-// @Router       /api/menus/search [get]
+// @Success      200  {object}  Response  "메뉴 검색 성공"
+// @Failure      400  {object}  Response  "잘못된 쿼리 파라미터"
+// @Failure      401  {object}  Response  "인증 토큰 누락 또는 유효하지 않음"
+// @Failure      500  {object}  Response  "서버 내부 에러"
+// @Router       /menus/search [get]
 func (h *MenuHandler) Search(c *gin.Context) {
-	query := c.Query("query")
-	if query == "" {
-		BadRequest(c, "INVALID_PARAM", "query는 필수입니다.")
+	// 인증 확인
+	//_, exists := c.Get("userID")
+	//if !exists {
+	//	Unauthorized(c, "UNAUTHORIZED", "인증 정보가 없습니다.")
+	//	return
+	//}
+
+	// 쿼리 파라미터 바인딩
+	var req dto.MenuSearchRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		BadRequest(c, "INVALID_REQUEST", "잘못된 요청 형식입니다.", err.Error())
 		return
 	}
 
+	// limit 기본값
+	if req.Limit == 0 {
+		req.Limit = 20
+	}
+
+	// cursor 파싱
+	var cursor *int64
+	if req.Cursor != "" {
+		v, err := strconv.ParseInt(req.Cursor, 10, 64)
+		if err != nil {
+			BadRequest(c, "INVALID_PARAMETER", "cursor 값이 올바르지 않습니다.")
+			return
+		}
+		cursor = &v
+	}
+
+	// category 파싱
 	var category *domain.MenuCategory
-	if cat := c.Query("category"); cat != "" {
-		mc := domain.MenuCategory(cat)
+	if req.Category != "" {
+		mc := domain.MenuCategory(req.Category)
 		category = &mc
 	}
 
-	limit := 20
-	if l := c.Query("limit"); l != "" {
-		if v, err := strconv.Atoi(l); err == nil {
-			limit = v
-		}
-	}
-
-	var cursor *int64
-	if cur := c.Query("cursor"); cur != "" {
-		if v, err := strconv.ParseInt(cur, 10, 64); err == nil {
-			cursor = &v
-		}
-	}
-
 	result, err := h.menuUsecase.Search(c.Request.Context(), domain.SearchMenuQuery{
-		Query:    query,
+		Query:    req.Query,
 		Category: category,
 		Cursor:   cursor,
-		Limit:    limit,
+		Limit:    req.Limit,
 	})
 	if err != nil {
-		InternalError(c, "메뉴 검색에 실패했습니다.", err.Error())
+		InternalError(c, "메뉴 검색에 실패했습니다.")
 		return
 	}
 
-	// 성공 응답 (기존 Response 구조체 사용)
-	c.JSON(http.StatusOK, Response{
-		Success: true,
-		Data:    result.Menus,
-		Pagination: &Pagination{
-			Limit:   result.Limit,
-			HasNext: result.HasNext,
-			// 커서 기반 페이지네이션의 경우 TotalCount를 생략할 수 있음
-			// NextCursor 등 다른 정보를 보강할 수 있음
-		},
-	})
+	Success(c, result.Menus)
 }

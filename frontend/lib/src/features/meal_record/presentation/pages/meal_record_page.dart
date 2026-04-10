@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../data/models/menu_model.dart';
+import '../widgets/menu_search_field.dart';
 
 class MealRecordPage extends StatefulWidget {
   const MealRecordPage({super.key});
@@ -47,7 +50,6 @@ class _MealRecordPageState extends State<MealRecordPage>
       body: TabBarView(
         controller: _tabController,
         children: [
-          // 기록 추가 탭
           _MealInputTab(
             menuController: _menuController,
             selectedMealType: _selectedMealType,
@@ -55,7 +57,6 @@ class _MealRecordPageState extends State<MealRecordPage>
               setState(() => _selectedMealType = value!);
             },
           ),
-          // 기록 목록 탭
           const _MealListTab(),
         ],
       ),
@@ -84,41 +85,66 @@ class _MealInputTabState extends State<_MealInputTab> {
   double _servingSize = 1.0;
   String? _selectedWeather;
   String? _selectedMood;
+  MenuModel? _selectedMenu;
+
+  /// 시간대에 맞는 식사 종류 반환
+  /// - 아침: 06:00 ~ 10:59
+  /// - 점심: 12:00 ~ 13:59
+  /// - 저녁: 18:00 ~ 21:59
+  /// - 간식: 나머지
+  String _expectedMealType(TimeOfDay time) {
+    final h = time.hour;
+    if (h >= 6 && h <= 10) return 'BREAKFAST';
+    if (h >= 12 && h <= 13) return 'LUNCH';
+    if (h >= 18 && h <= 21) return 'DINNER';
+    return 'SNACK';
+  }
+
+  String? _getMealTypeMismatchWarning() {
+    final expected = _expectedMealType(_selectedTime);
+    if (expected == widget.selectedMealType) return null;
+
+    const labels = {
+      'BREAKFAST': '아침 (06:00~10:59)',
+      'LUNCH': '점심 (12:00~13:59)',
+      'DINNER': '저녁 (18:00~21:59)',
+      'SNACK': '간식',
+    };
+    return '선택한 시간은 ${labels[expected]} 시간대예요';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final warning = _getMealTypeMismatchWarning();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 메뉴 입력 (가장 중요한 필드를 최상단)
-          Text(
-            '메뉴명',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          // 메뉴 검색
+          Text('메뉴명', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
-          TextField(
+          MenuSearchField(
             controller: widget.menuController,
-            textInputAction: TextInputAction.done,
-            autofocus: true,
-            decoration: InputDecoration(
-              hintText: '예: 김치찌개',
-              prefixIcon: const Icon(Icons.restaurant_menu),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
+            onMenuSelected: (menu) {
+              setState(() => _selectedMenu = menu);
+            },
           ),
           const SizedBox(height: 24),
 
           // 식사 타입
-          Text(
-            '식사 종류',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          Text('식사 종류', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
           SegmentedButton<String>(
+            showSelectedIcon: false,
+            style: SegmentedButton.styleFrom(
+              textStyle: const TextStyle(fontSize: 15),
+              selectedBackgroundColor: AppColors.orange,
+              selectedForegroundColor: Colors.white,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.comfortable,
+            ),
             segments: const [
               ButtonSegment(label: Text('아침'), value: 'BREAKFAST'),
               ButtonSegment(label: Text('점심'), value: 'LUNCH'),
@@ -133,10 +159,7 @@ class _MealInputTabState extends State<_MealInputTab> {
           const SizedBox(height: 24),
 
           // 날짜/시간 선택
-          Text(
-            '식사 시간',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          Text('식사 시간', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -149,9 +172,7 @@ class _MealInputTabState extends State<_MealInputTab> {
                       firstDate: DateTime.now().subtract(const Duration(days: 30)),
                       lastDate: DateTime.now(),
                     );
-                    if (picked != null) {
-                      setState(() => _selectedDate = picked);
-                    }
+                    if (picked != null) setState(() => _selectedDate = picked);
                   },
                   child: Text(
                     '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}',
@@ -166,16 +187,31 @@ class _MealInputTabState extends State<_MealInputTab> {
                       context: context,
                       initialTime: _selectedTime,
                     );
-                    if (picked != null) {
-                      setState(() => _selectedTime = picked);
-                    }
+                    if (picked != null) setState(() => _selectedTime = picked);
                   },
                   child: Text(
-                      '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}'),
+                    '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}',
+                  ),
                 ),
               ),
             ],
           ),
+          if (warning != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.info_outline, size: 14, color: AppColors.textTertiary),
+                const SizedBox(width: 4),
+                Text(
+                  warning,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 24),
 
           // 인분 선택
@@ -185,7 +221,10 @@ class _MealInputTabState extends State<_MealInputTab> {
               Text('인분', style: Theme.of(context).textTheme.titleMedium),
               Text(
                 '${_servingSize.toStringAsFixed(1)}인분',
-                style: const TextStyle(color: AppColors.orange, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  color: AppColors.orange,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -195,18 +234,19 @@ class _MealInputTabState extends State<_MealInputTab> {
             max: 3.0,
             divisions: 5,
             label: '${_servingSize.toStringAsFixed(1)}인분',
-            onChanged: (value) {
-              setState(() => _servingSize = value);
-            },
+            onChanged: (value) => setState(() => _servingSize = value),
           ),
           const SizedBox(height: 24),
 
-          // 날씨/기분 (선택사항)
+          // 날씨/기분
           Row(
             children: [
               Text('날씨 / 기분', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(width: 8),
-              const Text('선택사항', style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),
+              const Text(
+                '선택사항',
+                style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -227,6 +267,10 @@ class _MealInputTabState extends State<_MealInputTab> {
                         DropdownMenuEntry(value: 'SUNNY', label: '맑음'),
                         DropdownMenuEntry(value: 'CLOUDY', label: '흐림'),
                         DropdownMenuEntry(value: 'RAINY', label: '비'),
+                        DropdownMenuEntry(value: 'SNOWY', label: '눈'),
+                        DropdownMenuEntry(value: 'WINDY', label: '바람'),
+                        DropdownMenuEntry(value: 'HOT', label: '더움'),
+                        DropdownMenuEntry(value: 'COLD', label: '추움'),
                       ],
                     ),
                   ],
@@ -245,9 +289,13 @@ class _MealInputTabState extends State<_MealInputTab> {
                       onSelected: (value) =>
                           setState(() => _selectedMood = value),
                       dropdownMenuEntries: const [
-                        DropdownMenuEntry(value: 'HAPPY', label: '좋음'),
+                        DropdownMenuEntry(value: 'GOOD', label: '좋음'),
                         DropdownMenuEntry(value: 'TIRED', label: '피곤'),
                         DropdownMenuEntry(value: 'STRESSED', label: '스트레스'),
+                        DropdownMenuEntry(value: 'HUNGRY', label: '배고픔'),
+                        DropdownMenuEntry(value: 'EXCITED', label: '설렘'),
+                        DropdownMenuEntry(value: 'SAD', label: '우울'),
+                        DropdownMenuEntry(value: 'NORMAL', label: '보통'),
                       ],
                     ),
                   ],
@@ -265,6 +313,7 @@ class _MealInputTabState extends State<_MealInputTab> {
                 const SnackBar(content: Text('식사 기록이 저장되었습니다')),
               );
               widget.menuController.clear();
+              setState(() => _selectedMenu = null);
             },
           ),
         ],
@@ -276,7 +325,6 @@ class _MealInputTabState extends State<_MealInputTab> {
 class _MealListTab extends StatelessWidget {
   const _MealListTab();
 
-  // mock — API 연결 시 교체
   static const int _itemCount = 10;
 
   @override
@@ -296,9 +344,11 @@ class _MealListTab extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 12),
           child: BentoCard(
             child: ListTile(
-              leading: _getMealIcon(index),
+              leading: _getMealIcon(),
               title: Text(_getMealName(index)),
-              subtitle: Text(_formatDate(DateTime.now().subtract(Duration(days: index)))),
+              subtitle: Text(
+                _formatDate(DateTime.now().subtract(Duration(days: index))),
+              ),
               trailing: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -307,7 +357,10 @@ class _MealListTab extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     'Lv.${(index % 3) + 1}',
-                    style: const TextStyle(fontSize: 12, color: AppColors.orange),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.orange,
+                    ),
                   ),
                 ],
               ),
@@ -358,7 +411,7 @@ class _MealListTab extends StatelessWidget {
     return '$y-$m-$d $h:$min';
   }
 
-  Widget _getMealIcon(int index) {
+  Widget _getMealIcon() {
     return Container(
       width: 44,
       height: 44,
@@ -371,7 +424,7 @@ class _MealListTab extends StatelessWidget {
   }
 
   String _getMealName(int index) {
-    final names = ['김치찌개', '부대찌개', '도시락', '카레', '파에야', '스튜', '국밥', '한정식', '카레', '해물탕'];
+    const names = ['김치찌개', '부대찌개', '도시락', '카레', '파에야', '스튜', '국밥', '한정식', '카레', '해물탕'];
     return names[index % names.length];
   }
 }
@@ -397,10 +450,16 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             message,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.textSecondary),
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 6),
-          Text(sub, style: const TextStyle(fontSize: 13, color: AppColors.textTertiary)),
+          Text(
+            sub,
+            style: const TextStyle(fontSize: 13, color: AppColors.textTertiary),
+          ),
         ],
       ),
     );
