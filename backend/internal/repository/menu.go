@@ -31,7 +31,7 @@ func (r *menuRepositoryImpl) Search(db *gorm.DB, query string, category *domain.
 	var menus []domain.Menu
 
 	q := db.
-		Where("name % ?", query).
+		Where("name LIKE ?", "%"+query+"%").
 		Order("CASE WHEN source != 'USER' THEN 0 ELSE 1 END, name")
 
 	if category != nil {
