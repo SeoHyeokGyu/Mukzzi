@@ -4,6 +4,7 @@ import '../core/widgets/main_shell.dart';
 import '../features/auth/presentation/pages/auth_page.dart';
 import '../features/home/presentation/pages/home_page.dart';
 import '../features/character/presentation/pages/character_page.dart';
+import '../features/character/presentation/pages/badge_list_page.dart';
 import '../features/meal_record/presentation/pages/meal_record_page.dart';
 import '../features/social/presentation/pages/social_page.dart';
 
@@ -39,6 +40,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               path: '/character',
               name: 'character',
               builder: (context, state) => const CharacterPage(),
+              routes: [
+                GoRoute(
+                  path: 'badges',
+                  name: 'character-badges',
+                  builder: (context, state) => const BadgeListPage(),
+                ),
+              ],
             ),
           ]),
           StatefulShellBranch(routes: [
