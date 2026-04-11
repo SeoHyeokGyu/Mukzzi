@@ -13,8 +13,6 @@ class BadgeListPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final allBadges = ref.watch(_badgeListProvider);
-
     return DefaultTabController(
       length: 4,
       child: GradientScaffold(
@@ -38,23 +36,12 @@ class BadgeListPage extends ConsumerWidget {
             ],
           ),
         ),
-        body: Column(
+        body: TabBarView(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: BadgeProgressBanner(badges: allBadges),
-            ),
-            Expanded(
-              child: TabBarView(
-                physics: const NeverScrollableScrollPhysics(),
-                children: const [
-                  _BadgeGrid(category: 'all'),
-                  _BadgeGrid(category: 'meal'),
-                  _BadgeGrid(category: 'attendance'),
-                  _BadgeGrid(category: 'social'),
-                ],
-              ),
-            ),
+            _BadgeTabContent(category: 'all'),
+            _BadgeTabContent(category: 'meal'),
+            _BadgeTabContent(category: 'attendance'),
+            _BadgeTabContent(category: 'social'),
           ],
         ),
       ),
@@ -62,10 +49,10 @@ class BadgeListPage extends ConsumerWidget {
   }
 }
 
-class _BadgeGrid extends ConsumerWidget {
+class _BadgeTabContent extends ConsumerWidget {
   final String category;
 
-  const _BadgeGrid({required this.category});
+  const _BadgeTabContent({required this.category});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -78,16 +65,24 @@ class _BadgeGrid extends ConsumerWidget {
       return const _EmptyState();
     }
 
-    return GridView.builder(
+    return ListView(
       padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 0.82,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: badges.length,
-      itemBuilder: (context, index) => BadgeGridItem(badge: badges[index]),
+      children: [
+        BadgeProgressBanner(badges: badges),
+        const SizedBox(height: 16),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            childAspectRatio: 0.82,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          itemCount: badges.length,
+          itemBuilder: (context, index) => BadgeGridItem(badge: badges[index]),
+        ),
+      ],
     );
   }
 }
