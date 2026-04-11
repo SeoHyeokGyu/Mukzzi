@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/bento_card.dart';
@@ -45,7 +46,11 @@ class _HomePageState extends State<HomePage> {
         title: const Text('먹찌'),
         actions: [
           IconButton(tooltip: '알림', icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
-          IconButton(tooltip: '설정', icon: const Icon(Icons.settings_outlined), onPressed: () {}),
+          IconButton(
+            tooltip: '마이페이지',
+            icon: const Icon(Icons.person_outline),
+            onPressed: () => context.push('/profile'),
+          ),
         ],
       ),
       body: _isLoading ? _buildShimmer() : _buildContent(),

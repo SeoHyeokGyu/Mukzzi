@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 // import 'package:rive/rive.dart' hide LinearGradient; // mukzzi.riv 추가 시 활성화
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
-import '../../domain/models/badge_model.dart';
 
 class CharacterPage extends StatefulWidget {
   const CharacterPage({super.key});
@@ -65,17 +63,6 @@ class _CharacterPageState extends State<CharacterPage> {
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // 뱃지 섹션
-            Text(
-              '뱃지',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 12),
-            _BadgeEntryCard(
-              onTap: () => context.push('/character/badges'),
             ),
             const SizedBox(height: 24),
 
@@ -293,72 +280,3 @@ class _EquipmentItem extends StatelessWidget {
   }
 }
 
-class _BadgeEntryCard extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _BadgeEntryCard({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final unlockedCount = mockBadges.where((b) => b.isUnlocked).length;
-    final totalCount = mockBadges.length;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Material(
-        color: AppColors.surface,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.softPeach,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.military_tech,
-                    size: 24,
-                    color: AppColors.orange,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '보유 뱃지',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        '$unlockedCount / $totalCount개 획득',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: AppColors.textTertiary,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
