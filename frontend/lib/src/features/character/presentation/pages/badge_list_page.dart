@@ -99,7 +99,7 @@ class _EmptyState extends StatelessWidget {
           Icon(
             Icons.military_tech_outlined,
             size: 64,
-            color: Color(0x66858585),
+            color: AppColors.iconDisabled,
           ),
           SizedBox(height: 16),
           Text(

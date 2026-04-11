@@ -5,8 +5,13 @@ import '../../domain/models/badge_model.dart';
 
 class BadgeDetailBottomSheet extends StatelessWidget {
   final BadgeModel badge;
+  final ScrollController? scrollController;
 
-  const BadgeDetailBottomSheet({super.key, required this.badge});
+  const BadgeDetailBottomSheet({
+    super.key,
+    required this.badge,
+    this.scrollController,
+  });
 
   static void show(BuildContext context, BadgeModel badge) {
     showModalBottomSheet(
@@ -17,7 +22,10 @@ class BadgeDetailBottomSheet extends StatelessWidget {
         initialChildSize: 0.55,
         minChildSize: 0.4,
         maxChildSize: 0.85,
-        builder: (context, scrollController) => BadgeDetailBottomSheet(badge: badge),
+        builder: (context, scrollController) => BadgeDetailBottomSheet(
+          badge: badge,
+          scrollController: scrollController,
+        ),
       ),
     );
   }
@@ -32,6 +40,7 @@ class BadgeDetailBottomSheet extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: SingleChildScrollView(
+        controller: scrollController,
         child: Padding(
           padding: EdgeInsets.fromLTRB(24, 0, 24, 32 + bottomPadding),
           child: Column(
@@ -148,7 +157,7 @@ class BadgeDetailBottomSheet extends StatelessWidget {
           width: 88,
           height: 88,
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A22),
+            color: AppColors.surfaceDark,
             borderRadius: BorderRadius.circular(24),
           ),
           child: Icon(badge.iconData, size: 44, color: AppColors.textTertiary),
@@ -188,10 +197,7 @@ class BadgeDetailBottomSheet extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             '$formatted 획득',
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppColors.peach,
-            ),
+            style: const TextStyle(fontSize: 13, color: AppColors.peach),
           ),
         ],
       );
@@ -201,15 +207,12 @@ class BadgeDetailBottomSheet extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A22),
+        color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(10),
       ),
       child: const Text(
         '아직 달성하지 못했어요',
-        style: TextStyle(
-          fontSize: 13,
-          color: AppColors.textTertiary,
-        ),
+        style: TextStyle(fontSize: 13, color: AppColors.textTertiary),
         textAlign: TextAlign.center,
       ),
     );

@@ -54,6 +54,10 @@ class AppColors {
   static const Color textSecondary = Color(0xFF9898B2);  // 4.78:1 on surface
   static const Color textTertiary = Color(0xFF8585A5);   // 4.55:1 on surface (AA 통과)
   static const Color divider = Color(0xFF2A2A38);
+
+  // Surface variants
+  static const Color surfaceDark = Color(0xFF1A1A22);    // 잠금/비활성 배경
+  static const Color iconDisabled = Color(0x66858585);   // 비활성 아이콘 (textTertiary 40%)
 }
 
 class AppTheme {
