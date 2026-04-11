@@ -8,6 +8,12 @@ import '../../../character/domain/models/badge_model.dart';
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
+  void _showComingSoon(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('준비 중입니다')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GradientScaffold(
@@ -16,13 +22,13 @@ class ProfilePage extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           // 프로필 헤더
-          _ProfileHeader(),
+          _ProfileHeader(onEditTap: () => _showComingSoon(context)),
           const SizedBox(height: 20),
 
           // 뱃지
           _SectionLabel(label: '뱃지'),
           const SizedBox(height: 10),
-          _BadgeEntry(onTap: () => context.push('/profile/badges')),
+          _BadgeEntry(onTap: () => context.push('/home/profile/badges')),
           const SizedBox(height: 20),
 
           // 식사 목표
@@ -36,21 +42,28 @@ class ProfilePage extends StatelessWidget {
                   icon: Icons.local_fire_department_outlined,
                   label: '일일 칼로리 목표',
                   value: '2,000 kcal',
-                  onTap: () {},
+                  onTap: () => _showComingSoon(context),
                 ),
                 const _Divider(),
                 _SettingsItem(
                   icon: Icons.egg_alt_outlined,
                   label: '단백질 목표',
                   value: '60 g',
-                  onTap: () {},
+                  onTap: () => _showComingSoon(context),
                 ),
                 const _Divider(),
                 _SettingsItem(
                   icon: Icons.grain_outlined,
                   label: '탄수화물 목표',
                   value: '300 g',
-                  onTap: () {},
+                  onTap: () => _showComingSoon(context),
+                ),
+                const _Divider(),
+                _SettingsItem(
+                  icon: Icons.opacity_outlined,
+                  label: '지방 목표',
+                  value: '60 g',
+                  onTap: () => _showComingSoon(context),
                 ),
               ],
             ),
@@ -96,7 +109,7 @@ class ProfilePage extends StatelessWidget {
                 _SettingsItem(
                   icon: Icons.person_outline,
                   label: '닉네임 변경',
-                  onTap: () {},
+                  onTap: () => _showComingSoon(context),
                 ),
                 const _Divider(),
                 _SettingsItem(
@@ -142,6 +155,10 @@ class ProfilePage extends StatelessWidget {
 }
 
 class _ProfileHeader extends StatelessWidget {
+  final VoidCallback onEditTap;
+
+  const _ProfileHeader({required this.onEditTap});
+
   @override
   Widget build(BuildContext context) {
     return BentoCard(
@@ -151,7 +168,7 @@ class _ProfileHeader extends StatelessWidget {
           Container(
             width: 64,
             height: 64,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.softPeach,
               shape: BoxShape.circle,
             ),
@@ -187,7 +204,7 @@ class _ProfileHeader extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: () {},
+            onPressed: onEditTap,
             icon: const Icon(
               Icons.edit_outlined,
               size: 20,

@@ -49,7 +49,7 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             tooltip: '마이페이지',
             icon: const Icon(Icons.person_outline),
-            onPressed: () => context.push('/profile'),
+            onPressed: () => context.push('/home/profile'),
           ),
         ],
       ),

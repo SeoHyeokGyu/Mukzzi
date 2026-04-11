@@ -18,18 +18,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'auth',
         builder: (context, state) => const AuthPage(),
       ),
-      GoRoute(
-        path: '/profile',
-        name: 'profile',
-        builder: (context, state) => const ProfilePage(),
-        routes: [
-          GoRoute(
-            path: 'badges',
-            name: 'profile-badges',
-            builder: (context, state) => const BadgeListPage(),
-          ),
-        ],
-      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             MainShell(navigationShell: navigationShell),
@@ -39,6 +27,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               path: '/home',
               name: 'home',
               builder: (context, state) => const HomePage(),
+              routes: [
+                GoRoute(
+                  path: 'profile',
+                  name: 'profile',
+                  builder: (context, state) => const ProfilePage(),
+                  routes: [
+                    GoRoute(
+                      path: 'badges',
+                      name: 'profile-badges',
+                      builder: (context, state) => const BadgeListPage(),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ]),
           StatefulShellBranch(routes: [
