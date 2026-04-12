@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/providers/common_providers.dart';
@@ -30,22 +31,23 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repository;
   final SharedPreferences _prefs;
+  final FlutterSecureStorage _secureStorage;
 
-  AuthNotifier(this._repository, this._prefs) : super(AuthState()) {
+  AuthNotifier(this._repository, this._prefs, this._secureStorage) : super(AuthState()) {
     _checkAuthStatus();
   }
 
   Future<void> _checkAuthStatus() async {
     state = state.copyWith(isLoading: true);
     try {
-      final token = _prefs.getString(AppConstants.accessTokenKey);
+      final token = await _secureStorage.read(key: AppConstants.accessTokenKey);
       if (token != null) {
         final user = await _repository.fetchMe();
         state = state.copyWith(user: user);
       }
     } on UnauthorizedException {
       // 401 인증 에러일 때만 세션 초기화
-      await _prefs.remove(AppConstants.accessTokenKey);
+      await _secureStorage.delete(key: AppConstants.accessTokenKey);
       await _prefs.remove(AppConstants.userIdKey);
       state = AuthState();
     } catch (e) {
@@ -63,7 +65,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         LoginRequest(username: username, password: password),
       );
       
-      await _prefs.setString(AppConstants.accessTokenKey, response.token);
+      await _secureStorage.write(key: AppConstants.accessTokenKey, value: response.token);
       await _prefs.setString(AppConstants.userIdKey, response.user.id);
       
       state = state.copyWith(user: response.user, isLoading: false);
@@ -94,7 +96,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
-    await _prefs.remove(AppConstants.accessTokenKey);
+    await _secureStorage.delete(key: AppConstants.accessTokenKey);
     await _prefs.remove(AppConstants.userIdKey);
     state = AuthState();
   }
@@ -104,5 +106,6 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(
     ref.watch(authRepositoryProvider),
     ref.watch(sharedPreferencesProvider),
+    ref.watch(secureStorageProvider),
   );
 });

@@ -15,12 +15,13 @@ import '../features/auth/presentation/providers/auth_provider.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
-  final prefs = ref.watch(sharedPreferencesProvider);
+  final secureStorage = ref.watch(secureStorageProvider);
 
   return GoRouter(
     initialLocation: '/home',
-    redirect: (context, state) {
-      final token = prefs.getString(AppConstants.accessTokenKey);
+    redirect: (context, state) async {
+      // SecureStorage는 비동기이므로 redirect에서 직접 await 사용
+      final token = await secureStorage.read(key: AppConstants.accessTokenKey);
       final isLoggedIn = token != null || authState.user != null;
       final isAuthPath = state.matchedLocation == '/auth';
 
