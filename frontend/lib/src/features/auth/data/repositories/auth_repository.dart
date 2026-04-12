@@ -13,16 +13,6 @@ class AuthRepository {
       data: request.toJson(),
     );
 
-    print('DEBUG: Raw API Response: $response');
-    if (response['data'] == null) {
-      print('DEBUG: Error - response["data"] is null');
-    } else {
-      print('DEBUG: Data structure: ${response['data'].keys.toList()}');
-      if (response['data']['user'] != null) {
-        print('DEBUG: User keys: ${response['data']['user'].keys.toList()}');
-      }
-    }
-
     return LoginResponse.fromJson(response['data'] as Map<String, dynamic>);
   }
 

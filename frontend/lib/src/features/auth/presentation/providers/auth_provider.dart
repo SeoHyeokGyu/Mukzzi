@@ -72,13 +72,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> login(String username, String password) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      print('DEBUG: Starting login for $username');
       final response = await _repository.login(
         LoginRequest(username: username, password: password),
       );
-      
-      print('DEBUG: Login response received. User ID: ${response.user.id}');
-      print('DEBUG: User details: ${response.user.username}, ${response.user.email}');
       
       if (kIsWeb) {
         // 웹에서는 HTTPS가 아닐 경우 SecureStorage가 작동하지 않으므로 SharedPreferences 사용
@@ -88,14 +84,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
       await _prefs.setString(AppConstants.userIdKey, response.user.id);
       
-      print('DEBUG: Token and UserID saved to storage');
-      
       state = state.copyWith(user: response.user, isLoading: false);
-      print('DEBUG: AuthState updated with user');
       return true;
-    } catch (e, stackTrace) {
-      print('DEBUG: Login failed with error: $e');
-      print('DEBUG: StackTrace: $stackTrace');
+    } catch (e) {
       state = state.copyWith(isLoading: false, error: e is AppException ? e.message : e.toString());
       return false;
     }
