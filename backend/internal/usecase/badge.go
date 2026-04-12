@@ -6,7 +6,6 @@ import (
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
-	"gorm.io/gorm"
 )
 
 // BadgeError 뱃지 관련 에러
@@ -30,17 +29,14 @@ type BadgeUsecase interface {
 // badgeUsecaseImpl 뱃지 유즈케이스 구현체
 type badgeUsecaseImpl struct {
 	badgeRepository repository.BadgeRepository
-	db              *gorm.DB
 }
 
 // NewBadgeUsecase 뱃지 유즈케이스 생성
 func NewBadgeUsecase(
 	badgeRepository repository.BadgeRepository,
-	db *gorm.DB,
 ) BadgeUsecase {
 	return &badgeUsecaseImpl{
 		badgeRepository: badgeRepository,
-		db:              db,
 	}
 }
 
@@ -63,7 +59,7 @@ func (u *badgeUsecaseImpl) GetBadges(ctx context.Context, query domain.GetBadges
 	}
 
 	// 모든 뱃지 조회
-	allBadges, err := u.badgeRepository.FindAllBadges(u.db, limit+1, offset)
+	allBadges, err := u.badgeRepository.FindAllBadges(limit+1, offset)
 	if err != nil {
 		return nil, &BadgeError{
 			Code:    "BADGE_FETCH_ERROR",
@@ -77,7 +73,7 @@ func (u *badgeUsecaseImpl) GetBadges(ctx context.Context, query domain.GetBadges
 	acquiredBadges = make(map[int64]*domain.UserBadge)
 
 	if query.UserID > 0 {
-		userBadges, err := u.badgeRepository.FindUserAcquiredBadges(u.db, query.UserID)
+		userBadges, err := u.badgeRepository.FindUserAcquiredBadges(query.UserID)
 		if err != nil {
 			return nil, &BadgeError{
 				Code:    "USER_BADGE_FETCH_ERROR",
@@ -91,7 +87,7 @@ func (u *badgeUsecaseImpl) GetBadges(ctx context.Context, query domain.GetBadges
 	}
 
 	// 응답 생성
-	var badgeResponses []domain.BadgeResponse
+	var filteredBadges []domain.Badge
 	for i, badge := range allBadges {
 		// limit 초과 데이터는 has_next 판단용만으로 사용
 		if i >= limit {
@@ -99,25 +95,12 @@ func (u *badgeUsecaseImpl) GetBadges(ctx context.Context, query domain.GetBadges
 		}
 
 		// 획득/미획득 필터링
-		userBadge, isAcquired := acquiredBadges[badge.ID]
+		_, isAcquired := acquiredBadges[badge.ID]
 		if !query.IncludeAcquired && isAcquired {
 			continue
 		}
 
-		response := domain.BadgeResponse{
-			ID:          badge.ID,
-			Code:        badge.Code,
-			Name:        badge.Name,
-			Description: badge.Description,
-			IconURL:     badge.IconURL,
-			Acquired:    isAcquired,
-		}
-
-		if isAcquired && userBadge != nil {
-			response.AcquiredAt = &userBadge.AcquiredAt
-		}
-
-		badgeResponses = append(badgeResponses, response)
+		filteredBadges = append(filteredBadges, badge)
 	}
 
 	// has_next 판단
@@ -125,14 +108,15 @@ func (u *badgeUsecaseImpl) GetBadges(ctx context.Context, query domain.GetBadges
 
 	// next_cursor 계산
 	nextCursor := ""
-	if hasNext && len(badgeResponses) > 0 {
-		nextCursor = badgeResponses[len(badgeResponses)-1].Code
+	if hasNext && len(filteredBadges) > 0 {
+		nextCursor = filteredBadges[len(filteredBadges)-1].Code
 	}
 
 	return &domain.GetBadgesResult{
-		Badges:     badgeResponses,
-		NextCursor: nextCursor,
-		HasNext:    hasNext,
-		Limit:      limit,
+		Badges:      filteredBadges,
+		AcquiredMap: acquiredBadges,
+		NextCursor:  nextCursor,
+		HasNext:     hasNext,
+		Limit:       limit,
 	}, nil
 }

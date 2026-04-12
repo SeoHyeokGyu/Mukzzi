@@ -38,8 +38,8 @@ func main() {
 
 	// 의존성 주입 (DI)
 	userRepo := repository.NewUserRepository(db)
-	badgeRepo := repository.NewBadgeRepository()
-	menuRepo := repository.NewMenuRepository()
+	badgeRepo := repository.NewBadgeRepository(db)
+	menuRepo := repository.NewMenuRepository(db)
 
 	// Auth 도메인
 	authUsecase := usecase.NewAuthUsecase(userRepo)
@@ -50,11 +50,11 @@ func main() {
 	userHandler := handler.NewUserHandler(userUsecase)
 
 	// Collection 도메인
-	badgeUsecase := usecase.NewBadgeUsecase(badgeRepo, db)
+	badgeUsecase := usecase.NewBadgeUsecase(badgeRepo)
 	collectionHandler := handler.NewCollectionHandler(badgeUsecase)
 
 	// Menu 도메인
-	menuUsecase := usecase.NewMenuUsecase(menuRepo, db)
+	menuUsecase := usecase.NewMenuUsecase(menuRepo)
 	menuHandler := handler.NewMenuHandler(menuUsecase)
 
 	// 라우터 초기화 (모든 미들웨어 및 라우트 등록)

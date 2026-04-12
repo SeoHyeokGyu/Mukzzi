@@ -7,7 +7,6 @@ import (
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
-	"gorm.io/gorm"
 )
 
 // MenuUsecase 메뉴 유즈케이스 인터페이스
@@ -18,14 +17,12 @@ type MenuUsecase interface {
 // menuUsecaseImpl 메뉴 유즈케이스 구현체
 type menuUsecaseImpl struct {
 	menuRepository repository.MenuRepository
-	db             *gorm.DB
 }
 
 // NewMenuUsecase 메뉴 유즈케이스 생성
-func NewMenuUsecase(menuRepository repository.MenuRepository, db *gorm.DB) MenuUsecase {
+func NewMenuUsecase(menuRepository repository.MenuRepository) MenuUsecase {
 	return &menuUsecaseImpl{
 		menuRepository: menuRepository,
-		db:             db,
 	}
 }
 
@@ -47,21 +44,6 @@ func nutritionDefaultsByCategory(category domain.MenuCategory) domain.MenuNutrit
 	return categoryNutritionDefaults[domain.CategoryOther]
 }
 
-func toMenuResponse(m domain.Menu) domain.MenuResponse {
-	return domain.MenuResponse{
-		ID:                  strconv.FormatInt(m.ID, 10),
-		Name:                m.Name,
-		Category:            string(m.Category),
-		Source:              string(m.Source),
-		DefaultCalories:     m.DefaultCalories,
-		DefaultCarbs:        m.DefaultCarbs,
-		DefaultProtein:      m.DefaultProtein,
-		DefaultFat:          m.DefaultFat,
-		DefaultFiber:        m.DefaultFiber,
-		DefaultVitaminScore: m.DefaultVitaminScore,
-	}
-}
-
 // Search 메뉴 검색
 func (u *menuUsecaseImpl) Search(ctx context.Context, query domain.SearchMenuQuery) (*domain.SearchMenuResult, error) {
 	if query.Query == "" {
@@ -75,7 +57,7 @@ func (u *menuUsecaseImpl) Search(ctx context.Context, query domain.SearchMenuQue
 	}
 
 	// 한 개 더 조회해서 다음 페이지 여부 판단
-	menus, err := u.menuRepository.Search(u.db, query.Query, query.Category, query.Cursor, query.Limit+1)
+	menus, err := u.menuRepository.Search(query.Query, query.Category, query.Cursor, query.Limit+1)
 	if err != nil {
 		return nil, err
 	}
@@ -91,13 +73,8 @@ func (u *menuUsecaseImpl) Search(ctx context.Context, query domain.SearchMenuQue
 		nextCursor = &lastID
 	}
 
-	responses := make([]domain.MenuResponse, len(menus))
-	for i, m := range menus {
-		responses[i] = toMenuResponse(m)
-	}
-
 	return &domain.SearchMenuResult{
-		Menus:      responses,
+		Menus:      menus,
 		NextCursor: nextCursor,
 		HasNext:    hasNext,
 		Limit:      query.Limit,
