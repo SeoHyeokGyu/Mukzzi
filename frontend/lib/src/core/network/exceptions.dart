@@ -34,3 +34,7 @@ class ParseException extends AppException {
 class TimeoutException extends AppException {
   TimeoutException({required super.message});
 }
+
+class UnknownException extends AppException {
+  UnknownException({required super.message});
+}
