@@ -1,8 +1,10 @@
 package domain
 
-type MenuCategory string
-type MenuSource string
-type PreferenceType string
+type (
+	MenuCategory   string
+	MenuSource     string
+	PreferenceType string
+)
 
 const (
 	CategoryKorean   MenuCategory = "KOREAN"
@@ -52,21 +54,8 @@ type SearchMenuQuery struct {
 }
 
 type SearchMenuResult struct {
-	Menus      []MenuResponse
+	Menus      []Menu
 	NextCursor *string
 	HasNext    bool
 	Limit      int
-}
-
-type MenuResponse struct {
-	ID                  string  `json:"id"`
-	Name                string  `json:"name"`
-	Category            string  `json:"category"`
-	Source              string  `json:"source"`
-	DefaultCalories     float64 `json:"default_calories"`
-	DefaultCarbs        float64 `json:"default_carbs"`
-	DefaultProtein      float64 `json:"default_protein"`
-	DefaultFat          float64 `json:"default_fat"`
-	DefaultFiber        float64 `json:"default_fiber"`
-	DefaultVitaminScore float64 `json:"default_vitamin_score"`
 }

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
-	"gorm.io/gorm"
 )
 
 // mockMenuRepository 테스트용 mock 저장소
@@ -65,7 +64,7 @@ func NewMockMenuRepository() *mockMenuRepository {
 	}
 }
 
-func (m *mockMenuRepository) Search(db *gorm.DB, query string, category *domain.MenuCategory, cursor *int64, limit int) ([]domain.Menu, error) {
+func (m *mockMenuRepository) Search(query string, category *domain.MenuCategory, cursor *int64, limit int) ([]domain.Menu, error) {
 	var result []domain.Menu
 	for _, menu := range m.menus {
 		if len(query) > 0 && !contains(menu.Name, query) {
@@ -85,7 +84,7 @@ func (m *mockMenuRepository) Search(db *gorm.DB, query string, category *domain.
 	return result, nil
 }
 
-func (m *mockMenuRepository) FindByID(db *gorm.DB, id int64) (*domain.Menu, error) {
+func (m *mockMenuRepository) FindByID(id int64) (*domain.Menu, error) {
 	for i := range m.menus {
 		if m.menus[i].ID == id {
 			return &m.menus[i], nil
@@ -94,7 +93,7 @@ func (m *mockMenuRepository) FindByID(db *gorm.DB, id int64) (*domain.Menu, erro
 	return nil, nil
 }
 
-func (m *mockMenuRepository) FindOrCreate(db *gorm.DB, name string, category domain.MenuCategory, defaults *domain.MenuNutritionDefaults) (*domain.Menu, bool, error) {
+func (m *mockMenuRepository) FindOrCreate(name string, category domain.MenuCategory, defaults *domain.MenuNutritionDefaults) (*domain.Menu, bool, error) {
 	for i := range m.menus {
 		if m.menus[i].Name == name && m.menus[i].Category == category {
 			return &m.menus[i], false, nil
@@ -132,7 +131,7 @@ func contains(s, substr string) bool {
 
 func TestMenuSearch_Basic(t *testing.T) {
 	mockRepo := NewMockMenuRepository()
-	uc := NewMenuUsecase(mockRepo, nil)
+	uc := NewMenuUsecase(mockRepo)
 
 	t.Run("검색어로 메뉴 조회", func(t *testing.T) {
 		result, err := uc.Search(context.Background(), domain.SearchMenuQuery{
@@ -168,7 +167,7 @@ func TestMenuSearch_Basic(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		for _, menu := range result.Menus {
-			if menu.Category != string(domain.CategoryChinese) {
+			if menu.Category != domain.CategoryChinese {
 				t.Errorf("카테고리 필터가 적용되지 않았습니다: %s", menu.Category)
 			}
 		}
@@ -177,7 +176,7 @@ func TestMenuSearch_Basic(t *testing.T) {
 
 func TestMenuSearch_Pagination(t *testing.T) {
 	mockRepo := NewMockMenuRepository()
-	uc := NewMenuUsecase(mockRepo, nil)
+	uc := NewMenuUsecase(mockRepo)
 
 	t.Run("limit 초과 시 has_next true", func(t *testing.T) {
 		result, err := uc.Search(context.Background(), domain.SearchMenuQuery{

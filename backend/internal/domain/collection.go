@@ -14,35 +14,25 @@ type Badge struct {
 // UserBadge 사용자 뱃지 획득 기록
 type UserBadge struct {
 	BaseDomain
-	UserID    int64     `gorm:"index:idx_user_badge,unique"`
-	BadgeID   int64     `gorm:"index:idx_user_badge,unique"`
+	UserID     int64     `gorm:"index:idx_user_badge,unique"`
+	BadgeID    int64     `gorm:"index:idx_user_badge,unique"`
 	AcquiredAt time.Time `gorm:"not null"`
-	Badge     Badge     `gorm:"foreignKey:BadgeID"`
-}
-
-// BadgeResponse API 응답용 뱃지 정보
-type BadgeResponse struct {
-	ID          int64      `json:"id,string"`
-	Code        string     `json:"code"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	IconURL     string     `json:"icon_url"`
-	Acquired    bool       `json:"acquired"`
-	AcquiredAt  *time.Time `json:"acquired_at,omitempty"`
+	Badge      Badge     `gorm:"foreignKey:BadgeID"`
 }
 
 // GetBadgesQuery 뱃지 목록 조회 쿼리
 type GetBadgesQuery struct {
-	UserID            int64
-	IncludeAcquired   bool
-	Cursor            string
-	Limit             int
+	UserID          int64
+	IncludeAcquired bool
+	Cursor          string
+	Limit           int
 }
 
 // GetBadgesResult 뱃지 목록 조회 결과
 type GetBadgesResult struct {
-	Badges     []BadgeResponse
-	NextCursor string
-	HasNext    bool
-	Limit      int
+	Badges      []Badge
+	AcquiredMap map[int64]*UserBadge
+	NextCursor  string
+	HasNext     bool
+	Limit       int
 }
