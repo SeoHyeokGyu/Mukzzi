@@ -79,23 +79,23 @@ class _CharacterPageState extends State<CharacterPage> {
               childAspectRatio: 1.2,
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              children: [
-                const _PartCard(
+              children: const [
+                _PartCard(
                   icon: Icons.person_outline,
                   label: '체형',
                   value: '보통',
                 ),
-                const _PartCard(
+                _PartCard(
                   icon: Icons.fitness_center,
                   label: '근육',
                   value: '보통',
                 ),
-                const _PartCard(
+                _PartCard(
                   icon: Icons.palette_outlined,
                   label: '피부색',
                   value: '건강',
                 ),
-                const _PartCard(
+                _PartCard(
                   icon: Icons.sentiment_satisfied_outlined,
                   label: '표정',
                   value: '기분좋음',

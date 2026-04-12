@@ -51,7 +51,7 @@ class ShimmerListItem extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: const BoxDecoration(
-                color: const Color(0xFF1E1E2A),
+                color: Color(0xFF1E1E2A),
                 shape: BoxShape.circle,
               ),
             ),

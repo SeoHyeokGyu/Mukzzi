@@ -58,33 +58,33 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildShimmer() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+    return const SingleChildScrollView(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: Column(
         children: [
-          const ShimmerCard(height: 220),
-          const SizedBox(height: 16),
-          const ShimmerCard(height: 220),
-          const SizedBox(height: 12),
-          Row(children: const [
+          ShimmerCard(height: 220),
+          SizedBox(height: 16),
+          ShimmerCard(height: 220),
+          SizedBox(height: 12),
+          Row(children: [
             Expanded(child: ShimmerCard(height: 90)),
             SizedBox(width: 12),
             Expanded(child: ShimmerCard(height: 90)),
           ]),
-          const SizedBox(height: 12),
-          const ShimmerCard(height: 160),
-          const SizedBox(height: 12),
-          Row(children: const [
+          SizedBox(height: 12),
+          ShimmerCard(height: 160),
+          SizedBox(height: 12),
+          Row(children: [
             Expanded(child: ShimmerCard(height: 100)),
             SizedBox(width: 12),
             Expanded(child: ShimmerCard(height: 100)),
           ]),
-          const SizedBox(height: 24),
-          const ShimmerListItem(),
-          const SizedBox(height: 12),
-          const ShimmerListItem(),
-          const SizedBox(height: 12),
-          const ShimmerListItem(),
+          SizedBox(height: 24),
+          ShimmerListItem(),
+          SizedBox(height: 12),
+          ShimmerListItem(),
+          SizedBox(height: 12),
+          ShimmerListItem(),
         ],
       ),
     );
@@ -199,7 +199,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildMacroChartCard() {
-    final remaining = _caloriesGoal - _caloriesConsumed;
+    const remaining = _caloriesGoal - _caloriesConsumed;
     final card = BentoCard(
       child: Row(
         children: [
@@ -270,28 +270,28 @@ class _HomePageState extends State<HomePage> {
                       ),
                 ),
                 const SizedBox(height: 16),
-                _MacroRow(
+                const _MacroRow(
                   label: '단백질',
                   consumed: _proteinConsumed,
                   goal: _proteinGoal,
                   unit: 'g',
-                  color: const Color(0xFF4CAF50),
+                  color: Color(0xFF4CAF50),
                 ),
                 const SizedBox(height: 10),
-                _MacroRow(
+                const _MacroRow(
                   label: '탄수화물',
                   consumed: _carbsConsumed,
                   goal: _carbsGoal,
                   unit: 'g',
-                  color: const Color(0xFF2196F3),
+                  color: Color(0xFF2196F3),
                 ),
                 const SizedBox(height: 10),
-                _MacroRow(
+                const _MacroRow(
                   label: '지방',
                   consumed: _fatConsumed,
                   goal: _fatGoal,
                   unit: 'g',
-                  color: const Color(0xFFFF9800),
+                  color: Color(0xFFFF9800),
                 ),
               ],
             ),
@@ -470,11 +470,11 @@ class _HomePageState extends State<HomePage> {
             button: true,
             child: GestureDetector(
               onTap: () {},
-              child: BentoCard(
+              child: const BentoCard(
                 height: 100,
                 gradient: AppColors.primaryGradient,
-                padding: const EdgeInsets.all(12),
-                child: const Column(
+                padding: EdgeInsets.all(12),
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.restaurant_menu, color: Colors.white, size: 30, semanticLabel: '메뉴'),
@@ -493,11 +493,11 @@ class _HomePageState extends State<HomePage> {
             button: true,
             child: GestureDetector(
               onTap: () {},
-              child: BentoCard(
+              child: const BentoCard(
                 height: 100,
                 gradient: AppColors.primaryGradient,
-                padding: const EdgeInsets.all(12),
-                child: const Column(
+                padding: EdgeInsets.all(12),
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.add_circle_outline, color: Colors.white, size: 30, semanticLabel: '추가'),
