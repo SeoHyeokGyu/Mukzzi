@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
@@ -24,7 +25,13 @@ class ApiClient {
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           // 민감한 정보인 토큰은 SecureStorage에서 조회
-          final token = await _secureStorage.read(key: AppConstants.accessTokenKey);
+          // 웹에서는 HTTPS가 아닐 경우 SharedPreferences에서 조회
+          final String? token;
+          if (kIsWeb) {
+            token = _prefs.getString(AppConstants.accessTokenKey);
+          } else {
+            token = await _secureStorage.read(key: AppConstants.accessTokenKey);
+          }
           
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';

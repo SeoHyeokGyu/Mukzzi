@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
 import '../core/constants/app_constants.dart';
 import '../core/providers/common_providers.dart';
@@ -16,12 +18,20 @@ import '../features/auth/presentation/providers/auth_provider.dart';
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
   final secureStorage = ref.watch(secureStorageProvider);
+  final prefs = ref.watch(sharedPreferencesProvider);
 
   return GoRouter(
     initialLocation: '/home',
     redirect: (context, state) async {
       // SecureStorage는 비동기이므로 redirect에서 직접 await 사용
-      final token = await secureStorage.read(key: AppConstants.accessTokenKey);
+      // 웹에서는 HTTPS가 아닐 경우 SharedPreferences 사용
+      final String? token;
+      if (kIsWeb) {
+        token = prefs.getString(AppConstants.accessTokenKey);
+      } else {
+        token = await secureStorage.read(key: AppConstants.accessTokenKey);
+      }
+      
       final isLoggedIn = token != null || authState.user != null;
       final isAuthPath = state.matchedLocation == '/auth';
 

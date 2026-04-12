@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,14 +41,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> _checkAuthStatus() async {
     state = state.copyWith(isLoading: true);
     try {
-      final token = await _secureStorage.read(key: AppConstants.accessTokenKey);
+      final String? token;
+      if (kIsWeb) {
+        token = _prefs.getString(AppConstants.accessTokenKey);
+      } else {
+        token = await _secureStorage.read(key: AppConstants.accessTokenKey);
+      }
+
       if (token != null) {
         final user = await _repository.fetchMe();
         state = state.copyWith(user: user);
       }
     } on UnauthorizedException {
       // 401 인증 에러일 때만 세션 초기화
-      await _secureStorage.delete(key: AppConstants.accessTokenKey);
+      if (kIsWeb) {
+        await _prefs.remove(AppConstants.accessTokenKey);
+      } else {
+        await _secureStorage.delete(key: AppConstants.accessTokenKey);
+      }
       await _prefs.remove(AppConstants.userIdKey);
       state = AuthState();
     } catch (e) {
@@ -69,7 +80,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       print('DEBUG: Login response received. User ID: ${response.user.id}');
       print('DEBUG: User details: ${response.user.username}, ${response.user.email}');
       
-      await _secureStorage.write(key: AppConstants.accessTokenKey, value: response.token);
+      if (kIsWeb) {
+        // 웹에서는 HTTPS가 아닐 경우 SecureStorage가 작동하지 않으므로 SharedPreferences 사용
+        await _prefs.setString(AppConstants.accessTokenKey, response.token);
+      } else {
+        await _secureStorage.write(key: AppConstants.accessTokenKey, value: response.token);
+      }
       await _prefs.setString(AppConstants.userIdKey, response.user.id);
       
       print('DEBUG: Token and UserID saved to storage');
@@ -105,7 +121,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
-    await _secureStorage.delete(key: AppConstants.accessTokenKey);
+    if (kIsWeb) {
+      await _prefs.remove(AppConstants.accessTokenKey);
+    } else {
+      await _secureStorage.delete(key: AppConstants.accessTokenKey);
+    }
     await _prefs.remove(AppConstants.userIdKey);
     state = AuthState();
   }
