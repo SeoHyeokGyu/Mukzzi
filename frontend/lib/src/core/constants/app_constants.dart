@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AppConstants {
   // API
-  static const String apiBaseUrl = 'http://localhost:8080/api';
+  static const String apiBaseUrl = 'http://144.24.90.88:8080/api';
   static const Duration apiTimeout = Duration(seconds: 30);
 
   // Storage Keys
