@@ -4,7 +4,6 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../../core/widgets/app_button.dart';
-import '../../data/models/menu_model.dart';
 import '../widgets/menu_search_field.dart';
 
 class MealRecordPage extends StatefulWidget {
@@ -85,7 +84,6 @@ class _MealInputTabState extends State<_MealInputTab> {
   double _servingSize = 1.0;
   String? _selectedWeather;
   String? _selectedMood;
-  MenuModel? _selectedMenu;
 
   /// 시간대에 맞는 식사 종류 반환
   /// - 아침: 06:00 ~ 10:59
@@ -128,7 +126,7 @@ class _MealInputTabState extends State<_MealInputTab> {
           MenuSearchField(
             controller: widget.menuController,
             onMenuSelected: (menu) {
-              setState(() => _selectedMenu = menu);
+              // TODO: Handle menu selection
             },
           ),
           const SizedBox(height: 24),
@@ -313,7 +311,6 @@ class _MealInputTabState extends State<_MealInputTab> {
                 const SnackBar(content: Text('식사 기록이 저장되었습니다')),
               );
               widget.menuController.clear();
-              setState(() => _selectedMenu = null);
             },
           ),
         ],

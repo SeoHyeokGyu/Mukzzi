@@ -36,7 +36,7 @@ class BadgeListPage extends ConsumerWidget {
             ],
           ),
         ),
-        body: TabBarView(
+        body: const TabBarView(
           children: [
             _BadgeTabContent(category: 'all'),
             _BadgeTabContent(category: 'meal'),

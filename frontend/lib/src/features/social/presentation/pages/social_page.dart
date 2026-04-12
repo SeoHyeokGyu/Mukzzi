@@ -42,10 +42,10 @@ class _SocialPageState extends State<SocialPage>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          const _FriendListTab(),
-          const _FriendRequestTab(),
-          const _RecommendedUsersTab(),
+        children: const [
+          _FriendListTab(),
+          _FriendRequestTab(),
+          _RecommendedUsersTab(),
         ],
       ),
     );

@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/network/api_client.dart';
+import '../../../../core/providers/common_providers.dart';
 import '../../data/models/menu_model.dart';
 import '../../data/repositories/menu_repository.dart';
 
 final menuRepositoryProvider = Provider<MenuRepository>((ref) {
-  return MenuRepository(ApiClient());
+  return MenuRepository(ref.watch(apiClientProvider));
 });
 
 class MenuSearchState {
