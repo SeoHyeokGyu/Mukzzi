@@ -74,8 +74,15 @@ func RequestIDMiddleware() gin.HandlerFunc {
 // LoggerMiddleware 는 보안 및 성능이 강화된 상세 API 로그를 기록합니다.
 func LoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		start := time.Now()
 		path := c.Request.URL.Path
+
+		// Skip logging for swagger requests
+		if strings.HasPrefix(path, "/swagger") {
+			c.Next()
+			return
+		}
+
+		start := time.Now()
 		requestID, _ := c.Get("requestID")
 		isDev := os.Getenv("ENVIRONMENT") == "development"
 
