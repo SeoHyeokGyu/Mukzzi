@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../providers/auth_provider.dart';
 
-class AuthPage extends StatefulWidget {
+class AuthPage extends ConsumerStatefulWidget {
   const AuthPage({super.key});
 
   @override
-  State<AuthPage> createState() => _AuthPageState();
+  ConsumerState<AuthPage> createState() => _AuthPageState();
 }
 
-class _AuthPageState extends State<AuthPage> {
+class _AuthPageState extends ConsumerState<AuthPage> {
   bool _isLogin = true;
   late TextEditingController _emailController;
   late TextEditingController _passwordController;
@@ -33,9 +36,44 @@ class _AuthPageState extends State<AuthPage> {
     super.dispose();
   }
 
+  Future<void> _submit() async {
+    if (_isLogin) {
+      final success = await ref.read(authProvider.notifier).login(
+            _emailController.text,
+            _passwordController.text,
+          );
+      if (success && mounted) {
+        context.go('/home');
+      }
+    } else {
+      final success = await ref.read(authProvider.notifier).register(
+            _emailController.text.split('@')[0],
+            _emailController.text,
+            _passwordController.text,
+            _nicknameController.text.isEmpty ? null : _nicknameController.text,
+          );
+      if (success && mounted) {
+        setState(() => _isLogin = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('회원가입 성공! 로그인해주세요.')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
     final d = MediaQuery.of(context).disableAnimations ? Duration.zero : null;
+
+    if (authState.error != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(authState.error!)),
+        );
+      });
+    }
+
     return GradientScaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -146,6 +184,7 @@ class _AuthPageState extends State<AuthPage> {
                 controller: _passwordController,
                 obscureText: true,
                 textInputAction: _isLogin ? TextInputAction.done : TextInputAction.next,
+                onSubmitted: (_) => _submit(),
                 decoration: InputDecoration(
                   labelText: '비밀번호',
                   prefixIcon: const Icon(Icons.lock_outlined),
@@ -162,6 +201,7 @@ class _AuthPageState extends State<AuthPage> {
                 TextField(
                   controller: _nicknameController,
                   textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _submit(),
                   decoration: InputDecoration(
                     labelText: '닉네임',
                     hintText: '2-12자',
@@ -180,7 +220,8 @@ class _AuthPageState extends State<AuthPage> {
               // 버튼
               AppGradientButton(
                 label: _isLogin ? '로그인' : '회원가입',
-                onPressed: () {},
+                isLoading: authState.isLoading,
+                onPressed: _submit,
               )
                   .animate()
                   .fadeIn(delay: d ?? 550.ms, duration: d ?? 300.ms),

@@ -1,17 +1,37 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../core/constants/app_constants.dart';
+import '../core/providers/common_providers.dart';
 import '../core/widgets/main_shell.dart';
 import '../features/auth/presentation/pages/auth_page.dart';
 import '../features/home/presentation/pages/home_page.dart';
 import '../features/character/presentation/pages/character_page.dart';
 import '../features/character/presentation/pages/badge_list_page.dart';
 import '../features/profile/presentation/pages/profile_page.dart';
+import '../features/profile/presentation/pages/edit_profile_page.dart';
 import '../features/meal_record/presentation/pages/meal_record_page.dart';
 import '../features/social/presentation/pages/social_page.dart';
+import '../features/auth/presentation/providers/auth_provider.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authProvider);
+  final prefs = ref.watch(sharedPreferencesProvider);
+
   return GoRouter(
     initialLocation: '/home',
+    redirect: (context, state) {
+      final token = prefs.getString(AppConstants.accessTokenKey);
+      final isLoggedIn = token != null || authState.user != null;
+      final isAuthPath = state.matchedLocation == '/auth';
+
+      if (!isLoggedIn && !isAuthPath) {
+        return '/auth';
+      }
+      if (isLoggedIn && isAuthPath) {
+        return '/home';
+      }
+      return null;
+    },
     routes: [
       GoRoute(
         path: '/auth',
@@ -37,6 +57,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       path: 'badges',
                       name: 'profile-badges',
                       builder: (context, state) => const BadgeListPage(),
+                    ),
+                    GoRoute(
+                      path: 'edit',
+                      name: 'profile-edit',
+                      builder: (context, state) => const EditProfilePage(),
                     ),
                   ],
                 ),
