@@ -84,5 +84,26 @@ func (h *MenuHandler) Search(c *gin.Context) {
 		return
 	}
 
-	Success(c, result.Menus)
+	nextCursor := ""
+	if result.NextCursor != nil {
+		nextCursor = *result.NextCursor
+	}
+
+	responses := make([]dto.MenuResponse, len(result.Menus))
+	for i, m := range result.Menus {
+		responses[i] = dto.MenuResponse{
+			ID:                  m.ID,
+			Name:                m.Name,
+			Category:            string(m.Category),
+			Source:              string(m.Source),
+			DefaultCalories:     m.DefaultCalories,
+			DefaultCarbs:        m.DefaultCarbs,
+			DefaultProtein:      m.DefaultProtein,
+			DefaultFat:          m.DefaultFat,
+			DefaultFiber:        m.DefaultFiber,
+			DefaultVitaminScore: m.DefaultVitaminScore,
+		}
+	}
+
+	CursorPaginated(c, responses, result.Limit, result.HasNext, nextCursor)
 }
