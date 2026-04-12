@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../character/domain/models/badge_model.dart';
+import '../providers/user_provider.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
   void _showComingSoon(BuildContext context) {
@@ -15,24 +18,48 @@ class ProfilePage extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userState = ref.watch(userProvider);
+
+    // 유저 정보가 없으면 가져오기
+    if (userState.user == null && !userState.isLoading && userState.error == null) {
+      Future.microtask(() => ref.read(userProvider.notifier).fetchMe());
+    }
+
     return GradientScaffold(
-      appBar: AppBar(title: const Text('마이페이지')),
-      body: ListView(
+      appBar: AppBar(
+        title: const Text('마이페이지'),
+        actions: [
+          IconButton(
+            tooltip: '로그아웃',
+            icon: const Icon(Icons.logout),
+            onPressed: () => _showLogoutDialog(context, ref),
+          ),
+        ],
+      ),
+      body: userState.isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : userState.error != null && userState.user == null
+          ? _buildErrorState(ref, userState.error!)
+          : ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // 프로필 헤더
-          _ProfileHeader(onEditTap: () => _showComingSoon(context)),
+          _ProfileHeader(
+            username: userState.user?.username ?? '먹찌 유저',
+            nickname: userState.user?.nickname ?? '부화 단계',
+            onEditTap: () => context.push('/home/profile/edit'),
+          ),
           const SizedBox(height: 20),
 
           // 뱃지
-          _SectionLabel(label: '뱃지'),
+          const _SectionLabel(label: '뱃지'),
           const SizedBox(height: 10),
           _BadgeEntry(onTap: () => context.push('/home/profile/badges')),
           const SizedBox(height: 20),
 
           // 식사 목표
-          _SectionLabel(label: '식사 목표'),
+          const _SectionLabel(label: '식사 목표'),
           const SizedBox(height: 10),
           BentoCard(
             padding: EdgeInsets.zero,
@@ -71,12 +98,12 @@ class ProfilePage extends StatelessWidget {
           const SizedBox(height: 20),
 
           // 알림 설정
-          _SectionLabel(label: '알림'),
+          const _SectionLabel(label: '알림'),
           const SizedBox(height: 10),
-          BentoCard(
+          const BentoCard(
             padding: EdgeInsets.zero,
             child: Column(
-              children: const [
+              children: [
                 _ToggleItem(
                   icon: Icons.restaurant_outlined,
                   label: '식사 알림',
@@ -100,7 +127,7 @@ class ProfilePage extends StatelessWidget {
           const SizedBox(height: 20),
 
           // 계정
-          _SectionLabel(label: '계정'),
+          const _SectionLabel(label: '계정'),
           const SizedBox(height: 10),
           BentoCard(
             padding: EdgeInsets.zero,
@@ -108,15 +135,15 @@ class ProfilePage extends StatelessWidget {
               children: [
                 _SettingsItem(
                   icon: Icons.person_outline,
-                  label: '닉네임 변경',
-                  onTap: () => _showComingSoon(context),
+                  label: '프로필 설정',
+                  onTap: () => context.push('/home/profile/edit'),
                 ),
                 const _Divider(),
                 _SettingsItem(
                   icon: Icons.logout,
                   label: '로그아웃',
                   valueColor: AppColors.orange,
-                  onTap: () => _showLogoutDialog(context),
+                  onTap: () => _showLogoutDialog(context, ref),
                 ),
               ],
             ),
@@ -127,7 +154,7 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
+  void _showLogoutDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -141,7 +168,8 @@ class ProfilePage extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              context.go('/auth');
+              ref.read(authProvider.notifier).logout();
+              GoRouter.of(context).go('/auth');
             },
             child: const Text(
               '로그아웃',
@@ -152,12 +180,40 @@ class ProfilePage extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildErrorState(WidgetRef ref, String error) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 48, color: Colors.red),
+          const SizedBox(height: 16),
+          Text(
+            error,
+            style: const TextStyle(fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () => ref.read(userProvider.notifier).fetchMe(),
+            child: const Text('다시 시도'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ProfileHeader extends StatelessWidget {
+  final String username;
+  final String nickname;
   final VoidCallback onEditTap;
 
-  const _ProfileHeader({required this.onEditTap});
+  const _ProfileHeader({
+    required this.username,
+    required this.nickname,
+    required this.onEditTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -179,23 +235,23 @@ class _ProfileHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '먹찌 유저',
-                  style: TextStyle(
+                  username,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                     fontFamily: 'Poppins',
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  '부화 단계 · 7일 연속 기록 중',
-                  style: TextStyle(
+                  nickname,
+                  style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,
                   ),
