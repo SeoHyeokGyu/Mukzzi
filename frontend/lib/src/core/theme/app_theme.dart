@@ -136,7 +136,7 @@ class AppTheme {
         ),
       ),
 
-      sliderTheme: SliderThemeData(
+      sliderTheme: const SliderThemeData(
         activeTrackColor: AppColors.orange,
         thumbColor: AppColors.orange,
         inactiveTrackColor: AppColors.divider,
@@ -202,7 +202,7 @@ class AppTheme {
         behavior: SnackBarBehavior.floating,
       ),
 
-      dropdownMenuTheme: DropdownMenuThemeData(
+      dropdownMenuTheme: const DropdownMenuThemeData(
         menuStyle: MenuStyle(
           backgroundColor: WidgetStatePropertyAll(AppColors.surfaceElevated),
         ),
