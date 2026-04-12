@@ -18,14 +18,14 @@ const (
 	// MaxLogBodySize 는 로그에 기록할 요청/응답 본문의 최대 크기입니다 (2KB).
 	MaxLogBodySize = 2048
 
-	// ANSI 색상 코드
-	green   = "\033[97;42m"
-	white   = "\033[90;47m"
-	yellow  = "\033[90;43m"
-	red     = "\033[91;41m"
-	blue    = "\033[97;44m"
-	magenta = "\033[97;45m"
-	cyan    = "\033[97;46m"
+	// ANSI 색상 코드 (Foreground 전용으로 변경하여 터미널 호환성 및 가독성 향상)
+	green   = "\033[32m"
+	white   = "\033[37m"
+	yellow  = "\033[33m"
+	red     = "\033[31m"
+	blue    = "\033[34m"
+	magenta = "\033[35m"
+	cyan    = "\033[36m"
 	reset   = "\033[0m"
 )
 
@@ -173,6 +173,8 @@ func methodColor(method string) string {
 		return green
 	case "HEAD":
 		return magenta
+	case "OPTIONS":
+		return white
 	default:
 		return white
 	}

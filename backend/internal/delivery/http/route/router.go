@@ -19,11 +19,18 @@ func NewRouter(
 ) *gin.Engine {
 	r := gin.New()
 
+	// CORS 상세 설정
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true
+	config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization", "X-Request-ID"}
+	config.AllowCredentials = true
+
 	// 전역 미들웨어 설정
 	r.Use(gin.Recovery())                   // 패닉 방지
 	r.Use(middleware.RequestIDMiddleware()) // 요청마다 고유 ID 부여
 	r.Use(middleware.LoggerMiddleware())    // 상세 API 로그 기록
-	r.Use(cors.Default())                   // CORS 설정
+	r.Use(cors.New(config))                 // 커스텀 CORS 설정
 
 	// 헬스체크
 	r.GET("/health", func(c *gin.Context) {
