@@ -57,6 +57,21 @@ class UserNotifier extends StateNotifier<UserState> {
       return false;
     }
   }
+
+  Future<bool> deleteAccount(String id) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _repository.deleteAccount(id);
+      state = UserState(); // 상태 초기화
+      return true;
+    } on AppException catch (e) {
+      state = state.copyWith(isLoading: false, error: e.message);
+      return false;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: '탈퇴 중 오류가 발생했습니다.');
+      return false;
+    }
+  }
 }
 
 final userProvider = StateNotifierProvider<UserNotifier, UserState>((ref) {
