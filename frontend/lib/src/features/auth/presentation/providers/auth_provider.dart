@@ -61,16 +61,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> login(String username, String password) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
+      print('DEBUG: Starting login for $username');
       final response = await _repository.login(
         LoginRequest(username: username, password: password),
       );
       
+      print('DEBUG: Login response received. User ID: ${response.user.id}');
+      print('DEBUG: User details: ${response.user.username}, ${response.user.email}');
+      
       await _secureStorage.write(key: AppConstants.accessTokenKey, value: response.token);
       await _prefs.setString(AppConstants.userIdKey, response.user.id);
       
+      print('DEBUG: Token and UserID saved to storage');
+      
       state = state.copyWith(user: response.user, isLoading: false);
+      print('DEBUG: AuthState updated with user');
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('DEBUG: Login failed with error: $e');
+      print('DEBUG: StackTrace: $stackTrace');
       state = state.copyWith(isLoading: false, error: e is AppException ? e.message : e.toString());
       return false;
     }
