@@ -145,10 +145,52 @@ class ProfilePage extends ConsumerWidget {
                   valueColor: AppColors.orange,
                   onTap: () => _showLogoutDialog(context, ref),
                 ),
+                const _Divider(),
+                _SettingsItem(
+                  icon: Icons.person_remove_outlined,
+                  label: '회원 탈퇴',
+                  valueColor: AppColors.textTertiary,
+                  onTap: () => _showDeleteAccountDialog(context, ref),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('회원 탈퇴'),
+        content: const Text('정말로 탈퇴하시겠습니까?\n모든 기록이 삭제되며 복구할 수 없습니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final user = ref.read(userProvider).user;
+              if (user != null) {
+                final success = await ref.read(userProvider.notifier).deleteAccount(user.id);
+                if (success && context.mounted) {
+                  Navigator.pop(context);
+                  await ref.read(authProvider.notifier).logout();
+                  if (context.mounted) {
+                    GoRouter.of(context).go('/auth');
+                  }
+                }
+              }
+            },
+            child: const Text(
+              '탈퇴하기',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
         ],
       ),
     );

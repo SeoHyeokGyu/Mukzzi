@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
 import 'exceptions.dart';
@@ -6,8 +7,9 @@ import 'exceptions.dart';
 class ApiClient {
   late Dio _dio;
   final SharedPreferences _prefs;
+  final FlutterSecureStorage _secureStorage;
 
-  ApiClient(this._prefs) {
+  ApiClient(this._prefs, this._secureStorage) {
     _dio = Dio(
       BaseOptions(
         baseUrl: AppConstants.apiBaseUrl,
@@ -20,8 +22,9 @@ class ApiClient {
     // 인터셉터 추가
     _dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) {
-          final token = _prefs.getString(AppConstants.accessTokenKey);
+        onRequest: (options, handler) async {
+          // 민감한 정보인 토큰은 SecureStorage에서 조회
+          final token = await _secureStorage.read(key: AppConstants.accessTokenKey);
           
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';

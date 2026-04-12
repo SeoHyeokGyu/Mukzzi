@@ -1,12 +1,14 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/shimmer_card.dart';
+import '../../../profile/presentation/providers/user_provider.dart';
 
 // Mock 데이터 - 추후 API로 교체
 const double _caloriesConsumed = 1200;
@@ -21,14 +23,14 @@ const int _mealCount = 3;
 const int _streakDays = 7;
 final List<double> _weeklyCalories = [1800, 2200, 1600, 1900, 2100, 1750, 1200];
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends ConsumerState<HomePage> {
   bool _isLoading = true;
 
   @override
@@ -123,6 +125,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildCharacterCard() {
+    final userState = ref.watch(userProvider);
+    final nickname = userState.user?.nickname ?? userState.user?.username ?? '먹찌';
+    
     const double xp = 0;
     const double xpGoal = 100;
     final card = BentoCard(
@@ -147,7 +152,7 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     Row(
                       children: [
-                        const Text('먹찌', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                        Text(nickname, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
