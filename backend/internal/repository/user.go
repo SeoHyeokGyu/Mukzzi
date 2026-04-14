@@ -12,6 +12,14 @@ type UserRepository interface {
 	GetByUsername(username string) (*domain.User, error)
 	Update(user *domain.User) error
 	Delete(id int64) error
+
+	// UserBody
+	CreateBody(body *domain.UserBody) error
+	GetLatestBody(userID int64) (*domain.UserBody, error)
+
+	// UserNutritionGoal
+	CreateOrUpdateNutritionGoal(goal *domain.UserNutritionGoal) error
+	GetNutritionGoal(userID int64) (*domain.UserNutritionGoal, error)
 }
 
 type userRepository struct {
@@ -29,7 +37,10 @@ func (r *userRepository) Create(user *domain.User) error {
 
 func (r *userRepository) GetByID(id int64) (*domain.User, error) {
 	var user domain.User
-	err := r.db.First(&user, id).Error
+	// 연관된 현재 신체 정보와 영양 목표도 함께 조회 (필요 시)
+	err := r.db.Preload("Body", func(db *gorm.DB) *gorm.DB {
+		return db.Order("user_bodies.created_at DESC").Limit(1)
+	}).Preload("NutritionGoal").First(&user, id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -51,4 +62,49 @@ func (r *userRepository) Update(user *domain.User) error {
 
 func (r *userRepository) Delete(id int64) error {
 	return r.db.Delete(&domain.User{}, id).Error
+}
+
+// CreateBody 는 새로운 신체 정보를 저장합니다 (이력 관리).
+func (r *userRepository) CreateBody(body *domain.UserBody) error {
+	return r.db.Create(body).Error
+}
+
+// GetLatestBody 는 사용자의 가장 최신 신체 정보를 조회합니다.
+func (r *userRepository) GetLatestBody(userID int64) (*domain.UserBody, error) {
+	var body domain.UserBody
+	err := r.db.Where("user_id = ?", userID).Order("created_at DESC").First(&body).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &body, nil
+}
+
+// CreateOrUpdateNutritionGoal 은 영양 목표를 저장하거나 업데이트합니다 (유저당 1개).
+func (r *userRepository) CreateOrUpdateNutritionGoal(goal *domain.UserNutritionGoal) error {
+	var existing domain.UserNutritionGoal
+	err := r.db.Where("user_id = ?", goal.UserID).First(&existing).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return r.db.Create(goal).Error
+		}
+		return err
+	}
+	goal.ID = existing.ID
+	return r.db.Save(goal).Error
+}
+
+// GetNutritionGoal 은 사용자의 영양 목표를 조회합니다.
+func (r *userRepository) GetNutritionGoal(userID int64) (*domain.UserNutritionGoal, error) {
+	var goal domain.UserNutritionGoal
+	err := r.db.Where("user_id = ?", userID).First(&goal).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &goal, nil
 }

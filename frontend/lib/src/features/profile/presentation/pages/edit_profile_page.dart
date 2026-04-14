@@ -56,7 +56,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     );
 
     final success = await ref.read(userProvider.notifier).updateProfile(
-          user.id,
           request,
         );
 

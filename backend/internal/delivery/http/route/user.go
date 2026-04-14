@@ -12,10 +12,21 @@ func UserRoute(rg *gin.RouterGroup, userHandler *handler.UserHandler) {
 	{
 		// 로그인이 필요한 요청들에 미들웨어 적용
 		users.Use(middleware.AuthMiddleware())
-		
+
+		// 내 정보 관련
 		users.GET("/me", userHandler.GetMe)
+		users.PATCH("/me", userHandler.UpdateMe)
+		users.PATCH("/me/body", userHandler.UpdateBody)
+		users.PATCH("/me/nutrition-goal", userHandler.UpdateNutritionGoal)
+		users.PATCH("/me/settings", userHandler.UpdateSettings)
+		users.DELETE("/me", userHandler.WithdrawAccount)
+
+		// 타인 정보 및 검색
+		users.GET("/:id/profile", userHandler.GetOtherProfile)
+		users.GET("/search", userHandler.Search)
+		users.GET("/recommendations", userHandler.GetRecommendations)
+
+		// 하위 호환성 유지 (필요 시)
 		users.GET("/:id", userHandler.GetProfile)
-		users.PUT("/:id", userHandler.UpdateProfile)
-		users.DELETE("/:id", userHandler.DeleteAccount)
 	}
 }

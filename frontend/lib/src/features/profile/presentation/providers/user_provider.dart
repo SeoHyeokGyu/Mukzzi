@@ -43,10 +43,10 @@ class UserNotifier extends StateNotifier<UserState> {
     }
   }
 
-  Future<bool> updateProfile(String id, UserUpdateRequest request) async {
+  Future<bool> updateProfile(UserUpdateRequest request) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final user = await _repository.updateProfile(id, request);
+      final user = await _repository.updateProfile(request);
       state = state.copyWith(user: user, isLoading: false);
       return true;
     } on AppException catch (e) {
@@ -58,10 +58,10 @@ class UserNotifier extends StateNotifier<UserState> {
     }
   }
 
-  Future<bool> deleteAccount(String id) async {
+  Future<bool> deleteAccount() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _repository.deleteAccount(id);
+      await _repository.deleteAccount();
       state = UserState(); // 상태 초기화
       return true;
     } on AppException catch (e) {

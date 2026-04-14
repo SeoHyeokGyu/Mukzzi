@@ -176,7 +176,7 @@ class ProfilePage extends ConsumerWidget {
             onPressed: () async {
               final user = ref.read(userProvider).user;
               if (user != null) {
-                final success = await ref.read(userProvider.notifier).deleteAccount(user.id);
+                final success = await ref.read(userProvider.notifier).deleteAccount();
                 if (success && context.mounted) {
                   Navigator.pop(context);
                   await ref.read(authProvider.notifier).logout();
