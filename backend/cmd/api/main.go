@@ -40,6 +40,7 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	badgeRepo := repository.NewBadgeRepository(db)
 	menuRepo := repository.NewMenuRepository(db)
+	socialRepo := repository.NewSocialRepository(db)
 	mealRepo := repository.NewMealRepository(db)
 	dailyIntakeRepo := repository.NewDailyIntakeRepository(db)
 	charCollectionRepo := repository.NewCharacterCollectionRepository(db)
@@ -68,6 +69,10 @@ func main() {
 	menuUsecase := usecase.NewMenuUsecase(menuRepo)
 	menuHandler := handler.NewMenuHandler(menuUsecase)
 
+	// Social 도메인
+	socialUsecase := usecase.NewSocialUsecase(socialRepo, userRepo)
+	socialHandler := handler.NewSocialHandler(socialUsecase)
+
 	_ = badgeGranter // Meal 유즈케이스 구현 시 주입
 
 	// 라우터 초기화 (모든 미들웨어 및 라우트 등록)
@@ -76,6 +81,7 @@ func main() {
 		userHandler,
 		collectionHandler,
 		menuHandler,
+		socialHandler,
 	)
 
 	// 서버 실행
