@@ -21,6 +21,10 @@ type UserRepository interface {
 	CreateOrUpdateNutritionGoal(goal *domain.UserNutritionGoal) error
 	GetNutritionGoal(userID int64) (*domain.UserNutritionGoal, error)
 
+	// Search & Recommendations
+	Search(query string) ([]domain.User, error)
+	GetRecommendations(userID int64, limit int) ([]domain.User, error)
+
 	// UpdateEquippedTitle 장착 칭호 갱신 (nil이면 해제)
 	UpdateEquippedTitle(userID int64, titleID *int64) error
 }
@@ -114,4 +118,17 @@ func (r *userRepository) GetNutritionGoal(userID int64) (*domain.UserNutritionGo
 		return nil, err
 	}
 	return &goal, nil
+}
+
+func (r *userRepository) Search(query string) ([]domain.User, error) {
+	var users []domain.User
+	err := r.db.Where("nickname LIKE ? OR username LIKE ?", "%"+query+"%", "%"+query+"%").
+		Limit(20).Find(&users).Error
+	return users, err
+}
+
+func (r *userRepository) GetRecommendations(userID int64, limit int) ([]domain.User, error) {
+	var users []domain.User
+	err := r.db.Where("id != ?", userID).Order("created_at DESC").Limit(limit).Find(&users).Error
+	return users, err
 }

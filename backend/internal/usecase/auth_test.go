@@ -71,6 +71,16 @@ func (m *MockUserRepository) GetNutritionGoal(userID int64) (*domain.UserNutriti
 	return args.Get(0).(*domain.UserNutritionGoal), args.Error(1)
 }
 
+func (m *MockUserRepository) Search(query string) ([]domain.User, error) {
+	args := m.Called(query)
+	return args.Get(0).([]domain.User), args.Error(1)
+}
+
+func (m *MockUserRepository) GetRecommendations(userID int64, limit int) ([]domain.User, error) {
+	args := m.Called(userID, limit)
+	return args.Get(0).([]domain.User), args.Error(1)
+}
+
 func (m *MockUserRepository) UpdateEquippedTitle(userID int64, titleID *int64) error {
 	args := m.Called(userID, titleID)
 	return args.Error(0)

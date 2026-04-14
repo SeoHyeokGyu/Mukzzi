@@ -112,11 +112,12 @@ func (u *userUsecase) DeleteAccount(id int64) error {
 }
 
 func (u *userUsecase) Search(query string) ([]domain.User, error) {
-	return nil, errors.New("search not implemented yet in repository")
+	return u.userRepo.Search(query)
 }
 
 func (u *userUsecase) GetRecommendations(id int64) ([]domain.User, error) {
-	return nil, errors.New("recommendations not implemented yet")
+	// 상위 10명의 추천 사용자 조회
+	return u.userRepo.GetRecommendations(id, 10)
 }
 
 // calculateNutritionTargets 는 신체 정보와 목표를 기반으로 영양 목표를 계산합니다.
