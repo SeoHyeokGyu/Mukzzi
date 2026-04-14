@@ -1,6 +1,6 @@
 # API 명세
 
-> 상태: 진행 중 (Badge 완성, 기타 대부분 미구현)
+> 상태: 진행 중 (Badge, User 완성, 기타 미구현)
 
 백엔드 REST API 엔드포인트 명세입니다. 기획 문서([planning.md](planning.md))와 ERD([erd.md](erd.md))를 기반으로 작성합니다. 상세한 Request/Response 스펙은 Swagger를 참조하세요.
 
