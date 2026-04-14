@@ -24,6 +24,9 @@ type BadgeRepository interface {
 
 	// FindUserBadgeByID 사용자 뱃지 기록 조회
 	FindUserBadgeByID(userID, badgeID int64) (*domain.UserBadge, error)
+
+	// FindBadgeByCode 뱃지 코드로 조회
+	FindBadgeByCode(code string) (*domain.Badge, error)
 }
 
 // badgeRepositoryImpl 뱃지 저장소 구현체
@@ -86,6 +89,18 @@ func (r *badgeRepositoryImpl) FindBadgeByID(badgeID int64) (*domain.Badge, error
 // CreateUserBadge 사용자 뱃지 기록 생성
 func (r *badgeRepositoryImpl) CreateUserBadge(userBadge *domain.UserBadge) error {
 	return r.db.Create(userBadge).Error
+}
+
+// FindBadgeByCode 뱃지 코드로 조회
+func (r *badgeRepositoryImpl) FindBadgeByCode(code string) (*domain.Badge, error) {
+	var badge domain.Badge
+	if err := r.db.Where("code = ?", code).First(&badge).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &badge, nil
 }
 
 // FindUserBadgeByID 사용자 뱃지 기록 조회
