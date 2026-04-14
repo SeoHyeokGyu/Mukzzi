@@ -16,15 +16,15 @@ class UserRepository {
     return UserModel.fromJson(response['data'] as Map<String, dynamic>);
   }
 
-  Future<UserModel> updateProfile(String id, UserUpdateRequest request) async {
-    final response = await _apiClient.put(
-      '/users/$id',
+  Future<UserModel> updateProfile(UserUpdateRequest request) async {
+    final response = await _apiClient.patch(
+      '/users/me',
       data: request.toJson(),
     );
     return UserModel.fromJson(response['data'] as Map<String, dynamic>);
   }
 
-  Future<void> deleteAccount(String id) async {
-    await _apiClient.delete('/users/$id');
+  Future<void> deleteAccount() async {
+    await _apiClient.delete('/users/me');
   }
 }
