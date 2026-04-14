@@ -64,6 +64,47 @@
 | daily_protein_target | INT | DEFAULT 60 | 일일 단백질 목표 (g) |
 | daily_fat_target | INT | DEFAULT 50 | 일일 지방 목표 (g) |
 
+### 친구 관계 (friendships)
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| requester_id | BIGINT | FK (users.id), NOT NULL | 요청자 ID |
+| receiver_id | BIGINT | FK (users.id), NOT NULL | 수신자 ID |
+| status | VARCHAR(20) | DEFAULT 'PENDING' | PENDING, ACCEPTED |
+
+### 차단 (blocks)
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| blocker_id | BIGINT | FK (users.id), NOT NULL | 차단한 사용자 |
+| blocked_id | BIGINT | FK (users.id), NOT NULL | 차단당한 사용자 |
+
+### 방명록 (guestbooks)
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| target_user_id | BIGINT | FK (users.id), NOT NULL | 방명록 주인 ID |
+| writer_id | BIGINT | FK (users.id), NOT NULL | 작성자 ID |
+| content | TEXT | NOT NULL | 방명록 내용 |
+| is_secret | BOOLEAN | DEFAULT FALSE | 비밀글 여부 |
+
+### 응원 (nudges)
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| sender_id | BIGINT | FK (users.id), NOT NULL | 응원 보낸 사용자 |
+| receiver_id | BIGINT | FK (users.id), NOT NULL | 응원 받은 사용자 |
+
+### 신고 (reports)
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| reporter_id | BIGINT | FK (users.id), NOT NULL | 신고자 |
+| target_user_id | BIGINT | FK (users.id), NOT NULL | 신고 대상 |
+| reason | VARCHAR(50) | NOT NULL | 신고 사유 |
+| detail | TEXT | NULL | 상세 사유 |
+| status | VARCHAR(20) | DEFAULT 'PENDING' | 처리 상태 |
+
 ---
 
 ## ER 다이어그램

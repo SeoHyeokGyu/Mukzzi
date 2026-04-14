@@ -1,6 +1,6 @@
 # API 명세
 
-> 상태: 진행 중 (Badge, User 완성, 기타 미구현)
+> 상태: 진행 중 (Badge, User, Social 완성, 기타 미구현)
 
 백엔드 REST API 엔드포인트 명세입니다. 기획 문서([planning.md](planning.md))와 ERD([erd.md](erd.md))를 기반으로 작성합니다. 상세한 Request/Response 스펙은 Swagger를 참조하세요.
 
@@ -234,12 +234,12 @@
 
 | Method | Endpoint | 인증 | 설명 |
 |--------|----------|------|------|
-| GET | /friends | O | 친구 목록 조회 |
+| GET | /friends | O | 내 친구 목록 조회 |
+| DELETE | /friends/{userId} | O | 친구 삭제 |
 | GET | /friends/requests | O | 받은 친구 요청 목록 |
-| POST | /friends/requests | O | 친구 요청 전송 |
-| POST | /friends/requests/{id}/accept | O | 친구 요청 수락 |
-| POST | /friends/requests/{id}/reject | O | 친구 요청 거절 |
-| DELETE | /friends/{id} | O | 친구 삭제 |
+| POST | /friends/requests/{userId} | O | 친구 요청 전송 |
+| PATCH | /friends/requests/{userId}/accept | O | 친구 요청 수락 |
+| PATCH | /friends/requests/{userId}/reject | O | 친구 요청 거절 |
 
 ### 10. 소셜 - 상호작용 (Social Interaction)
 
