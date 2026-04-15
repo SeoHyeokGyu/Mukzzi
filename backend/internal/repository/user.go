@@ -20,6 +20,9 @@ type UserRepository interface {
 	// UserNutritionGoal
 	CreateOrUpdateNutritionGoal(goal *domain.UserNutritionGoal) error
 	GetNutritionGoal(userID int64) (*domain.UserNutritionGoal, error)
+
+	// UpdateEquippedTitle 장착 칭호 갱신 (nil이면 해제)
+	UpdateEquippedTitle(userID int64, titleID *int64) error
 }
 
 type userRepository struct {
@@ -94,6 +97,13 @@ func (r *userRepository) CreateOrUpdateNutritionGoal(goal *domain.UserNutritionG
 	}
 	goal.ID = existing.ID
 	return r.db.Save(goal).Error
+}
+
+// UpdateEquippedTitle 은 사용자의 장착 칭호를 갱신합니다.
+func (r *userRepository) UpdateEquippedTitle(userID int64, titleID *int64) error {
+	return r.db.Model(&domain.User{}).
+		Where("id = ?", userID).
+		Update("equipped_title_id", titleID).Error
 }
 
 // GetNutritionGoal 은 사용자의 영양 목표를 조회합니다.

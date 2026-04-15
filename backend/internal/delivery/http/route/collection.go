@@ -10,9 +10,14 @@ import (
 func CollectionRoute(rg *gin.RouterGroup, collectionHandler *handler.CollectionHandler) {
 	collections := rg.Group("/collections")
 	{
-		// 로그인이 필요한 요청들에 미들웨어 적용
 		collections.Use(middleware.AuthMiddleware())
 
+		collections.GET("/characters", collectionHandler.GetCharacterCollections)
+		collections.GET("/mastery", collectionHandler.GetMasteries)
+		collections.GET("/mastery/:menuId", collectionHandler.GetMasteryByMenu)
 		collections.GET("/badges", collectionHandler.GetBadges)
+		collections.GET("/titles", collectionHandler.GetTitles)
+		collections.PATCH("/titles/equip", collectionHandler.EquipTitle)
+		collections.GET("/rewards", collectionHandler.GetRewards)
 	}
 }

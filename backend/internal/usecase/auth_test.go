@@ -71,6 +71,11 @@ func (m *MockUserRepository) GetNutritionGoal(userID int64) (*domain.UserNutriti
 	return args.Get(0).(*domain.UserNutritionGoal), args.Error(1)
 }
 
+func (m *MockUserRepository) UpdateEquippedTitle(userID int64, titleID *int64) error {
+	args := m.Called(userID, titleID)
+	return args.Error(0)
+}
+
 func TestAuthUsecase_Register(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	uc := NewAuthUsecase(mockRepo)
