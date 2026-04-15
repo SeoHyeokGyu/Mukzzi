@@ -63,16 +63,16 @@ class _AuthPageState extends ConsumerState<AuthPage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.error != null && next.error != previous?.error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.error!)),
+        );
+      }
+    });
+
     final authState = ref.watch(authProvider);
     final d = MediaQuery.of(context).disableAnimations ? Duration.zero : null;
-
-    if (authState.error != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(authState.error!)),
-        );
-      });
-    }
 
     return GradientScaffold(
       body: Center(

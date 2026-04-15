@@ -40,10 +40,7 @@ func (r *userRepository) Create(user *domain.User) error {
 
 func (r *userRepository) GetByID(id int64) (*domain.User, error) {
 	var user domain.User
-	// 연관된 현재 신체 정보와 영양 목표도 함께 조회 (필요 시)
-	err := r.db.Preload("Body", func(db *gorm.DB) *gorm.DB {
-		return db.Order("user_bodies.created_at DESC").Limit(1)
-	}).Preload("NutritionGoal").First(&user, id).Error
+	err := r.db.Preload("NutritionGoal").First(&user, id).Error
 	if err != nil {
 		return nil, err
 	}
