@@ -43,6 +43,9 @@ func main() {
 	mealRepo := repository.NewMealRepository(db)
 	dailyIntakeRepo := repository.NewDailyIntakeRepository(db)
 	charCollectionRepo := repository.NewCharacterCollectionRepository(db)
+	masteryRepo := repository.NewMasteryRepository(db)
+	titleRepo := repository.NewTitleRepository(db)
+	rewardRepo := repository.NewRewardRepository(db)
 
 	// Auth 도메인
 	authUsecase := usecase.NewAuthUsecase(userRepo)
@@ -55,7 +58,11 @@ func main() {
 	// Collection 도메인
 	badgeGranter := usecase.NewBadgeGranter(badgeRepo, mealRepo, dailyIntakeRepo, charCollectionRepo)
 	badgeUsecase := usecase.NewBadgeUsecase(badgeRepo)
-	collectionHandler := handler.NewCollectionHandler(badgeUsecase)
+	charCollectionUsecase := usecase.NewCharacterCollectionUsecase(charCollectionRepo)
+	masteryUsecase := usecase.NewMasteryUsecase(masteryRepo)
+	titleUsecase := usecase.NewTitleUsecase(titleRepo, userRepo)
+	rewardUsecase := usecase.NewRewardUsecase(rewardRepo)
+	collectionHandler := handler.NewCollectionHandler(badgeUsecase, charCollectionUsecase, masteryUsecase, titleUsecase, rewardUsecase)
 
 	// Menu 도메인
 	menuUsecase := usecase.NewMenuUsecase(menuRepo)

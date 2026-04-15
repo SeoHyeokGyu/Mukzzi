@@ -51,6 +51,14 @@ func (m *MockBadgeRepository) FindUserBadgeByID(userID, badgeID int64) (*domain.
 	return args.Get(0).(*domain.UserBadge), args.Error(1)
 }
 
+func (m *MockBadgeRepository) FindBadgeByCode(code string) (*domain.Badge, error) {
+	args := m.Called(code)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.Badge), args.Error(1)
+}
+
 func TestBadgeUsecase_GetBadges(t *testing.T) {
 	mockRepo := new(MockBadgeRepository)
 	uc := NewBadgeUsecase(mockRepo)
