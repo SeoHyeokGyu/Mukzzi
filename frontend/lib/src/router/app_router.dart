@@ -9,6 +9,10 @@ import '../features/auth/presentation/pages/auth_page.dart';
 import '../features/home/presentation/pages/home_page.dart';
 import '../features/character/presentation/pages/character_page.dart';
 import '../features/character/presentation/pages/badge_list_page.dart';
+import '../features/character/presentation/pages/mastery_list_page.dart';
+import '../features/character/presentation/pages/title_list_page.dart';
+import '../features/character/presentation/pages/reward_list_page.dart';
+import '../features/character/presentation/pages/character_collection_page.dart';
 import '../features/profile/presentation/pages/profile_page.dart';
 import '../features/profile/presentation/pages/edit_profile_page.dart';
 import '../features/meal_record/presentation/pages/meal_record_page.dart';
@@ -74,6 +78,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       name: 'profile-edit',
                       builder: (context, state) => const EditProfilePage(),
                     ),
+                    GoRoute(
+                      path: 'titles',
+                      name: 'profile-titles',
+                      builder: (context, state) => const TitleListPage(),
+                    ),
+                    GoRoute(
+                      path: 'rewards',
+                      name: 'profile-rewards',
+                      builder: (context, state) => const RewardListPage(),
+                    ),
                   ],
                 ),
               ],
@@ -91,6 +105,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               path: '/character',
               name: 'character',
               builder: (context, state) => const CharacterPage(),
+              routes: [
+                GoRoute(
+                  path: 'masteries',
+                  name: 'character-masteries',
+                  builder: (context, state) => const MasteryListPage(),
+                ),
+                GoRoute(
+                  path: 'collection',
+                  name: 'character-collection',
+                  builder: (context, state) => const CharacterCollectionPage(),
+                ),
+              ],
             ),
           ]),
           StatefulShellBranch(routes: [

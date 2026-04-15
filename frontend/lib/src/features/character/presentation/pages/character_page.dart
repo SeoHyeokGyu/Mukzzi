@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 // import 'package:rive/rive.dart' hide LinearGradient; // mukzzi.riv 추가 시 활성화
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
@@ -123,6 +124,32 @@ class _CharacterPageState extends State<CharacterPage> {
                     label: '악세서리',
                     value: '없음',
                     onTap: () {},
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // 메뉴 기록
+            Text(
+              '먹부림 기록',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            BentoCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  _EquipmentItem(
+                    label: '마스터리 도감',
+                    value: '',
+                    onTap: () => context.push('/character/masteries'),
+                  ),
+                  const Divider(),
+                  _EquipmentItem(
+                    label: '먹찌 도감',
+                    value: '',
+                    onTap: () => context.push('/character/collection'),
                   ),
                 ],
               ),

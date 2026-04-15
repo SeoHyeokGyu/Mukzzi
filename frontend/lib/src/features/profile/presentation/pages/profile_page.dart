@@ -5,7 +5,6 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../character/domain/models/badge_model.dart';
 import '../providers/user_provider.dart';
 
 class ProfilePage extends ConsumerWidget {
@@ -52,10 +51,33 @@ class ProfilePage extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
 
-          // 뱃지
-          const _SectionLabel(label: '뱃지'),
+          // 컬렉션
+          const _SectionLabel(label: '컬렉션'),
           const SizedBox(height: 10),
-          _BadgeEntry(onTap: () => context.push('/home/profile/badges')),
+          BentoCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _SettingsItem(
+                  icon: Icons.military_tech,
+                  label: '뱃지',
+                  onTap: () => context.push('/home/profile/badges'),
+                ),
+                const _Divider(),
+                _SettingsItem(
+                  icon: Icons.workspace_premium,
+                  label: '칭호',
+                  onTap: () => context.push('/home/profile/titles'),
+                ),
+                const _Divider(),
+                _SettingsItem(
+                  icon: Icons.card_giftcard,
+                  label: '보상 아이템',
+                  onTap: () => context.push('/home/profile/rewards'),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 20),
 
           // 식사 목표
@@ -315,75 +337,6 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
-class _BadgeEntry extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _BadgeEntry({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final unlockedCount = mockBadges.where((b) => b.isUnlocked).length;
-    final totalCount = mockBadges.length;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Material(
-        color: AppColors.surface,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.softPeach,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.military_tech,
-                    size: 24,
-                    color: AppColors.orange,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '보유 뱃지',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        '$unlockedCount / $totalCount개 획득',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: AppColors.textTertiary,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _SectionLabel extends StatelessWidget {
   final String label;
