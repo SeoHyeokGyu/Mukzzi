@@ -3,16 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../domain/models/badge_model.dart';
+import '../providers/badge_provider.dart';
 import '../widgets/badge_grid_item.dart';
 import '../widgets/badge_progress_banner.dart';
-
-final _badgeListProvider = Provider<List<BadgeModel>>((ref) => mockBadges);
 
 class BadgeListPage extends ConsumerWidget {
   const BadgeListPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final badgesAsync = ref.watch(badgeListProvider);
+
     return DefaultTabController(
       length: 4,
       child: GradientScaffold(
@@ -36,39 +37,43 @@ class BadgeListPage extends ConsumerWidget {
             ],
           ),
         ),
-        body: const TabBarView(
-          children: [
-            _BadgeTabContent(category: 'all'),
-            _BadgeTabContent(category: 'meal'),
-            _BadgeTabContent(category: 'attendance'),
-            _BadgeTabContent(category: 'social'),
-          ],
+        body: badgesAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => _ErrorState(onRetry: () => ref.invalidate(badgeListProvider)),
+          data: (badges) => TabBarView(
+            children: [
+              _BadgeTabContent(badges: badges, category: 'all'),
+              _BadgeTabContent(badges: badges, category: 'meal'),
+              _BadgeTabContent(badges: badges, category: 'attendance'),
+              _BadgeTabContent(badges: badges, category: 'social'),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _BadgeTabContent extends ConsumerWidget {
+class _BadgeTabContent extends StatelessWidget {
+  final List<BadgeModel> badges;
   final String category;
 
-  const _BadgeTabContent({required this.category});
+  const _BadgeTabContent({required this.badges, required this.category});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final allBadges = ref.watch(_badgeListProvider);
-    final badges = category == 'all'
-        ? allBadges
-        : allBadges.where((b) => b.category == category).toList();
+  Widget build(BuildContext context) {
+    final filtered = category == 'all'
+        ? badges
+        : badges.where((b) => b.category == category).toList();
 
-    if (badges.isEmpty) {
+    if (filtered.isEmpty) {
       return const _EmptyState();
     }
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        BadgeProgressBanner(badges: badges),
+        BadgeProgressBanner(badges: filtered),
         const SizedBox(height: 16),
         GridView.builder(
           shrinkWrap: true,
@@ -79,10 +84,35 @@ class _BadgeTabContent extends ConsumerWidget {
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
           ),
-          itemCount: badges.length,
-          itemBuilder: (context, index) => BadgeGridItem(badge: badges[index]),
+          itemCount: filtered.length,
+          itemBuilder: (context, index) => BadgeGridItem(badge: filtered[index]),
         ),
       ],
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _ErrorState({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 48, color: AppColors.textTertiary),
+          const SizedBox(height: 16),
+          const Text(
+            '뱃지를 불러오지 못했어요',
+            style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          TextButton(onPressed: onRetry, child: const Text('다시 시도')),
+        ],
+      ),
     );
   }
 }
