@@ -455,8 +455,16 @@ class _ToggleItemState extends State<_ToggleItem> {
           Switch(
             value: _value,
             onChanged: (v) => setState(() => _value = v),
-            activeThumbColor: AppColors.orange,
-            activeTrackColor: AppColors.softPeach,
+            thumbColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.selected)
+                  ? AppColors.orange
+                  : null,
+            ),
+            trackColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.selected)
+                  ? AppColors.softPeach
+                  : null,
+            ),
           ),
         ],
       ),
