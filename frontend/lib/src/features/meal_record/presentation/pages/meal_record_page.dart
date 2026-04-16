@@ -259,6 +259,7 @@ class _MealInputTabState extends State<_MealInputTab> {
                     DropdownMenu<String>(
                       initialSelection: _selectedWeather,
                       expandedInsets: EdgeInsets.zero,
+                      hintText: '선택',
                       onSelected: (value) =>
                           setState(() => _selectedWeather = value),
                       dropdownMenuEntries: const [
@@ -284,6 +285,7 @@ class _MealInputTabState extends State<_MealInputTab> {
                     DropdownMenu<String>(
                       initialSelection: _selectedMood,
                       expandedInsets: EdgeInsets.zero,
+                      hintText: '선택',
                       onSelected: (value) =>
                           setState(() => _selectedMood = value),
                       dropdownMenuEntries: const [

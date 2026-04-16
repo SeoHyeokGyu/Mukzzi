@@ -30,8 +30,8 @@ class MainShell extends StatelessWidget {
             label: '식사',
           ),
           NavigationDestination(
-            icon: Icon(Icons.pets_outlined),
-            selectedIcon: Icon(Icons.pets),
+            icon: Icon(Icons.egg_outlined),
+            selectedIcon: Icon(Icons.egg),
             label: '먹찌',
           ),
           NavigationDestination(

@@ -19,7 +19,7 @@ class _CharacterPageState extends State<CharacterPage> {
   @override
   Widget build(BuildContext context) {
     return GradientScaffold(
-      appBar: AppBar(title: const Text('먹찌')),
+      appBar: AppBar(title: const Text('내 캐릭터')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -253,15 +253,19 @@ class _CharacterPlaceholder extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.pets, size: 72, color: AppColors.orange.withValues(alpha: 0.5)),
-          const SizedBox(height: 12),
-          const Text(
-            '먹찌 애니메이션',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          Container(
+            width: 100,
+            height: 100,
+            decoration: const BoxDecoration(
+              color: AppColors.softPeach,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.egg_outlined, size: 52, color: AppColors.orange),
           ),
+          const SizedBox(height: 16),
           const Text(
-            'assets/animations/mukzzi.riv 추가 필요',
-            style: TextStyle(color: AppColors.textTertiary, fontSize: 11),
+            '부화 중...',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 14, fontWeight: FontWeight.w500),
           ),
         ],
       ),

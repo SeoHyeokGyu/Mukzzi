@@ -7,7 +7,8 @@ class AppColors {
   static const Color backgroundEnd = Color(0xFF16100A);
 
   // Surface (카드, NavigationBar 등)
-  static const Color white = Color(0xFF1C1C26);          // 하위 호환 유지
+  /// Deprecated: surface와 동일. 신규 코드에서는 surface 사용
+  static const Color white = Color(0xFF1C1C26);
   static const Color surface = Color(0xFF1C1C26);
   static const Color surfaceElevated = Color(0xFF252532);
 
@@ -54,6 +55,11 @@ class AppColors {
   static const Color textSecondary = Color(0xFF9898B2);  // 4.78:1 on surface
   static const Color textTertiary = Color(0xFF8585A5);   // 4.55:1 on surface (AA 통과)
   static const Color divider = Color(0xFF2A2A38);
+
+  // Macro nutrients
+  static const Color proteinColor = Color(0xFF4CAF50);   // 단백질
+  static const Color carbsColor = Color(0xFF5B9CF6);     // 탄수화물
+  static const Color fatColor = Color(0xFFFF9800);       // 지방
 
   // Surface variants
   static const Color surfaceDark = Color(0xFF1A1A22);    // 잠금/비활성 배경

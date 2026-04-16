@@ -264,6 +264,52 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   }
 }
 
+class _SocialButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final Widget icon;
+  final String label;
+  final Color backgroundColor;
+  final Color labelColor;
+  final Color borderColor;
+
+  const _SocialButton({
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+    required this.backgroundColor,
+    required this.labelColor,
+    required this.borderColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 80,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            icon,
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(fontSize: 11, color: labelColor, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AppleButton extends StatelessWidget {
   final VoidCallback onPressed;
 
@@ -271,25 +317,13 @@ class _AppleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
+    return _SocialButton(
       onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: AppColors.appleBlack,
-        side: const BorderSide(color: AppColors.appleBlack),
-      ),
-      child: const Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('🍎', style: TextStyle(fontSize: 24)),
-          SizedBox(height: 4),
-          Text(
-            'Apple',
-            style: TextStyle(fontSize: 12, color: Colors.white),
-          ),
-        ],
-      ),
+      label: 'Apple',
+      backgroundColor: AppColors.appleBlack,
+      labelColor: Colors.white,
+      borderColor: AppColors.appleBlack,
+      icon: const Icon(Icons.apple, color: Colors.white, size: 26),
     );
   }
 }
@@ -301,22 +335,36 @@ class _GoogleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
+    return _SocialButton(
       onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: AppColors.googleWhite,
-        side: const BorderSide(color: Color(0xFFDDDDDD)),
-      ),
-      child: const Column(
-        mainAxisSize: MainAxisSize.min,
+      label: 'Google',
+      backgroundColor: AppColors.googleWhite,
+      labelColor: const Color(0xFF444444),
+      borderColor: const Color(0xFFDDDDDD),
+      icon: const _GoogleLogo(),
+    );
+  }
+}
+
+class _GoogleLogo extends StatelessWidget {
+  const _GoogleLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      width: 26,
+      height: 26,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          Text('🔤', style: TextStyle(fontSize: 24)),
-          SizedBox(height: 4),
           Text(
-            'Google',
-            style: TextStyle(fontSize: 12, color: Colors.black),
+            'G',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF4285F4),
+              height: 1,
+            ),
           ),
         ],
       ),
@@ -331,25 +379,13 @@ class _KakaoButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
+    return _SocialButton(
       onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: AppColors.kakaoYellow,
-        side: const BorderSide(color: AppColors.kakaoYellow),
-      ),
-      child: const Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('💬', style: TextStyle(fontSize: 24)),
-          SizedBox(height: 4),
-          Text(
-            'Kakao',
-            style: TextStyle(fontSize: 12, color: Colors.black),
-          ),
-        ],
-      ),
+      label: 'Kakao',
+      backgroundColor: AppColors.kakaoYellow,
+      labelColor: const Color(0xFF191919),
+      borderColor: AppColors.kakaoYellow,
+      icon: const Icon(Icons.chat_bubble, color: Color(0xFF191919), size: 24),
     );
   }
 }

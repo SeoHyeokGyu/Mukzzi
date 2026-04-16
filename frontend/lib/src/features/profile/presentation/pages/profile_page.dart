@@ -293,8 +293,8 @@ class _ProfileHeader extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: const Icon(
-              Icons.person,
-              size: 36,
+              Icons.egg_outlined,
+              size: 34,
               color: AppColors.orange,
             ),
           ),
@@ -305,11 +305,9 @@ class _ProfileHeader extends StatelessWidget {
               children: [
                 Text(
                   username,
-                  style: const TextStyle(
-                    fontSize: 18,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
-                    fontFamily: 'Poppins',
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -457,7 +455,8 @@ class _ToggleItemState extends State<_ToggleItem> {
           Switch(
             value: _value,
             onChanged: (v) => setState(() => _value = v),
-            activeColor: AppColors.orange,
+            activeThumbColor: AppColors.orange,
+            activeTrackColor: AppColors.softPeach,
           ),
         ],
       ),

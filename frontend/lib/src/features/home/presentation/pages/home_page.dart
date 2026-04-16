@@ -280,7 +280,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   consumed: _proteinConsumed,
                   goal: _proteinGoal,
                   unit: 'g',
-                  color: Color(0xFF4CAF50),
+                  color: AppColors.proteinColor,
                 ),
                 const SizedBox(height: 10),
                 const _MacroRow(
@@ -288,7 +288,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   consumed: _carbsConsumed,
                   goal: _carbsGoal,
                   unit: 'g',
-                  color: Color(0xFF2196F3),
+                  color: AppColors.carbsColor,
                 ),
                 const SizedBox(height: 10),
                 const _MacroRow(
@@ -296,7 +296,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   consumed: _fatConsumed,
                   goal: _fatGoal,
                   unit: 'g',
-                  color: Color(0xFFFF9800),
+                  color: AppColors.fatColor,
                 ),
               ],
             ),
@@ -474,7 +474,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: '메뉴 선택',
             button: true,
             child: GestureDetector(
-              onTap: () {},
+              onTap: () => context.go('/meal-record'),
               child: const BentoCard(
                 height: 100,
                 gradient: AppColors.primaryGradient,
@@ -497,7 +497,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: '식사 기록 추가',
             button: true,
             child: GestureDetector(
-              onTap: () {},
+              onTap: () => context.go('/meal-record'),
               child: const BentoCard(
                 height: 100,
                 gradient: AppColors.primaryGradient,
