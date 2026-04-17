@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/collection_states.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../domain/models/title_model.dart';
 import '../providers/title_provider.dart';
@@ -17,9 +18,15 @@ class TitleListPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('칭호')),
       body: titlesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => _ErrorState(onRetry: () => ref.invalidate(titleListProvider)),
+        error: (_, __) => CollectionErrorState(onRetry: () => ref.invalidate(titleListProvider)),
         data: (titles) {
-          if (titles.isEmpty) return const _EmptyState();
+          if (titles.isEmpty) {
+            return const CollectionEmptyState(
+              icon: Icons.workspace_premium,
+              title: '아직 칭호가 없어요',
+              subtitle: '다양한 도전을 달성하면 칭호를 얻을 수 있어요',
+            );
+          }
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: titles.length,
@@ -43,7 +50,8 @@ class TitleListPage extends ConsumerWidget {
         await repo.equipTitle(title.id);
       }
       ref.invalidate(titleListProvider);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[TitleListPage] equipTitle error: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('처리 중 오류가 발생했어요')),
@@ -164,43 +172,3 @@ class _TitleCard extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.workspace_premium, size: 64, color: AppColors.iconDisabled),
-          SizedBox(height: 16),
-          Text('아직 칭호가 없어요', style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
-          SizedBox(height: 8),
-          Text('다양한 도전을 달성하면 칭호를 얻을 수 있어요', style: TextStyle(fontSize: 14, color: AppColors.textTertiary)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  final VoidCallback onRetry;
-  const _ErrorState({required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: AppColors.textTertiary),
-          const SizedBox(height: 16),
-          const Text('불러오지 못했어요', style: TextStyle(color: AppColors.textSecondary)),
-          const SizedBox(height: 12),
-          TextButton(onPressed: onRetry, child: const Text('다시 시도')),
-        ],
-      ),
-    );
-  }
-}

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/collection_states.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../domain/models/reward_model.dart';
 import '../providers/reward_provider.dart';
@@ -17,9 +18,15 @@ class RewardListPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('보상 아이템')),
       body: rewardsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => _ErrorState(onRetry: () => ref.invalidate(rewardListProvider)),
+        error: (_, __) => CollectionErrorState(onRetry: () => ref.invalidate(rewardListProvider)),
         data: (rewards) {
-          if (rewards.isEmpty) return const _EmptyState();
+          if (rewards.isEmpty) {
+            return const CollectionEmptyState(
+              icon: Icons.card_giftcard,
+              title: '아직 보상 아이템이 없어요',
+              subtitle: '미션을 달성하면 보상 아이템을 받을 수 있어요',
+            );
+          }
 
           // 타입별로 그룹화
           final groups = <String, List<RewardModel>>{};
@@ -191,43 +198,3 @@ class _RewardCard extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.card_giftcard, size: 64, color: AppColors.iconDisabled),
-          SizedBox(height: 16),
-          Text('아직 보상 아이템이 없어요', style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
-          SizedBox(height: 8),
-          Text('미션을 달성하면 보상 아이템을 받을 수 있어요', style: TextStyle(fontSize: 14, color: AppColors.textTertiary)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  final VoidCallback onRetry;
-  const _ErrorState({required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: AppColors.textTertiary),
-          const SizedBox(height: 16),
-          const Text('불러오지 못했어요', style: TextStyle(color: AppColors.textSecondary)),
-          const SizedBox(height: 12),
-          TextButton(onPressed: onRetry, child: const Text('다시 시도')),
-        ],
-      ),
-    );
-  }
-}

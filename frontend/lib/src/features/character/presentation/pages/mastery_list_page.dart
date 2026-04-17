@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/collection_states.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../domain/models/mastery_model.dart';
 import '../providers/mastery_provider.dart';
@@ -14,12 +15,18 @@ class MasteryListPage extends ConsumerWidget {
     final masteryAsync = ref.watch(masteryListProvider);
 
     return GradientScaffold(
-      appBar: AppBar(title: const Text('먹부림 도감')),
+      appBar: AppBar(title: const Text('마스터리 도감')),
       body: masteryAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => _ErrorState(onRetry: () => ref.invalidate(masteryListProvider)),
+        error: (_, __) => CollectionErrorState(onRetry: () => ref.invalidate(masteryListProvider)),
         data: (masteries) {
-          if (masteries.isEmpty) return const _EmptyState();
+          if (masteries.isEmpty) {
+            return const CollectionEmptyState(
+              icon: Icons.restaurant_menu,
+              title: '아직 마스터리가 없어요',
+              subtitle: '식사를 기록하면 마스터리가 쌓여요',
+            );
+          }
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: masteries.length,
@@ -109,7 +116,7 @@ class _GradeChip extends StatelessWidget {
   Color get _color {
     switch (grade) {
       case 'MASTER':
-        return const Color(0xFFFFD700);
+        return AppColors.masterGold;
       case 'ARTISAN':
         return AppColors.orange;
       case 'MANIA':
@@ -156,43 +163,3 @@ class _GradeChip extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.restaurant_menu, size: 64, color: AppColors.iconDisabled),
-          SizedBox(height: 16),
-          Text('아직 마스터리가 없어요', style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
-          SizedBox(height: 8),
-          Text('식사를 기록하면 마스터리가 쌓여요', style: TextStyle(fontSize: 14, color: AppColors.textTertiary)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  final VoidCallback onRetry;
-  const _ErrorState({required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: AppColors.textTertiary),
-          const SizedBox(height: 16),
-          const Text('불러오지 못했어요', style: TextStyle(color: AppColors.textSecondary)),
-          const SizedBox(height: 12),
-          TextButton(onPressed: onRetry, child: const Text('다시 시도')),
-        ],
-      ),
-    );
-  }
-}

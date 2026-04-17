@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/collection_states.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../domain/models/badge_model.dart';
 import '../providers/badge_provider.dart';
@@ -39,7 +39,7 @@ class BadgeListPage extends ConsumerWidget {
         ),
         body: badgesAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => _ErrorState(onRetry: () => ref.invalidate(badgeListProvider)),
+          error: (e, _) => CollectionErrorState(onRetry: () => ref.invalidate(badgeListProvider)),
           data: (badges) => TabBarView(
             children: [
               _BadgeTabContent(badges: badges, category: 'all'),
@@ -67,7 +67,11 @@ class _BadgeTabContent extends StatelessWidget {
         : badges.where((b) => b.category == category).toList();
 
     if (filtered.isEmpty) {
-      return const _EmptyState();
+      return const CollectionEmptyState(
+        icon: Icons.military_tech_outlined,
+        title: '해당 뱃지가 없어요',
+        subtitle: '다른 카테고리를 확인해보세요',
+      );
     }
 
     return ListView(
@@ -92,57 +96,3 @@ class _BadgeTabContent extends StatelessWidget {
   }
 }
 
-class _ErrorState extends StatelessWidget {
-  final VoidCallback onRetry;
-
-  const _ErrorState({required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: AppColors.textTertiary),
-          const SizedBox(height: 16),
-          const Text(
-            '뱃지를 불러오지 못했어요',
-            style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 12),
-          TextButton(onPressed: onRetry, child: const Text('다시 시도')),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.military_tech_outlined,
-            size: 64,
-            color: AppColors.iconDisabled,
-          ),
-          SizedBox(height: 16),
-          Text(
-            '해당 뱃지가 없어요',
-            style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
-          ),
-          SizedBox(height: 8),
-          Text(
-            '다른 카테고리를 확인해보세요',
-            style: TextStyle(fontSize: 14, color: AppColors.textTertiary),
-          ),
-        ],
-      ),
-    );
-  }
-}

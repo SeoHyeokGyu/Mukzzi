@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/collection_states.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../domain/models/character_collection_model.dart';
 import '../providers/character_collection_provider.dart';
@@ -17,11 +19,17 @@ class CharacterCollectionPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('먹찌 도감')),
       body: collectionsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => _ErrorState(
+        error: (_, __) => CollectionErrorState(
           onRetry: () => ref.invalidate(characterCollectionListProvider),
         ),
         data: (collections) {
-          if (collections.isEmpty) return const _EmptyState();
+          if (collections.isEmpty) {
+            return const CollectionEmptyState(
+              icon: Icons.pets,
+              title: '아직 도감이 비어 있어요',
+              subtitle: '식사를 기록하면 먹찌가 성장해요',
+            );
+          }
           return GridView.builder(
             padding: const EdgeInsets.all(16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -73,11 +81,10 @@ class _CollectionCard extends StatelessWidget {
           // 파츠 조합 라벨
           Text(
             collection.label,
-            style: const TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
-              fontFamily: 'Poppins',
             ),
           ),
           const SizedBox(height: 4),
@@ -152,43 +159,3 @@ class _PartDot extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.pets, size: 64, color: AppColors.iconDisabled),
-          SizedBox(height: 16),
-          Text('아직 도감이 비어 있어요', style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
-          SizedBox(height: 8),
-          Text('식사를 기록하면 먹찌가 성장해요', style: TextStyle(fontSize: 14, color: AppColors.textTertiary)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  final VoidCallback onRetry;
-  const _ErrorState({required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: AppColors.textTertiary),
-          const SizedBox(height: 16),
-          const Text('불러오지 못했어요', style: TextStyle(color: AppColors.textSecondary)),
-          const SizedBox(height: 12),
-          TextButton(onPressed: onRetry, child: const Text('다시 시도')),
-        ],
-      ),
-    );
-  }
-}

@@ -5,16 +5,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
 
-class CharacterPage extends StatefulWidget {
+class CharacterPage extends StatelessWidget {
   const CharacterPage({super.key});
-
-  @override
-  State<CharacterPage> createState() => _CharacterPageState();
-}
-
-class _CharacterPageState extends State<CharacterPage> {
-  // Rive 애니메이션 컨트롤러 - .riv 파일 추가 시 활성화
-  // RiveAnimationController? _controller;
 
   @override
   Widget build(BuildContext context) {

@@ -64,6 +64,9 @@ class AppColors {
   // Surface variants
   static const Color surfaceDark = Color(0xFF1A1A22);    // 잠금/비활성 배경
   static const Color iconDisabled = Color(0x66858585);   // 비활성 아이콘 (textTertiary 40%)
+
+  // Mastery grade colors
+  static const Color masterGold = Color(0xFFFFD700);     // 마스터리 MASTER 등급
 }
 
 class AppTheme {

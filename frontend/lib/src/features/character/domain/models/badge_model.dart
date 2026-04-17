@@ -9,7 +9,6 @@ class BadgeModel {
   final IconData iconData;
   final bool isUnlocked;
   final String? unlockedAt; // ISO 8601
-  final String condition;
 
   const BadgeModel({
     required this.id,
@@ -20,8 +19,10 @@ class BadgeModel {
     required this.iconData,
     required this.isUnlocked,
     this.unlockedAt,
-    required this.condition,
   });
+
+  // 백엔드에 condition 필드 추가 전까지 description을 달성 조건으로 사용
+  String get condition => description;
 
   factory BadgeModel.fromJson(Map<String, dynamic> json) {
     final code = json['code'] as String? ?? '';
@@ -30,7 +31,6 @@ class BadgeModel {
       code: code,
       name: json['name'] as String? ?? '',
       description: json['description'] as String? ?? '',
-      condition: json['description'] as String? ?? '',
       category: _categoryFromCode(code),
       iconData: _iconFromCode(code),
       isUnlocked: json['acquired'] as bool? ?? false,
