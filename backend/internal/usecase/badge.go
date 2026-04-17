@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
@@ -51,11 +52,12 @@ func (u *badgeUsecaseImpl) GetBadges(ctx context.Context, query domain.GetBadges
 		limit = 50
 	}
 
-	// offset 계산 (cursor 기반 페이지네이션)
+	// cursor는 다음 페이지 시작 offset을 인코딩한 숫자 문자열
 	offset := 0
 	if query.Cursor != "" {
-		// cursor 기반 offset 계산 (실제 구현에서는 더 정교한 로직 필요)
-		offset = 0 // TODO: cursor 파싱 및 offset 계산 로직 구현
+		if parsed, err := strconv.Atoi(query.Cursor); err == nil && parsed > 0 {
+			offset = parsed
+		}
 	}
 
 	// 모든 뱃지 조회
@@ -106,10 +108,10 @@ func (u *badgeUsecaseImpl) GetBadges(ctx context.Context, query domain.GetBadges
 	// has_next 판단
 	hasNext := len(allBadges) > limit
 
-	// next_cursor 계산
+	// next_cursor: 다음 페이지 시작 offset
 	nextCursor := ""
-	if hasNext && len(filteredBadges) > 0 {
-		nextCursor = filteredBadges[len(filteredBadges)-1].Code
+	if hasNext {
+		nextCursor = strconv.Itoa(offset + limit)
 	}
 
 	return &domain.GetBadgesResult{

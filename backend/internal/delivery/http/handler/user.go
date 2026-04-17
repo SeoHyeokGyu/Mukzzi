@@ -74,7 +74,11 @@ func (h *UserHandler) UpdateMe(c *gin.Context) {
 		return
 	}
 
-	updatedUser, _ := h.userUsecase.GetProfile(userID.(int64))
+	updatedUser, err := h.userUsecase.GetProfile(userID.(int64))
+	if err != nil {
+		InternalError(c, "프로필 조회에 실패했습니다.", err.Error())
+		return
+	}
 	Success(c, updatedUser)
 }
 
@@ -103,7 +107,11 @@ func (h *UserHandler) UpdateBody(c *gin.Context) {
 		return
 	}
 
-	updatedUser, _ := h.userUsecase.GetProfile(userID.(int64))
+	updatedUser, err := h.userUsecase.GetProfile(userID.(int64))
+	if err != nil {
+		InternalError(c, "프로필 조회에 실패했습니다.", err.Error())
+		return
+	}
 	Success(c, updatedUser)
 }
 
@@ -131,7 +139,11 @@ func (h *UserHandler) UpdateNutritionGoal(c *gin.Context) {
 		return
 	}
 
-	updatedUser, _ := h.userUsecase.GetProfile(userID.(int64))
+	updatedUser, err := h.userUsecase.GetProfile(userID.(int64))
+	if err != nil {
+		InternalError(c, "프로필 조회에 실패했습니다.", err.Error())
+		return
+	}
 	Success(c, updatedUser)
 }
 
@@ -159,7 +171,11 @@ func (h *UserHandler) UpdateSettings(c *gin.Context) {
 		return
 	}
 
-	updatedUser, _ := h.userUsecase.GetProfile(userID.(int64))
+	updatedUser, err := h.userUsecase.GetProfile(userID.(int64))
+	if err != nil {
+		InternalError(c, "프로필 조회에 실패했습니다.", err.Error())
+		return
+	}
 	Success(c, updatedUser)
 }
 

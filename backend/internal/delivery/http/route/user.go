@@ -25,8 +25,5 @@ func UserRoute(rg *gin.RouterGroup, userHandler *handler.UserHandler) {
 		users.GET("/:id/profile", userHandler.GetOtherProfile)
 		users.GET("/search", userHandler.Search)
 		users.GET("/recommendations", userHandler.GetRecommendations)
-
-		// 하위 호환성 유지 (필요 시)
-		users.GET("/:id", userHandler.GetProfile)
 	}
 }
