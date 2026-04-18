@@ -13,18 +13,27 @@ func InitLogger() {
 	isDev := os.Getenv("ENVIRONMENT") == "development"
 
 	if isDev {
-		// 개발 환경: 커스텀 가독성 핸들러 사용
+		// 개발 환경: 가독성 모드 + 소스 코드 위치 추적
 		opts := slog.HandlerOptions{
-			Level: slog.LevelDebug,
+			Level:     slog.LevelDebug,
+			AddSource: true, // 소스 코드 위치(파일명:라인) 포함
 		}
 		handler := &prettyHandler{
 			Handler: slog.NewTextHandler(os.Stdout, &opts),
 		}
 		slog.SetDefault(slog.New(handler))
 	} else {
-		// 운영 환경: 표준 JSON 핸들러 사용
+		// 운영 환경: ELK/분석 툴 최적화 모드
 		opts := slog.HandlerOptions{
-			Level: slog.LevelInfo,
+			Level:     slog.LevelInfo,
+			AddSource: true,
+			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+				// ELK 표준 타임스탬프 필드명 (@timestamp) 적용
+				if a.Key == slog.TimeKey {
+					return slog.Attr{Key: "@timestamp", Value: a.Value}
+				}
+				return a
+			},
 		}
 		handler := slog.NewJSONHandler(os.Stdout, &opts)
 		logger := slog.New(handler).With(slog.String("app", "MUKZZI"))
@@ -41,37 +50,32 @@ func (h *prettyHandler) Handle(ctx context.Context, r slog.Record) error {
 	level := r.Level.String()
 	switch r.Level {
 	case slog.LevelDebug:
-		level = "\033[34mDEBUG\033[0m" // Blue
+		level = "\033[34mDEBUG\033[0m"
 	case slog.LevelInfo:
-		level = "\033[32mINFO \033[0m" // Green
+		level = "\033[32mINFO \033[0m"
 	case slog.LevelWarn:
-		level = "\033[33mWARN \033[0m" // Yellow
+		level = "\033[33mWARN \033[0m"
 	case slog.LevelError:
-		level = "\033[31mERROR\033[0m" // Red
+		level = "\033[31mERROR\033[0m"
 	}
 
 	timeStr := r.Time.Format("15:04:05")
-	
-	// 1. 헤더 출력
-	fmt.Printf("[MUKZZI] %s | %s | %s | %s\n", 
-		timeStr, 
-		level, 
-		"---------", 
-		r.Message,
-	)
 
-	// 2. 속성(Attributes) 출력
+	// 헤더 출력
+	fmt.Printf("[MUKZZI] %s | %s | %s | %s\n", timeStr, level, "---------", r.Message)
+
 	r.Attrs(func(a slog.Attr) bool {
-		// API 로그의 req, res 는 특별 취급하여 더 예쁘게 출력
 		if a.Key == "req" || a.Key == "res" {
 			valJSON, _ := json.Marshal(a.Value.Any())
 			label := "Req"
-			if a.Key == "res" { label = "Res" }
+			if a.Key == "res" {
+				label = "Res"
+			}
 			fmt.Printf("   ├─ [%s] : %s\n", label, string(valJSON))
-		} else if a.Key == "request_id" {
-			// request_id 는 헤더 정보 보강용으로 생략하거나 작게 표시 가능
-		} else {
-			// 일반 속성
+		} else if a.Key == "source" {
+			// 소스 정보 (파일명:라인) 표시
+			fmt.Printf("   ├─ [Loc] : %v\n", a.Value.Any())
+		} else if a.Key != "app" && a.Key != "request_id" {
 			fmt.Printf("   └─ [%s] : %v\n", a.Key, a.Value.Any())
 		}
 		return true
