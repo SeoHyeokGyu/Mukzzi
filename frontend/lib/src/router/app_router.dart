@@ -6,6 +6,7 @@ import '../core/providers/common_providers.dart';
 import '../core/widgets/main_shell.dart';
 import '../features/auth/presentation/pages/auth_page.dart';
 import '../features/home/presentation/pages/home_page.dart';
+import '../features/notification/presentation/pages/notification_list_page.dart';
 import '../features/character/presentation/pages/character_page.dart';
 import '../features/character/presentation/pages/badge_list_page.dart';
 import '../features/character/presentation/pages/mastery_list_page.dart';
@@ -26,8 +27,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/home',
     redirect: (context, state) async {
-      // SecureStorage는 비동기이므로 redirect에서 직접 await 사용
-      // 웹에서는 HTTPS가 아닐 경우 SharedPreferences 사용
       final String? token;
       if (kIsWeb) {
         token = prefs.getString(AppConstants.accessTokenKey);
@@ -62,6 +61,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               name: 'home',
               builder: (context, state) => const HomePage(),
               routes: [
+                GoRoute(
+                  path: 'notifications',
+                  name: 'notifications',
+                  builder: (context, state) => const NotificationListPage(),
+                ),
                 GoRoute(
                   path: 'profile',
                   name: 'profile',

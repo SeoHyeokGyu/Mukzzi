@@ -22,16 +22,6 @@ func NewNotificationHandler(notificationUsecase usecase.NotificationUsecase) *No
 }
 
 // GetNotifications 알림 목록 조회
-// @Summary      알림 목록 조회
-// @Description  현재 사용자의 알림 목록을 cursor 기반 페이지네이션으로 조회합니다.
-// @Tags         notifications
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        limit   query     int     false  "페이지당 항목 수 (기본 20)"
-// @Param        cursor  query     string  false  "다음 페이지 커서"
-// @Success      200  {object}  Response  "알림 목록 조회 성공"
-// @Router       /api/notifications [get]
 func (h *NotificationHandler) GetNotifications(c *gin.Context) {
 	userID, _ := c.Get("userID")
 
@@ -49,15 +39,6 @@ func (h *NotificationHandler) GetNotifications(c *gin.Context) {
 }
 
 // ReadNotification 알림 읽음 처리
-// @Summary      알림 읽음 처리
-// @Description  특정 알림을 읽음 상태로 변경합니다.
-// @Tags         notifications
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        id   path      int64   true  "알림 ID"
-// @Success      200  {object}  Response  "알림 읽음 처리 성공"
-// @Router       /api/notifications/{id}/read [patch]
 func (h *NotificationHandler) ReadNotification(c *gin.Context) {
 	userID, _ := c.Get("userID")
 	idStr := c.Param("id")
@@ -76,14 +57,6 @@ func (h *NotificationHandler) ReadNotification(c *gin.Context) {
 }
 
 // ReadAllNotifications 전체 알림 읽음 처리
-// @Summary      전체 알림 읽음 처리
-// @Description  현재 사용자의 모든 읽지 않은 알림을 읽음 상태로 변경합니다.
-// @Tags         notifications
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Success      200  {object}  Response  "전체 알림 읽음 처리 성공"
-// @Router       /api/notifications/read-all [post]
 func (h *NotificationHandler) ReadAllNotifications(c *gin.Context) {
 	userID, _ := c.Get("userID")
 
@@ -96,13 +69,6 @@ func (h *NotificationHandler) ReadAllNotifications(c *gin.Context) {
 }
 
 // Stream 실시간 알림 스트림 (SSE)
-// @Summary      실시간 알림 스트림
-// @Description  SSE를 통해 현재 사용자의 알림을 실시간으로 수신합니다.
-// @Tags         notifications
-// @Accept       json
-// @Produce      text/event-stream
-// @Security     BearerAuth
-// @Router       /api/notifications/stream [get]
 func (h *NotificationHandler) Stream(c *gin.Context) {
 	userID, _ := c.Get("userID")
 
@@ -113,11 +79,12 @@ func (h *NotificationHandler) Stream(c *gin.Context) {
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
-	c.Header("Transfer-Encoding", "chunked")
+	c.Header("X-Accel-Buffering", "no")
 
-	ticker := time.NewTicker(15 * time.Second) // 15초마다 하트비트
+	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 
+	// 클라이언트 연결 상태 감시 및 데이터 전송
 	c.Stream(func(w io.Writer) bool {
 		select {
 		case n, ok := <-ch:
@@ -126,14 +93,17 @@ func (h *NotificationHandler) Stream(c *gin.Context) {
 			}
 			c.SSEvent("notification", dto.ToNotificationResponse(n))
 			return true
+			
 		case <-ticker.C:
-			// 연결 유지용 주석(comment) 직접 전송
+			// 하트비트 전송
 			c.Render(-1, render.Data{
 				ContentType: "text/event-stream",
 				Data:        []byte(": heartbeat\n\n"),
 			})
 			return true
+			
 		case <-c.Request.Context().Done():
+			// 연결 종료 감지
 			return false
 		}
 	})

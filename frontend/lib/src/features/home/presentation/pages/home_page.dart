@@ -4,12 +4,13 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/bento_card.dart';
-import '../../../../core/widgets/gradient_scaffold.dart';
-import '../../../../core/widgets/shimmer_card.dart';
-import '../../../notification/presentation/providers/notification_provider.dart';
-import '../../../profile/presentation/providers/user_provider.dart';
+import 'package:mukzzi/src/core/theme/app_theme.dart';
+import 'package:mukzzi/src/core/widgets/bento_card.dart';
+import 'package:mukzzi/src/core/widgets/gradient_scaffold.dart';
+import 'package:mukzzi/src/core/widgets/shimmer_card.dart';
+import 'package:mukzzi/src/features/auth/presentation/providers/auth_provider.dart';
+import 'package:mukzzi/src/features/notification/presentation/providers/notification_provider.dart';
+import 'package:mukzzi/src/features/profile/presentation/providers/user_provider.dart';
 
 // Mock 데이터 - 추후 API로 교체
 const double _caloriesConsumed = 1200;
@@ -44,30 +45,51 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // 실시간 알림 리스너 추가
+    // 1. 실시간 알림 리스너
     ref.listen(notificationProvider, (previous, next) {
-      if (previous != null && next.notifications.length > previous.notifications.length) {
+      // ... (기존 알림 팝업 로직)
+      if (previous == null || (previous.notifications.isEmpty && next.notifications.isNotEmpty)) {
+        return;
+      }
+      if (next.notifications.length > previous.notifications.length) {
         final newNotification = next.notifications.first;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(newNotification.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text(newNotification.content, style: const TextStyle(fontSize: 12)),
-              ],
+        final isRecent = DateTime.now().difference(newNotification.createdAt).inMinutes < 1;
+        if (!newNotification.isRead && isRecent) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(newNotification.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(newNotification.content, style: const TextStyle(fontSize: 12)),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+              action: SnackBarAction(
+                label: '보기',
+                onPressed: () => context.push('/home/notifications'),
+              ),
             ),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
-            action: SnackBarAction(
-              label: '보기',
-              onPressed: () {
-                // TODO: 알림 목록 페이지로 이동
-              },
-            ),
-          ),
-        );
+          );
+        }
+      }
+    });
+
+    // 2. 유저 세션 체크 리스너 추가
+    ref.listen(userProvider, (previous, next) {
+      // 로딩이 완료되었는데 유저 정보가 없고 에러가 발생한 경우 로그아웃 처리
+      if (previous?.isLoading == true && !next.isLoading && next.user == null) {
+        debugPrint('[HomePage] 유저 정보 로드 실패 또는 누락 - 자동 로그아웃 실행');
+        ref.read(authProvider.notifier).logout().then((_) {
+          if (context.mounted) {
+            context.go('/auth');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('세션이 만료되었습니다. 다시 로그인해주세요.')),
+            );
+          }
+        });
       }
     });
 
@@ -83,9 +105,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               IconButton(
                 tooltip: '알림',
                 icon: const Icon(Icons.notifications_outlined),
-                onPressed: () {
-                  // TODO: 알림 목록 페이지 이동
-                },
+                onPressed: () => context.push('/home/notifications'),
               ),
               if (unreadCount > 0)
                 Positioned(
@@ -192,6 +212,12 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _buildCharacterCard() {
     final userState = ref.watch(userProvider);
+    
+    // 데이터가 없으면 수동으로 가져오기 시도
+    if (userState.user == null && !userState.isLoading && userState.error == null) {
+      Future.microtask(() => ref.read(userProvider.notifier).fetchMe());
+    }
+
     final nickname = userState.user?.nickname ?? userState.user?.username ?? '먹찌';
     
     const double xp = 0;
