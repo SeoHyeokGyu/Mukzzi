@@ -2,7 +2,7 @@ package usecase
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -15,16 +15,21 @@ type NotificationUsecase interface {
 	ReadNotification(id int64, userID int64) error
 	ReadAllNotifications(userID int64) error
 	CreateNotification(notification *domain.Notification) error
+	Subscribe(userID int64) (<-chan *domain.Notification, func())
 	Close()
 }
 
 type notificationUsecase struct {
 	notificationRepo repository.NotificationRepository
 	readChan         chan readTask
-	createChan       chan *domain.Notification // 알림 생성용 채널 추가
-	wg               sync.WaitGroup
-	ctx              context.Context
-	cancel           context.CancelFunc
+	createChan       chan *domain.Notification
+
+	mu          sync.RWMutex
+	subscribers map[int64][]chan *domain.Notification
+
+	wg     sync.WaitGroup
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 type readTask struct {
@@ -42,19 +47,19 @@ func NewNotificationUsecase(notificationRepo repository.NotificationRepository) 
 	u := &notificationUsecase{
 		notificationRepo: notificationRepo,
 		readChan:         make(chan readTask, 1000),
-		createChan:       make(chan *domain.Notification, 500), // 생성 버퍼
+		createChan:       make(chan *domain.Notification, 500),
+		subscribers:      make(map[int64][]chan *domain.Notification),
 		ctx:              ctx,
 		cancel:           cancel,
 	}
 
 	u.wg.Add(2)
 	go u.readWorker()
-	go u.createWorker() // 생성 전용 워커 시작
+	go u.createWorker()
 
 	return u
 }
 
-// readWorker 는 이전과 동일하게 배치 업데이트 처리
 func (u *notificationUsecase) readWorker() {
 	defer u.wg.Done()
 	ticker := time.NewTicker(flushInterval)
@@ -68,7 +73,7 @@ func (u *notificationUsecase) readWorker() {
 		}
 		for _, task := range tasks {
 			if err := u.notificationRepo.MarkAsRead(task.id, task.userID); err != nil {
-				log.Printf("Failed to mark notification %d as read: %v", task.id, err)
+				slog.Error("알림 읽음 처리 실패", slog.Int64("notification_id", task.id), slog.Any("error", err))
 			}
 		}
 		tasks = tasks[:0]
@@ -94,7 +99,6 @@ func (u *notificationUsecase) readWorker() {
 	}
 }
 
-// createWorker 는 알림 생성 및 (추후) 푸시 발송 처리
 func (u *notificationUsecase) createWorker() {
 	defer u.wg.Done()
 
@@ -104,19 +108,70 @@ func (u *notificationUsecase) createWorker() {
 			if !ok {
 				return
 			}
-			// 1. DB 저장
 			if err := u.notificationRepo.Create(n); err != nil {
-				log.Printf("Failed to create notification asynchronously: %v", err)
+				slog.Error("알림 비동기 생성 실패", slog.Any("error", err))
 				continue
 			}
 
-			// 2. TODO: FCM 푸시 알림 발송 로직 연동
-			// log.Printf("Notification created and push sent for user %d", n.UserID)
+			u.broadcast(n)
 
 		case <-u.ctx.Done():
 			return
 		}
 	}
+}
+
+func (u *notificationUsecase) broadcast(n *domain.Notification) {
+	u.mu.RLock()
+	defer u.mu.RUnlock()
+
+	chans, ok := u.subscribers[n.UserID]
+	if !ok {
+		return
+	}
+
+	for _, ch := range chans {
+		select {
+		case ch <- n:
+		default:
+			// 버퍼 꽉 참 무시
+		}
+	}
+}
+
+func (u *notificationUsecase) Subscribe(userID int64) (<-chan *domain.Notification, func()) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	ch := make(chan *domain.Notification, 10)
+	u.subscribers[userID] = append(u.subscribers[userID], ch)
+
+	slog.Info("SSE 구독 시작", slog.Int64("user_id", userID), slog.Int("current_subscribers", len(u.subscribers[userID])))
+
+	var once sync.Once
+	unsubscribe := func() {
+		once.Do(func() {
+			u.mu.Lock()
+			defer u.mu.Unlock()
+
+			chans := u.subscribers[userID]
+			for i, c := range chans {
+				if c == ch {
+					u.subscribers[userID] = append(chans[:i], chans[i+1:]...)
+					close(ch)
+					break
+				}
+			}
+
+			subCount := len(u.subscribers[userID])
+			if subCount == 0 {
+				delete(u.subscribers, userID)
+			}
+			slog.Info("SSE 구독 해제", slog.Int64("user_id", userID), slog.Int("remaining_subscribers", subCount))
+		})
+	}
+
+	return ch, unsubscribe
 }
 
 func (u *notificationUsecase) GetNotifications(userID int64, limit int, cursor string) ([]domain.Notification, string, error) {
@@ -140,12 +195,10 @@ func (u *notificationUsecase) ReadAllNotifications(userID int64) error {
 }
 
 func (u *notificationUsecase) CreateNotification(notification *domain.Notification) error {
-	// 채널에 던져서 비동기로 처리
 	select {
 	case u.createChan <- notification:
 		return nil
 	default:
-		// 채널이 꽉 찼을 경우에만 동기 처리하여 유실 방지
 		return u.notificationRepo.Create(notification)
 	}
 }

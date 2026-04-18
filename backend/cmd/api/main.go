@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 	"os"
 
 	_ "github.com/SeoHyeokGyu/Mukzzi/backend/docs"
@@ -24,8 +24,11 @@ import (
 func main() {
 	// 환경 변수 로드 (현재 디렉토리 또는 상위 디렉토리에서 .env 탐색)
 	if err := godotenv.Load("../.env"); err != nil {
-		log.Println(".env 파일을 찾을 수 없습니다. 환경 변수를 직접 사용합니다.")
+		slog.Info(".env 파일을 찾을 수 없습니다. 환경 변수를 직접 사용합니다.")
 	}
+
+	// 로거 초기화
+	config.InitLogger()
 
 	// DB 초기화
 	db := config.InitDB()
@@ -91,8 +94,9 @@ func main() {
 	)
 
 	// 서버 실행
-	log.Printf("Mukzzi server listening on :%s", port)
+	slog.Info("Mukzzi server listening", slog.String("port", port))
 	if err := r.Run(":" + port); err != nil {
-		log.Fatal("서버 실행 실패:", err)
+		slog.Error("서버 실행 실패", slog.Any("error", err))
+		os.Exit(1)
 	}
 }
