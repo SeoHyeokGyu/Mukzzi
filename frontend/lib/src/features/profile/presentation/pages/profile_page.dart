@@ -47,7 +47,7 @@ class ProfilePage extends ConsumerWidget {
           _ProfileHeader(
             username: userState.user?.username ?? '먹찌 유저',
             nickname: userState.user?.nickname ?? '부화 단계',
-            onEditTap: () => context.push('/home/profile/edit'),
+            onEditTap: () => context.push('/profile/edit'),
           ),
           const SizedBox(height: 20),
 
@@ -61,19 +61,19 @@ class ProfilePage extends ConsumerWidget {
                 _SettingsItem(
                   icon: Icons.military_tech,
                   label: '뱃지',
-                  onTap: () => context.push('/home/profile/badges'),
+                  onTap: () => context.push('/profile/badges'),
                 ),
                 const _Divider(),
                 _SettingsItem(
                   icon: Icons.workspace_premium,
                   label: '칭호',
-                  onTap: () => context.push('/home/profile/titles'),
+                  onTap: () => context.push('/profile/titles'),
                 ),
                 const _Divider(),
                 _SettingsItem(
                   icon: Icons.card_giftcard,
                   label: '보상 아이템',
-                  onTap: () => context.push('/home/profile/rewards'),
+                  onTap: () => context.push('/profile/rewards'),
                 ),
               ],
             ),
@@ -158,7 +158,7 @@ class ProfilePage extends ConsumerWidget {
                 _SettingsItem(
                   icon: Icons.person_outline,
                   label: '프로필 설정',
-                  onTap: () => context.push('/home/profile/edit'),
+                  onTap: () => context.push('/profile/edit'),
                 ),
                 const _Divider(),
                 _SettingsItem(
