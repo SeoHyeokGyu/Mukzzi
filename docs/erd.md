@@ -64,6 +64,17 @@
 | daily_protein_target | INT | DEFAULT 60 | 일일 단백질 목표 (g) |
 | daily_fat_target | INT | DEFAULT 50 | 일일 지방 목표 (g) |
 
+### 사용자 기기 (user_devices)
+
+FCM 푸시 알림 발송을 위한 기기 토큰을 관리합니다. 한 사용자가 여러 기기를 사용할 수 있습니다.
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| user_id | BIGINT | FK (users.id), NOT NULL | 소유자 ID |
+| fcm_token | TEXT | NOT NULL | FCM 기기 토큰 |
+| device_type | VARCHAR(10) | NOT NULL | IOS, ANDROID, WEB |
+| last_used_at | TIMESTAMPTZ | NOT NULL | 마지막 사용 일시 |
+
 ### 친구 관계 (friendships)
 
 | 컬럼 | 타입 | 제약 조건 | 설명 |
@@ -80,6 +91,8 @@
 | blocked_id | BIGINT | FK (users.id), NOT NULL | 차단당한 사용자 |
 
 ### 방명록 (guestbooks)
+
+삭제 권한: 작성자(`writer_id`) 또는 방명록 주인(`target_user_id`) 모두 삭제 가능.
 
 | 컬럼 | 타입 | 제약 조건 | 설명 |
 |------|------|----------|------|

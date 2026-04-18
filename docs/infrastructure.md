@@ -13,6 +13,7 @@
 | 라우팅 | GoRouter | 선언적 라우팅, 딥링크 지원 |
 | HTTP | Dio | 인터셉터, 토큰 갱신 자동화 |
 | 반응형 | LayoutBuilder | 모바일/데스크톱 레이아웃 분기, 공통 로직 공유 |
+| 테마 | ThemeMode + SharedPreferences | 다크/라이트 모드 전환, 설정 로컬 저장 |
 
 ### Backend
 

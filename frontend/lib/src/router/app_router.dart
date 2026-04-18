@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/material.dart'; // 추가
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/constants/app_constants.dart';
 import '../core/providers/common_providers.dart';
-import '../core/theme/app_theme.dart'; // 추가
+import '../core/theme/app_theme.dart';
 import '../core/widgets/main_shell.dart';
 import '../features/auth/presentation/pages/auth_page.dart';
 import '../features/home/presentation/pages/home_page.dart';
@@ -22,13 +22,24 @@ import '../features/social/presentation/pages/social_page.dart';
 import '../features/social/presentation/pages/other_profile_page.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
 
+// authProvider 상태 변화를 GoRouter에 전달하는 ChangeNotifier.
+// GoRouter 인스턴스는 재생성하지 않고 redirect만 재실행하게 한다.
+class _RouterNotifier extends ChangeNotifier {
+  _RouterNotifier(Ref ref) {
+    ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
+  }
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
   final secureStorage = ref.watch(secureStorageProvider);
   final prefs = ref.watch(sharedPreferencesProvider);
 
+  final notifier = _RouterNotifier(ref);
+  ref.onDispose(notifier.dispose);
+
   return GoRouter(
     initialLocation: '/home',
+    refreshListenable: notifier,
     errorBuilder: (context, state) => Scaffold(
       body: Center(
         child: Column(
@@ -50,22 +61,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ),
     redirect: (context, state) async {
+      final authState = ref.read(authProvider);
       final String? token;
       if (kIsWeb) {
         token = prefs.getString(AppConstants.accessTokenKey);
       } else {
         token = await secureStorage.read(key: AppConstants.accessTokenKey);
       }
-      
+
       final isLoggedIn = token != null || authState.user != null;
       final isAuthPath = state.matchedLocation == '/auth';
 
-      if (!isLoggedIn && !isAuthPath) {
-        return '/auth';
-      }
-      if (isLoggedIn && isAuthPath) {
-        return '/home';
-      }
+      if (!isLoggedIn && !isAuthPath) return '/auth';
+      if (isLoggedIn && isAuthPath) return '/home';
       return null;
     },
     routes: [

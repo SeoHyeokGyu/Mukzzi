@@ -84,13 +84,14 @@
 
 | Method | Endpoint | 인증 | 설명 |
 |--------|----------|------|------|
-| GET | /users/me | O | 내 프로필 정보 조회 |
+| GET | /users/me | O | 내 프로필 정보 조회 (누적 기록 수, 연속 기록일 포함) |
 | PATCH | /users/me | O | 내 프로필 정보 수정 (닉네임, 이미지 등) |
 | PATCH | /users/me/body | O | 신체 정보 수정 (키, 몸무게, 활동량) |
 | PATCH | /users/me/nutrition-goal | O | 영양 목표 재설정 (목표 변경 + 권장 섭취량 재계산) |
-| PATCH | /users/me/settings | O | 설정 변경 (알림 on/off, 프라이버시 레벨) |
+| PATCH | /users/me/settings | O | 설정 변경 (알림 on/off, 프라이버시 레벨, 식사 알림 시간) |
+| PATCH | /users/me/device | O | FCM 기기 토큰 등록/갱신 (푸시 알림 수신용) |
 | DELETE | /users/me | O | 회원 탈퇴 |
-| GET | /users/{id}/profile | O | 타인 프로필 정보 조회 |
+| GET | /users/{id}/profile | O | 타인 프로필 정보 조회 (누적 기록 수, 연속 기록일 포함) |
 | GET | /users/search | O | 사용자 검색 (query: 닉네임 또는 고유 ID) |
 | GET | /users/recommendations | O | 추천 사용자 목록 (비슷한 식습관/먹찌/인기) |
 
@@ -107,6 +108,8 @@
 | Method | Endpoint | 인증 | 설명 |
 |--------|----------|------|------|
 | GET | /menus/search | O | 메뉴 검색 (query: 메뉴명, category 필터) |
+| POST | /menus | O | 사용자 정의 메뉴 등록 (DB에 없는 메뉴, source=USER) |
+| GET | /menus/{id} | O | 단일 메뉴 상세 조회 |
 | POST | /menus/roulette | O | 룰렛 실행 및 결과 반환 (추천 메뉴 선정) |
 | GET | /menus/recommendations | O | 선호도 기반 추천 목록 |
 | GET | /menus/filter | O | 상황별 필터 추천 (weather, mood 파라미터) |
@@ -114,6 +117,7 @@
 | POST | /menus/{id}/favorite | O | 즐겨찾기 추가 |
 | DELETE | /menus/{id}/favorite | O | 즐겨찾기 제거 |
 | POST | /menus/{id}/preference | O | 좋아요/싫어요 설정 |
+| DELETE | /menus/{id}/preference | O | 선호도 제거 |
 
 ### 6. 식사 기록 및 영양 (Meal & Nutrition)
 
@@ -237,6 +241,7 @@
 | GET | /friends | O | 내 친구 목록 조회 |
 | DELETE | /friends/{userId} | O | 친구 삭제 |
 | GET | /friends/requests | O | 받은 친구 요청 목록 |
+| GET | /friends/requests/sent | O | 보낸 친구 요청 목록 |
 | POST | /friends/requests/{userId} | O | 친구 요청 전송 |
 | PATCH | /friends/requests/{userId}/accept | O | 친구 요청 수락 |
 | PATCH | /friends/requests/{userId}/reject | O | 친구 요청 거절 |
@@ -248,6 +253,7 @@
 | POST | /users/{id}/nudge | O | 응원하기 (1일 1회 제한) |
 | GET | /users/{id}/guestbook | O | 방명록 조회 |
 | POST | /users/{id}/guestbook | O | 방명록 작성 |
+| DELETE | /users/{id}/guestbook/{guestbookId} | O | 방명록 삭제 (작성자 또는 방명록 주인만 가능) |
 | POST | /users/{id}/block | O | 사용자 차단 |
 | DELETE | /users/{id}/block | O | 차단 해제 |
 | POST | /users/{id}/report | O | 사용자 신고 |
