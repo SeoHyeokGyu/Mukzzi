@@ -33,13 +33,24 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  bool _isLoading = true;
-
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 1400), () {
-      if (mounted) setState(() => _isLoading = false);
+    // 진입 시 환영 메시지 노출 (필요 시)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final user = ref.read(userProvider).user;
+        if (user != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('반가워요! 로그인이 완료되었습니다.'),
+              backgroundColor: AppColors.orange,
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
     });
   }
 
@@ -76,7 +87,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       }
     });
 
-    // 2. 유저 세션 체크 리스너 추가
+    // 2. 유저 세션 체크 리스너
     ref.listen(userProvider, (previous, next) {
       if (previous?.isLoading == true && !next.isLoading && next.user == null) {
         debugPrint('[HomePage] 유저 정보 로드 실패 또는 누락 - 자동 로그아웃 실행');
@@ -92,6 +103,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     });
 
     final notificationState = ref.watch(notificationProvider);
+    final userState = ref.watch(userProvider);
     final unreadCount = notificationState.unreadCount;
 
     return GradientScaffold(
@@ -139,7 +151,9 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         ],
       ),
-      body: _isLoading ? _buildShimmer() : _buildContent(),
+      body: userState.isLoading && userState.user == null 
+          ? _buildShimmer() 
+          : _buildContent(),
     );
   }
 

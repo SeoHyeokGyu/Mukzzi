@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart'; // 추가
+import 'package:go_router/go_router.dart';
 import 'package:mukzzi/src/core/theme/app_theme.dart';
 import 'package:mukzzi/src/core/widgets/gradient_scaffold.dart';
 import 'package:mukzzi/src/core/widgets/bento_card.dart';
@@ -41,7 +41,7 @@ class _SocialPageState extends ConsumerState<SocialPage>
           tabs: const [
             Tab(text: '친구'),
             Tab(text: '요청'),
-            Tab(text: '검색'),
+            Tab(text: '둘러보기'),
           ],
         ),
       ),
@@ -57,86 +57,134 @@ class _SocialPageState extends ConsumerState<SocialPage>
   }
 }
 
-class _FriendListTab extends ConsumerWidget {
+class _FriendListTab extends ConsumerStatefulWidget {
   const _FriendListTab();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_FriendListTab> createState() => _FriendListTabState();
+}
+
+class _FriendListTabState extends ConsumerState<_FriendListTab> {
+  String _searchQuery = '';
+
+  @override
+  Widget build(BuildContext context) {
     final friendsAsync = ref.watch(friendsListProvider);
 
     return friendsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, _) => CollectionErrorState(onRetry: () => ref.invalidate(friendsListProvider)),
       data: (friends) {
-        if (friends.isEmpty) {
-          return const CollectionEmptyState(
-            icon: Icons.people_outline,
-            title: '아직 친구가 없어요',
-            subtitle: '검색 탭에서 친구를 찾아보세요',
-          );
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.all(12),
-          itemCount: friends.length,
-          itemBuilder: (context, index) {
-            final friend = friends[index];
-            final hasImage = friend.profileImageUrl != null && friend.profileImageUrl!.isNotEmpty;
+        // 검색어 필터링 적용 (닉네임 또는 유저네임 포함 여부 확인)
+        final filteredFriends = friends.where((f) {
+          final query = _searchQuery.toLowerCase();
+          final nickname = (f.nickname ?? '').toLowerCase();
+          final username = f.username.toLowerCase();
+          return nickname.contains(query) || username.contains(query);
+        }).toList();
 
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: BentoCard(
-                child: ListTile(
-                  onTap: () => context.push('/social/profile/${friend.id}'), // 프로필 이동 추가
-                  leading: CircleAvatar(
-                    backgroundImage: hasImage ? NetworkImage(friend.profileImageUrl!) : null,
-                    child: !hasImage ? const Icon(Icons.person) : null,
-                  ),
-                  title: Text(friend.nickname ?? friend.username),
-                  subtitle: const Text('Lv.1 · 기분좋음'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        tooltip: '응원하기',
-                        icon: const Icon(Icons.favorite_outline, size: 20),
-                        color: AppColors.orange,
-                        onPressed: () async {
-                          try {
-                            await ref.read(socialRepositoryProvider).nudgeFriend(friend.id);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('응원을 보냈어요!')),
-                              );
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('응원 보내기에 실패했습니다.')),
-                              );
-                            }
-                          }
-                        },
-                      ),
-                      PopupMenuButton<String>(
-                        onSelected: (value) async {
-                          if (value == 'profile') {
-                            context.push('/social/profile/${friend.id}');
-                          } else if (value == 'delete') {
-                            await ref.read(socialRepositoryProvider).deleteFriend(friend.id);
-                            ref.invalidate(friendsListProvider);
-                          }
-                        },
-                        itemBuilder: (context) => const [
-                          PopupMenuItem(value: 'profile', child: Text('프로필 보기')),
-                          PopupMenuItem(value: 'delete', child: Text('친구 삭제')),
-                        ],
-                      ),
-                    ],
+        return Column(
+          children: [
+            // 친구 내 검색 바
+            if (friends.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                child: TextField(
+                  onChanged: (value) => setState(() => _searchQuery = value),
+                  decoration: InputDecoration(
+                    hintText: '내 친구 검색',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
               ),
-            );
-          },
+
+            Expanded(
+              child: friends.isEmpty
+                  ? const CollectionEmptyState(
+                      icon: Icons.people_outline,
+                      title: '아직 친구가 없어요',
+                      subtitle: '검색 탭에서 친구를 찾아보세요',
+                    )
+                  : filteredFriends.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: Text('검색 결과와 일치하는 친구가 없습니다.', 
+                                style: TextStyle(color: AppColors.textTertiary)),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(12),
+                          itemCount: filteredFriends.length,
+                          itemBuilder: (context, index) {
+                            final friend = filteredFriends[index];
+                            final hasImage = friend.profileImageUrl != null && friend.profileImageUrl!.isNotEmpty;
+
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: BentoCard(
+                                child: ListTile(
+                                  onTap: () => context.push('/social/profile/${friend.id}'),
+                                  leading: CircleAvatar(
+                                    backgroundImage: hasImage ? NetworkImage(friend.profileImageUrl!) : null,
+                                    child: !hasImage ? const Icon(Icons.person) : null,
+                                  ),
+                                  title: Text(friend.nickname ?? friend.username),
+                                  subtitle: const Text('Lv.1 · 기분좋음'),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        tooltip: '응원하기',
+                                        icon: const Icon(Icons.favorite_outline, size: 20),
+                                        color: AppColors.orange,
+                                        onPressed: () async {
+                                          try {
+                                            await ref.read(socialRepositoryProvider).nudgeFriend(friend.id);
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('응원을 보냈어요!')),
+                                              );
+                                            }
+                                          } catch (e) {
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('응원 보내기에 실패했습니다.')),
+                                              );
+                                            }
+                                          }
+                                        },
+                                      ),
+                                      PopupMenuButton<String>(
+                                        onSelected: (value) async {
+                                          if (value == 'profile') {
+                                            context.push('/social/profile/${friend.id}');
+                                          } else if (value == 'delete') {
+                                            await ref.read(socialRepositoryProvider).deleteFriend(friend.id);
+                                            ref.invalidate(friendsListProvider);
+                                          }
+                                        },
+                                        itemBuilder: (context) => const [
+                                          PopupMenuItem(value: 'profile', child: Text('프로필 보기')),
+                                          PopupMenuItem(value: 'delete', child: Text('친구 삭제')),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+            ),
+          ],
         );
       },
     );
@@ -172,7 +220,7 @@ class _FriendRequestTab extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 6),
               child: BentoCard(
                 child: ListTile(
-                  onTap: () => context.push('/social/profile/${req.id}'), // 프로필 이동 추가
+                  onTap: () => context.push('/social/profile/${req.id}'),
                   leading: CircleAvatar(
                     backgroundImage: hasImage ? NetworkImage(req.profileImageUrl!) : null,
                     child: !hasImage ? const Icon(Icons.person) : null,
@@ -298,7 +346,7 @@ class _UserItemCard extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: BentoCard(
         child: InkWell(
-          onTap: () => context.push('/social/profile/${user.id}'), // 프로필 이동 추가
+          onTap: () => context.push('/social/profile/${user.id}'),
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(12),

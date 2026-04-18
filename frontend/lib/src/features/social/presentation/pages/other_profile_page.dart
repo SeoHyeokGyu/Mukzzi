@@ -68,9 +68,29 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
                         child: !hasImage ? const Icon(Icons.person, size: 50) : null,
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        user.nickname ?? user.username,
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            user.nickname ?? user.username,
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          if (isFriend) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
+                              ),
+                              child: const Text(
+                                '친구',
+                                style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(
