@@ -85,6 +85,17 @@ func (h *SocialHandler) GetPendingRequests(c *gin.Context) {
 	Success(c, requests)
 }
 
+// GetSentRequests 내가 보낸 친구 요청 목록
+func (h *SocialHandler) GetSentRequests(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	requests, err := h.socialUsecase.GetSentRequests(userID.(int64))
+	if err != nil {
+		InternalError(c, "보낸 요청 목록 조회에 실패했습니다.", err.Error())
+		return
+	}
+	Success(c, requests)
+}
+
 // SendFriendRequest 친구 요청 전송
 // @Summary      친구 요청 전송
 // @Description  특정 사용자에게 친구 요청을 보냅니다.

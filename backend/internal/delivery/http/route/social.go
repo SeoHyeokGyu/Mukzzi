@@ -14,6 +14,7 @@ func SocialRoute(rg *gin.RouterGroup, socialHandler *handler.SocialHandler) {
 		friends.GET("", socialHandler.GetFriends)
 		friends.DELETE("/:userId", socialHandler.DeleteFriend)
 		friends.GET("/requests", socialHandler.GetPendingRequests)
+		friends.GET("/requests/sent", socialHandler.GetSentRequests)
 		friends.POST("/requests/:userId", socialHandler.SendFriendRequest)
 		friends.PATCH("/requests/:userId/accept", socialHandler.AcceptFriendRequest)
 		friends.PATCH("/requests/:userId/reject", socialHandler.RejectFriendRequest)

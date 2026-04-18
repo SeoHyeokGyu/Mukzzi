@@ -12,6 +12,7 @@ type SocialRepository interface {
 	GetFriendship(userID1, userID2 int64) (*domain.Friendship, error)
 	GetFriends(userID int64) ([]domain.Friendship, error)
 	GetPendingRequests(userID int64) ([]domain.Friendship, error)
+	GetSentRequests(userID int64) ([]domain.Friendship, error)
 	UpdateFriendshipStatus(requesterID, receiverID int64, status domain.FriendshipStatus) error
 	DeleteFriendship(userID1, userID2 int64) error
 
@@ -66,6 +67,14 @@ func (r *socialRepository) GetPendingRequests(userID int64) ([]domain.Friendship
 	var requests []domain.Friendship
 	err := r.db.Preload("Requester").
 		Where("receiver_id = ? AND status = ?", userID, domain.FriendshipPending).
+		Find(&requests).Error
+	return requests, err
+}
+
+func (r *socialRepository) GetSentRequests(userID int64) ([]domain.Friendship, error) {
+	var requests []domain.Friendship
+	err := r.db.Preload("Receiver").
+		Where("requester_id = ? AND status = ?", userID, domain.FriendshipPending).
 		Find(&requests).Error
 	return requests, err
 }

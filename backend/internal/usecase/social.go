@@ -11,7 +11,8 @@ type SocialUsecase interface {
 	// Friends
 	GetFriends(userID int64) ([]domain.User, error)
 	DeleteFriend(userID, friendID int64) error
-	GetPendingRequests(userID int64) ([]domain.User, error)
+	GetPendingRequests(userID int64) ([]domain.User, error) // 받은 요청
+	GetSentRequests(userID int64) ([]domain.User, error)    // 보낸 요청 추가
 	SendFriendRequest(requesterID, receiverID int64) error
 	AcceptFriendRequest(receiverID, requesterID int64) error
 	RejectFriendRequest(receiverID, requesterID int64) error
@@ -77,18 +78,43 @@ func (u *socialUsecase) GetPendingRequests(userID int64) ([]domain.User, error) 
 	return users, nil
 }
 
+func (u *socialUsecase) GetSentRequests(userID int64) ([]domain.User, error) {
+	friendships, err := u.socialRepo.GetSentRequests(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var users []domain.User
+	for _, f := range friendships {
+		users = append(users, *f.Receiver)
+	}
+	return users, nil
+}
+
 func (u *socialUsecase) SendFriendRequest(requesterID, receiverID int64) error {
 	if requesterID == receiverID {
 		return errors.New("자신에게 친구 요청을 보낼 수 없습니다.")
 	}
 
-	// 기존 관계 확인
-	existing, err := u.socialRepo.GetFriendship(requesterID, receiverID)
-	if err == nil && existing != nil {
-		return errors.New("이미 친구이거나 대기 중인 요청이 있습니다.")
+	// 1. 내가 보낸 요청이 이미 있는지 확인 (정방향)
+	existingForward, err := u.socialRepo.GetFriendship(requesterID, receiverID)
+	if err == nil && existingForward != nil {
+		if existingForward.Status == domain.FriendshipAccepted {
+			return errors.New("이미 친구 관계입니다.")
+		}
+		return errors.New("이미 친구 요청을 보냈습니다.")
 	}
 
-	// 차단 여부 확인
+	// 2. 상대방이 나에게 보낸 요청이 있는지 확인 (역방향)
+	existingReverse, err := u.socialRepo.GetFriendship(receiverID, requesterID)
+	if err == nil && existingReverse != nil {
+		if existingReverse.Status == domain.FriendshipAccepted {
+			return errors.New("이미 친구 관계입니다.")
+		}
+		return errors.New("상대방으로부터 이미 친구 요청이 와 있습니다. 요청 탭에서 확인해 주세요.")
+	}
+
+	// 3. 차단 여부 확인
 	block, err := u.socialRepo.GetBlock(receiverID, requesterID)
 	if err == nil && block != nil {
 		return errors.New("상대방에 의해 차단된 상태입니다.")
