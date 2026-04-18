@@ -17,6 +17,7 @@ func NewRouter(
 	collectionHandler *handler.CollectionHandler,
 	menuHandler *handler.MenuHandler,
 	socialHandler *handler.SocialHandler,
+	notificationHandler *handler.NotificationHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -53,6 +54,7 @@ func NewRouter(
 		CollectionRoute(api, collectionHandler)
 		MenuRoute(api, menuHandler)
 		SocialRoute(api, socialHandler)
+		NotificationRoute(api, notificationHandler)
 	}
 
 	return r

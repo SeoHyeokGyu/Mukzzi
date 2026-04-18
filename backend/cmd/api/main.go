@@ -47,6 +47,7 @@ func main() {
 	masteryRepo := repository.NewMasteryRepository(db)
 	titleRepo := repository.NewTitleRepository(db)
 	rewardRepo := repository.NewRewardRepository(db)
+	notificationRepo := repository.NewNotificationRepository(db)
 
 	// Auth 도메인
 	authUsecase := usecase.NewAuthUsecase(userRepo)
@@ -73,6 +74,10 @@ func main() {
 	socialUsecase := usecase.NewSocialUsecase(socialRepo, userRepo)
 	socialHandler := handler.NewSocialHandler(socialUsecase)
 
+	// Notification 도메인
+	notificationUsecase := usecase.NewNotificationUsecase(notificationRepo)
+	notificationHandler := handler.NewNotificationHandler(notificationUsecase)
+
 	_ = badgeGranter // Meal 유즈케이스 구현 시 주입
 
 	// 라우터 초기화 (모든 미들웨어 및 라우트 등록)
@@ -82,6 +87,7 @@ func main() {
 		collectionHandler,
 		menuHandler,
 		socialHandler,
+		notificationHandler,
 	)
 
 	// 서버 실행
