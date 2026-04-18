@@ -45,7 +45,7 @@ func (r *badgeRepositoryImpl) FindAllBadges(limit int, offset int) ([]domain.Bad
 	if err := r.db.
 		Limit(limit).
 		Offset(offset).
-		Order("created_at ASC").
+		Order("id ASC").
 		Find(&badges).Error; err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (r *badgeRepositoryImpl) FindUserAcquiredBadges(userID int64) ([]domain.Use
 	if err := r.db.
 		Where("user_id = ?", userID).
 		Preload("Badge").
-		Order("acquired_at DESC").
+		Order("id DESC").
 		Find(&userBadges).Error; err != nil {
 		return nil, err
 	}

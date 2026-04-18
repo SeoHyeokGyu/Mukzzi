@@ -120,7 +120,7 @@ func (r *socialRepository) GetGuestbooks(targetUserID int64, limit, offset int) 
 	var entries []domain.Guestbook
 	err := r.db.Preload("Writer").
 		Where("target_user_id = ?", targetUserID).
-		Order("created_at DESC").
+		Order("id DESC").
 		Limit(limit).Offset(offset).
 		Find(&entries).Error
 	return entries, err

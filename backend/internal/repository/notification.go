@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
@@ -28,10 +29,12 @@ func (r *notificationRepository) Create(notification *domain.Notification) error
 
 func (r *notificationRepository) GetByUserID(userID int64, limit int, cursor string) ([]domain.Notification, string, error) {
 	var notifications []domain.Notification
-	query := r.db.Where("user_id = ?", userID).Order("created_at DESC").Limit(limit)
+	query := r.db.Where("user_id = ?", userID).Order("id DESC").Limit(limit)
 
 	if cursor != "" {
-		query = query.Where("created_at < ?", cursor)
+		if id, err := strconv.ParseInt(cursor, 10, 64); err == nil {
+			query = query.Where("id < ?", id)
+		}
 	}
 
 	err := query.Preload("Sender").Find(&notifications).Error
@@ -41,7 +44,7 @@ func (r *notificationRepository) GetByUserID(userID int64, limit int, cursor str
 
 	nextCursor := ""
 	if len(notifications) == limit {
-		nextCursor = notifications[len(notifications)-1].CreatedAt.Format(time.RFC3339Nano)
+		nextCursor = notifications[len(notifications)-1].IDString()
 	}
 
 	return notifications, nextCursor, nil

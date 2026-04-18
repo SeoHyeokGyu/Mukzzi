@@ -41,7 +41,7 @@ func (r *dailyIntakeRepositoryImpl) FindRecentByUserID(userID int64, limit int) 
 	var intakes []domain.DailyIntake
 	if err := r.db.
 		Where("user_id = ?", userID).
-		Order("date DESC").
+		Order("id DESC").
 		Limit(limit).
 		Find(&intakes).Error; err != nil {
 		return nil, err

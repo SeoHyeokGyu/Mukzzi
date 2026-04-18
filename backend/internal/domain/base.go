@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/sony/sonyflake"
@@ -42,6 +43,11 @@ type BaseDomain struct {
 
 	// 3. 소프트 삭제 및 인덱스
 	DeletedAt gorm.DeletedAt `gorm:"index"`
+}
+
+// IDString returns the string representation of the ID.
+func (b *BaseDomain) IDString() string {
+	return strconv.FormatInt(b.ID, 10)
 }
 
 // BeforeCreate 는 엔티티 생성 전 ID가 없을 경우 sonyflake ID를 자동 할당합니다.

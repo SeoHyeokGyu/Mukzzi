@@ -76,7 +76,7 @@ func (r *userRepository) CreateBody(body *domain.UserBody) error {
 // GetLatestBody 는 사용자의 가장 최신 신체 정보를 조회합니다.
 func (r *userRepository) GetLatestBody(userID int64) (*domain.UserBody, error) {
 	var body domain.UserBody
-	err := r.db.Where("user_id = ?", userID).Order("created_at DESC").First(&body).Error
+	err := r.db.Where("user_id = ?", userID).Order("id DESC").First(&body).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -129,6 +129,6 @@ func (r *userRepository) Search(query string) ([]domain.User, error) {
 
 func (r *userRepository) GetRecommendations(userID int64, limit int) ([]domain.User, error) {
 	var users []domain.User
-	err := r.db.Where("id != ?", userID).Order("created_at DESC").Limit(limit).Find(&users).Error
+	err := r.db.Where("id != ?", userID).Order("id DESC").Limit(limit).Find(&users).Error
 	return users, err
 }
