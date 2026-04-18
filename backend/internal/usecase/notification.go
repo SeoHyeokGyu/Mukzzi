@@ -15,12 +15,13 @@ type NotificationUsecase interface {
 	ReadNotification(id int64, userID int64) error
 	ReadAllNotifications(userID int64) error
 	CreateNotification(notification *domain.Notification) error
-	Close() // 워커 종료를 위해 추가
+	Close()
 }
 
 type notificationUsecase struct {
 	notificationRepo repository.NotificationRepository
 	readChan         chan readTask
+	createChan       chan *domain.Notification // 알림 생성용 채널 추가
 	wg               sync.WaitGroup
 	ctx              context.Context
 	cancel           context.CancelFunc
@@ -40,17 +41,20 @@ func NewNotificationUsecase(notificationRepo repository.NotificationRepository) 
 	ctx, cancel := context.WithCancel(context.Background())
 	u := &notificationUsecase{
 		notificationRepo: notificationRepo,
-		readChan:         make(chan readTask, 1000), // 버퍼링된 채널
+		readChan:         make(chan readTask, 1000),
+		createChan:       make(chan *domain.Notification, 500), // 생성 버퍼
 		ctx:              ctx,
 		cancel:           cancel,
 	}
 
-	u.wg.Add(1)
-	go u.readWorker() // 백그라운드 워커 시작
+	u.wg.Add(2)
+	go u.readWorker()
+	go u.createWorker() // 생성 전용 워커 시작
 
 	return u
 }
 
+// readWorker 는 이전과 동일하게 배치 업데이트 처리
 func (u *notificationUsecase) readWorker() {
 	defer u.wg.Done()
 	ticker := time.NewTicker(flushInterval)
@@ -84,9 +88,32 @@ func (u *notificationUsecase) readWorker() {
 		case <-ticker.C:
 			flush()
 		case <-u.ctx.Done():
-			// 채널에 남은 데이터를 소비하기 위해 루프를 더 돌릴 수도 있지만,
-			// 여기서는 일단 flush 후 종료. readChan이 닫히면 위 case ok=false에서 처리됨.
 			flush()
+			return
+		}
+	}
+}
+
+// createWorker 는 알림 생성 및 (추후) 푸시 발송 처리
+func (u *notificationUsecase) createWorker() {
+	defer u.wg.Done()
+
+	for {
+		select {
+		case n, ok := <-u.createChan:
+			if !ok {
+				return
+			}
+			// 1. DB 저장
+			if err := u.notificationRepo.Create(n); err != nil {
+				log.Printf("Failed to create notification asynchronously: %v", err)
+				continue
+			}
+
+			// 2. TODO: FCM 푸시 알림 발송 로직 연동
+			// log.Printf("Notification created and push sent for user %d", n.UserID)
+
+		case <-u.ctx.Done():
 			return
 		}
 	}
@@ -104,7 +131,6 @@ func (u *notificationUsecase) ReadNotification(id int64, userID int64) error {
 	case u.readChan <- readTask{id: id, userID: userID}:
 		return nil
 	default:
-		// 채널이 꽉 찼을 경우 직접 실행 (동기)
 		return u.notificationRepo.MarkAsRead(id, userID)
 	}
 }
@@ -114,11 +140,19 @@ func (u *notificationUsecase) ReadAllNotifications(userID int64) error {
 }
 
 func (u *notificationUsecase) CreateNotification(notification *domain.Notification) error {
-	return u.notificationRepo.Create(notification)
+	// 채널에 던져서 비동기로 처리
+	select {
+	case u.createChan <- notification:
+		return nil
+	default:
+		// 채널이 꽉 찼을 경우에만 동기 처리하여 유실 방지
+		return u.notificationRepo.Create(notification)
+	}
 }
 
 func (u *notificationUsecase) Close() {
 	u.cancel()
 	close(u.readChan)
+	close(u.createChan)
 	u.wg.Wait()
 }
