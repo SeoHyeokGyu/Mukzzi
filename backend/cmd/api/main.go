@@ -22,7 +22,7 @@ import (
 // @in              header
 // @name            Authorization
 func main() {
-	// 환경 변수 로드 (현재 디렉토리 또는 상위 디렉토리에서 .env 탐색)
+	// 환경 변수 로드
 	if err := godotenv.Load("../.env"); err != nil {
 		slog.Info(".env 파일을 찾을 수 없습니다. 환경 변수를 직접 사용합니다.")
 	}
@@ -45,6 +45,8 @@ func main() {
 	menuRepo := repository.NewMenuRepository(db)
 	socialRepo := repository.NewSocialRepository(db)
 	mealRepo := repository.NewMealRepository(db)
+	nutritionRepo := repository.NewNutritionRepository(db)
+	tagRepo := repository.NewMealFriendTagRepository(db)
 	dailyIntakeRepo := repository.NewDailyIntakeRepository(db)
 	charCollectionRepo := repository.NewCharacterCollectionRepository(db)
 	masteryRepo := repository.NewMasteryRepository(db)
@@ -81,9 +83,13 @@ func main() {
 	socialUsecase := usecase.NewSocialUsecase(socialRepo, userRepo, notificationUsecase)
 	socialHandler := handler.NewSocialHandler(socialUsecase)
 
-	_ = badgeGranter // Meal 유즈케이스 구현 시 주입
+	// Meal 도메인
+	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, db)
+	mealHandler := handler.NewMealHandler(mealUsecase)
 
-	// 라우터 초기화 (모든 미들웨어 및 라우트 등록)
+	_ = badgeGranter // 추후 Meal 유즈케이스에 주입 예정
+
+	// 라우터 초기화
 	r := route.NewRouter(
 		authHandler,
 		userHandler,
@@ -91,6 +97,7 @@ func main() {
 		menuHandler,
 		socialHandler,
 		notificationHandler,
+		mealHandler,
 	)
 
 	// 서버 실행
