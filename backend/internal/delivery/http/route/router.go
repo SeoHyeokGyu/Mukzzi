@@ -18,6 +18,7 @@ func NewRouter(
 	menuHandler *handler.MenuHandler,
 	socialHandler *handler.SocialHandler,
 	notificationHandler *handler.NotificationHandler,
+	mealHandler *handler.MealHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -55,6 +56,7 @@ func NewRouter(
 		MenuRoute(api, menuHandler)
 		SocialRoute(api, socialHandler)
 		NotificationRoute(api, notificationHandler)
+		MealRoute(api, mealHandler)
 	}
 
 	return r

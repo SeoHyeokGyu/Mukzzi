@@ -87,18 +87,21 @@ type Nutrition struct {
 
 func (Nutrition) TableName() string { return "nutritions" }
 
+// DailyIntake — badge_granter 호환을 위해 Date를 time.Time으로 유지
+// IsBalanced는 Cron(AppearanceRecalculate 05:10)에서 설정
 type DailyIntake struct {
 	BaseDomain
-	UserID        int64   `gorm:"column:user_id;not null;uniqueIndex:idx_daily_intakes_user_date"`
-	Date          string  `gorm:"column:date;not null;type:date;uniqueIndex:idx_daily_intakes_user_date"`
-	TotalCalories float64 `gorm:"column:total_calories;default:0"`
-	TotalCarbs    float64 `gorm:"column:total_carbs;default:0"`
-	TotalProtein  float64 `gorm:"column:total_protein;default:0"`
-	TotalFat      float64 `gorm:"column:total_fat;default:0"`
-	TotalSodium   float64 `gorm:"column:total_sodium;default:0"`
-	TotalFiber    float64 `gorm:"column:total_fiber;default:0"`
-	VitaminScore  float64 `gorm:"column:vitamin_score;default:0"`
-	MealCount     int     `gorm:"column:meal_count;default:0"`
+	UserID        int64     `gorm:"column:user_id;not null;uniqueIndex:idx_daily_intakes_user_date"`
+	Date          time.Time `gorm:"column:date;not null;type:date;uniqueIndex:idx_daily_intakes_user_date"`
+	TotalCalories float64   `gorm:"column:total_calories;default:0"`
+	TotalCarbs    float64   `gorm:"column:total_carbs;default:0"`
+	TotalProtein  float64   `gorm:"column:total_protein;default:0"`
+	TotalFat      float64   `gorm:"column:total_fat;default:0"`
+	TotalSodium   float64   `gorm:"column:total_sodium;default:0"`
+	TotalFiber    float64   `gorm:"column:total_fiber;default:0"`
+	VitaminScore  float64   `gorm:"column:vitamin_score;default:0"`
+	MealCount     int       `gorm:"column:meal_count;default:0"`
+	IsBalanced    bool      `gorm:"column:is_balanced;default:false"`
 }
 
 func (DailyIntake) TableName() string { return "daily_intakes" }
@@ -125,7 +128,7 @@ type MealListFilter struct {
 }
 
 // ─────────────────────────────────────────
-// side_effects
+// SideEffects
 // ─────────────────────────────────────────
 
 type QuestProgress struct {

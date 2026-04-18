@@ -289,17 +289,18 @@ func (u *mealUsecase) GetTodayNutrition(userID int64) (*domain.DailyIntake, erro
 		return nil, err
 	}
 	if di == nil {
-		return &domain.DailyIntake{UserID: userID, Date: today}, nil
+		parsedToday, _ := time.Parse(time.DateOnly, today)
+		return &domain.DailyIntake{UserID: userID, Date: parsedToday}, nil
 	}
 	return di, nil
 }
 
 func (u *mealUsecase) GetWeeklyNutrition(userID int64, startDate string) ([]domain.DailyIntake, error) {
-	start, err := time.Parse("2006-01-02", startDate)
+	start, err := time.Parse(time.DateOnly, startDate)
 	if err != nil {
 		return nil, fmt.Errorf("startDate 형식이 올바르지 않습니다: %w", err)
 	}
-	endDate := start.AddDate(0, 0, 6).Format("2006-01-02")
+	endDate := start.AddDate(0, 0, 6).Format(time.DateOnly)
 	return u.nutritionRepo.FindWeeklyIntakes(userID, startDate, endDate)
 }
 

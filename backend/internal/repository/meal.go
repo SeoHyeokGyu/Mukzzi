@@ -10,10 +10,15 @@ import (
 )
 
 // ─────────────────────────────────────────
-// MealRepository
+// MealRepository 인터페이스 (badge + meal_record 통합)
 // ─────────────────────────────────────────
 
 type MealRepository interface {
+	// badge_granter에서 사용
+	CountByUserID(userID int64) (int64, error)
+	CountDistinctMenuByUserID(userID int64) (int64, error)
+
+	// meal_record에서 사용
 	Create(meal *domain.MealRecord) error
 	FindByID(id int64) (*domain.MealRecord, error)
 	FindByUserID(userID int64, filter domain.MealListFilter) ([]domain.MealRecord, int64, error)
@@ -28,6 +33,31 @@ type mealRepository struct {
 func NewMealRepository(db *gorm.DB) MealRepository {
 	return &mealRepository{db: db}
 }
+
+// ── badge_granter 용 ──
+
+func (r *mealRepository) CountByUserID(userID int64) (int64, error) {
+	var count int64
+	if err := r.db.Model(&domain.MealRecord{}).
+		Where("user_id = ? AND deleted_at IS NULL", userID).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (r *mealRepository) CountDistinctMenuByUserID(userID int64) (int64, error) {
+	var count int64
+	if err := r.db.Model(&domain.MealRecord{}).
+		Where("user_id = ? AND deleted_at IS NULL", userID).
+		Distinct("menu_name").
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// ── meal_record 용 ──
 
 func (r *mealRepository) Create(meal *domain.MealRecord) error {
 	return r.db.Create(meal).Error
@@ -121,8 +151,12 @@ func NewNutritionRepository(db *gorm.DB) NutritionRepository {
 }
 
 func (r *nutritionRepository) FindDailyIntake(userID int64, date string) (*domain.DailyIntake, error) {
+	parsedDate, err := time.Parse(time.DateOnly, date)
+	if err != nil {
+		return nil, err
+	}
 	var di domain.DailyIntake
-	err := r.db.Where("user_id = ? AND date = ?", userID, date).First(&di).Error
+	err = r.db.Where("user_id = ? AND date = ?", userID, parsedDate).First(&di).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -130,9 +164,17 @@ func (r *nutritionRepository) FindDailyIntake(userID int64, date string) (*domai
 }
 
 func (r *nutritionRepository) FindWeeklyIntakes(userID int64, startDate string, endDate string) ([]domain.DailyIntake, error) {
+	start, err := time.Parse(time.DateOnly, startDate)
+	if err != nil {
+		return nil, err
+	}
+	end, err := time.Parse(time.DateOnly, endDate)
+	if err != nil {
+		return nil, err
+	}
 	var intakes []domain.DailyIntake
-	err := r.db.
-		Where("user_id = ? AND date >= ? AND date <= ?", userID, startDate, endDate).
+	err = r.db.
+		Where("user_id = ? AND date >= ? AND date <= ?", userID, start, end).
 		Order("date ASC").
 		Find(&intakes).Error
 	return intakes, err
@@ -174,21 +216,25 @@ func (r *mealFriendTagRepository) AcceptTag(mealID int64, taggedUserID int64) er
 }
 
 // ─────────────────────────────────────────
-// upsertDailyIntake (트랜잭션 내부 전용)
+// UpsertDailyIntakeInTx (트랜잭션 내부 헬퍼)
 // ─────────────────────────────────────────
 
-// UpsertDailyIntakeInTx - usecase 트랜잭션 내에서 직접 호출하는 헬퍼
 func UpsertDailyIntakeInTx(tx *gorm.DB, userID int64, dateKey string, n *domain.Nutrition) error {
+	parsedDate, err := time.Parse(time.DateOnly, dateKey)
+	if err != nil {
+		return err
+	}
+
 	var existing domain.DailyIntake
-	err := tx.
+	err = tx.
 		Set("gorm:query_option", "FOR UPDATE").
-		Where("user_id = ? AND date = ?", userID, dateKey).
+		Where("user_id = ? AND date = ?", userID, parsedDate).
 		First(&existing).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		newIntake := domain.DailyIntake{
 			UserID:        userID,
-			Date:          dateKey,
+			Date:          parsedDate,
 			TotalCalories: n.Calories,
 			TotalCarbs:    n.Carbs,
 			TotalProtein:  n.Protein,
@@ -216,7 +262,7 @@ func UpsertDailyIntakeInTx(tx *gorm.DB, userID int64, dateKey string, n *domain.
 }
 
 // ─────────────────────────────────────────
-// 날짜 경계 헬퍼 (05:00 KST 기준)
+// MealDateKey (05:00 KST 기준 날짜 헬퍼)
 // ─────────────────────────────────────────
 
 func MealDateKey(t time.Time) string {
@@ -225,5 +271,5 @@ func MealDateKey(t time.Time) string {
 	if local.Hour() < 5 {
 		local = local.AddDate(0, 0, -1)
 	}
-	return local.Format("2006-01-02")
+	return local.Format(time.DateOnly)
 }
