@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart'; // 추가
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/constants/app_constants.dart';
 import '../core/providers/common_providers.dart';
+import '../core/theme/app_theme.dart'; // 추가
 import '../core/widgets/main_shell.dart';
 import '../features/auth/presentation/pages/auth_page.dart';
 import '../features/home/presentation/pages/home_page.dart';
@@ -17,6 +19,7 @@ import '../features/profile/presentation/pages/profile_page.dart';
 import '../features/profile/presentation/pages/edit_profile_page.dart';
 import '../features/meal_record/presentation/pages/meal_record_page.dart';
 import '../features/social/presentation/pages/social_page.dart';
+import '../features/social/presentation/pages/other_profile_page.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -26,6 +29,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: '/home',
+    errorBuilder: (context, state) => Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 80, color: AppColors.orange),
+            const SizedBox(height: 24),
+            Text(
+              '페이지를 찾을 수 없습니다',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 32),
+            FilledButton(
+              onPressed: () => context.go('/home'),
+              child: const Text('홈으로 돌아가기'),
+            ),
+          ],
+        ),
+      ),
+    ),
     redirect: (context, state) async {
       final String? token;
       if (kIsWeb) {
@@ -55,6 +78,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state, navigationShell) =>
             MainShell(navigationShell: navigationShell),
         branches: [
+          // 1. 홈 탭
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/home',
@@ -66,36 +90,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   name: 'notifications',
                   builder: (context, state) => const NotificationListPage(),
                 ),
-                GoRoute(
-                  path: 'profile',
-                  name: 'profile',
-                  builder: (context, state) => const ProfilePage(),
-                  routes: [
-                    GoRoute(
-                      path: 'badges',
-                      name: 'profile-badges',
-                      builder: (context, state) => const BadgeListPage(),
-                    ),
-                    GoRoute(
-                      path: 'edit',
-                      name: 'profile-edit',
-                      builder: (context, state) => const EditProfilePage(),
-                    ),
-                    GoRoute(
-                      path: 'titles',
-                      name: 'profile-titles',
-                      builder: (context, state) => const TitleListPage(),
-                    ),
-                    GoRoute(
-                      path: 'rewards',
-                      name: 'profile-rewards',
-                      builder: (context, state) => const RewardListPage(),
-                    ),
-                  ],
-                ),
               ],
             ),
           ]),
+          // 2. 식사 기록 탭
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/meal-record',
@@ -103,6 +101,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               builder: (context, state) => const MealRecordPage(),
             ),
           ]),
+          // 3. 먹찌(캐릭터) 탭
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/character',
@@ -122,11 +121,51 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ],
             ),
           ]),
+          // 4. 소셜 탭
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/social',
               name: 'social',
               builder: (context, state) => const SocialPage(),
+              routes: [
+                GoRoute(
+                  path: 'profile/:userId',
+                  name: 'other-profile',
+                  builder: (context, state) => OtherProfilePage(
+                    userId: state.pathParameters['userId']!,
+                  ),
+                ),
+              ],
+            ),
+          ]),
+          // 5. 프로필 탭
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/profile',
+              name: 'profile',
+              builder: (context, state) => const ProfilePage(),
+              routes: [
+                GoRoute(
+                  path: 'badges',
+                  name: 'profile-badges',
+                  builder: (context, state) => const BadgeListPage(),
+                ),
+                GoRoute(
+                  path: 'edit',
+                  name: 'profile-edit',
+                  builder: (context, state) => const EditProfilePage(),
+                ),
+                GoRoute(
+                  path: 'titles',
+                  name: 'profile-titles',
+                  builder: (context, state) => const TitleListPage(),
+                ),
+                GoRoute(
+                  path: 'rewards',
+                  name: 'profile-rewards',
+                  builder: (context, state) => const RewardListPage(),
+                ),
+              ],
             ),
           ]),
         ],

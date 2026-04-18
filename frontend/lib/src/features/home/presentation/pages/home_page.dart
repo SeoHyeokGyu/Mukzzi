@@ -47,7 +47,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     // 1. 실시간 알림 리스너
     ref.listen(notificationProvider, (previous, next) {
-      // ... (기존 알림 팝업 로직)
       if (previous == null || (previous.notifications.isEmpty && next.notifications.isNotEmpty)) {
         return;
       }
@@ -79,7 +78,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     // 2. 유저 세션 체크 리스너 추가
     ref.listen(userProvider, (previous, next) {
-      // 로딩이 완료되었는데 유저 정보가 없고 에러가 발생한 경우 로그아웃 처리
       if (previous?.isLoading == true && !next.isLoading && next.user == null) {
         debugPrint('[HomePage] 유저 정보 로드 실패 또는 누락 - 자동 로그아웃 실행');
         ref.read(authProvider.notifier).logout().then((_) {
@@ -135,9 +133,9 @@ class _HomePageState extends ConsumerState<HomePage> {
             ],
           ),
           IconButton(
-            tooltip: '마이페이지',
+            tooltip: '프로필',
             icon: const Icon(Icons.person_outline),
-            onPressed: () => context.push('/home/profile'),
+            onPressed: () => context.go('/profile'),
           ),
         ],
       ),

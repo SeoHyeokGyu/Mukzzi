@@ -52,10 +52,25 @@ class _AuthPageState extends ConsumerState<AuthPage> {
             _passwordController.text,
             _nicknameController.text.isEmpty ? null : _nicknameController.text,
           );
+      
       if (success && mounted) {
-        setState(() => _isLogin = true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('회원가입 성공! 로그인해주세요.')),
+        // 회원가입 성공 시 알림 다이얼로그 표시 (절대 누락 안 됨)
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('🎉 환영합니다!'),
+            content: const Text('회원가입이 완료되었습니다.\n로그인 후 먹찌와 함께 시작해보세요!'),
+            actions: [
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  setState(() => _isLogin = true);
+                },
+                child: const Text('로그인하러 가기'),
+              ),
+            ],
+          ),
         );
       }
     }
@@ -66,7 +81,11 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next.error != null && next.error != previous?.error) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.error!)),
+          SnackBar(
+            content: Text(next.error!),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     });
@@ -167,13 +186,10 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: '이메일',
                   hintText: 'example@email.com',
-                  prefixIcon: const Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  prefixIcon: Icon(Icons.email_outlined),
                 ),
               )
                   .animate()
@@ -185,12 +201,9 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                 obscureText: true,
                 textInputAction: _isLogin ? TextInputAction.done : TextInputAction.next,
                 onSubmitted: (_) => _submit(),
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: '비밀번호',
-                  prefixIcon: const Icon(Icons.lock_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  prefixIcon: Icon(Icons.lock_outlined),
                 ),
               )
                   .animate()
@@ -202,13 +215,10 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                   controller: _nicknameController,
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _submit(),
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: '닉네임',
                     hintText: '2-12자',
-                    prefixIcon: const Icon(Icons.person_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    prefixIcon: Icon(Icons.person_outlined),
                   ),
                 )
                     .animate()

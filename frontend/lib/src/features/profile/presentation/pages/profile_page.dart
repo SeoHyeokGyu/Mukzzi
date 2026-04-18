@@ -27,7 +27,7 @@ class ProfilePage extends ConsumerWidget {
 
     return GradientScaffold(
       appBar: AppBar(
-        title: const Text('마이페이지'),
+        title: const Text('프로필'),
         actions: [
           IconButton(
             tooltip: '로그아웃',
