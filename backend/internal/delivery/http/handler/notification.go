@@ -1,14 +1,16 @@
 package handler
 
 import (
+	"fmt"
 	"io"
+	"log/slog"
+	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/dto"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/usecase"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/render"
 )
 
 type NotificationHandler struct {
@@ -70,40 +72,57 @@ func (h *NotificationHandler) ReadAllNotifications(c *gin.Context) {
 
 // Stream 실시간 알림 스트림 (SSE)
 func (h *NotificationHandler) Stream(c *gin.Context) {
-	userID, _ := c.Get("userID")
+	uid, _ := c.Get("userID")
+	userID := uid.(int64)
 
 	// 구독 시작
-	ch, unsubscribe := h.notificationUsecase.Subscribe(userID.(int64))
-	defer unsubscribe()
+	ch, unsubscribe := h.notificationUsecase.Subscribe(userID)
+	
+	// 핸들러 종료 시 반드시 구독 해제
+	defer func() {
+		unsubscribe()
+		slog.Debug("SSE 스트림 핸들러 물리적 종료", slog.Int64("user_id", userID))
+	}()
 
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
 	c.Header("X-Accel-Buffering", "no")
 
-	ticker := time.NewTicker(15 * time.Second)
+	flusher, ok := c.Writer.(http.Flusher)
+	if !ok {
+		InternalError(c, "Streaming not supported")
+		return
+	}
+
+	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
-	// 클라이언트 연결 상태 감시 및 데이터 전송
+	flusher.Flush()
+
+	// 데이터 전송 및 연결 감시 루프
 	c.Stream(func(w io.Writer) bool {
 		select {
 		case n, ok := <-ch:
 			if !ok {
-				return false
+				slog.Debug("SSE 채널 닫힘 (중복 연결 정리됨)", slog.Int64("user_id", userID))
+				return false // 채널이 닫히면 루프 종료
 			}
 			c.SSEvent("notification", dto.ToNotificationResponse(n))
+			flusher.Flush()
 			return true
 			
 		case <-ticker.C:
 			// 하트비트 전송
-			c.Render(-1, render.Data{
-				ContentType: "text/event-stream",
-				Data:        []byte(": heartbeat\n\n"),
-			})
+			if _, err := fmt.Fprintf(w, ": heartbeat\n\n"); err != nil {
+				slog.Debug("SSE 하트비트 전송 실패 (클라이언트 종료)", slog.Int64("user_id", userID))
+				return false
+			}
+			flusher.Flush()
 			return true
 			
 		case <-c.Request.Context().Done():
-			// 연결 종료 감지
+			slog.Debug("SSE 컨텍스트 종료 (브라우저 새로고침/종료)", slog.Int64("user_id", userID))
 			return false
 		}
 	})
