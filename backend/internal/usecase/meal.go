@@ -1,8 +1,10 @@
 package usecase
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"gorm.io/gorm"
@@ -88,11 +90,13 @@ type MealUsecase interface {
 // ─────────────────────────────────────────
 
 type mealUsecase struct {
-	mealRepo      repository.MealRepository
-	nutritionRepo repository.NutritionRepository
-	tagRepo       repository.MealFriendTagRepository
-	menuRepo      repository.MenuRepository
-	db            *gorm.DB
+	mealRepo       repository.MealRepository
+	nutritionRepo  repository.NutritionRepository
+	tagRepo        repository.MealFriendTagRepository
+	menuRepo       repository.MenuRepository
+	badgeGranter   BadgeGranter
+	masteryTracker MasteryTracker
+	db             *gorm.DB
 }
 
 func NewMealUsecase(
@@ -100,14 +104,18 @@ func NewMealUsecase(
 	nutritionRepo repository.NutritionRepository,
 	tagRepo repository.MealFriendTagRepository,
 	menuRepo repository.MenuRepository,
+	badgeGranter BadgeGranter,
+	masteryTracker MasteryTracker,
 	db *gorm.DB,
 ) MealUsecase {
 	return &mealUsecase{
-		mealRepo:      mealRepo,
-		nutritionRepo: nutritionRepo,
-		tagRepo:       tagRepo,
-		menuRepo:      menuRepo,
-		db:            db,
+		mealRepo:       mealRepo,
+		nutritionRepo:  nutritionRepo,
+		tagRepo:        tagRepo,
+		menuRepo:       menuRepo,
+		badgeGranter:   badgeGranter,
+		masteryTracker: masteryTracker,
+		db:             db,
 	}
 }
 
@@ -172,9 +180,33 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 		return nil, err
 	}
 
+	grantedBadges, err := u.badgeGranter.CheckAndGrant(context.Background(), input.UserID, EventMealCreated)
+	if err != nil {
+		slog.Error("뱃지 체크 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
+		grantedBadges = nil
+	}
+
+	var masteryUpdate *domain.MasteryUpdate
+	var menuID int64
+	if input.MenuID != nil {
+		menuID = *input.MenuID
+	}
+	updatedMastery, err := u.masteryTracker.OnMealCreated(context.Background(), input.UserID, menuID)
+	if err != nil {
+		slog.Error("마스터리 업데이트 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
+	} else if updatedMastery != nil {
+		masteryUpdate = &domain.MasteryUpdate{
+			MenuName:     input.MenuName,
+			EatCount:     updatedMastery.EatCount,
+			Grade:        string(updatedMastery.Grade),
+			GradeChanged: true,
+		}
+	}
+
 	output.SideEffects = &domain.MealSideEffects{
 		QuestsProgressed: []domain.QuestProgress{},
-		MasteryUpdated:   nil,
+		MasteryUpdated:   masteryUpdate,
+		GrantedBadges:    grantedBadges,
 		ExpGained:        10,
 		LevelUp:          nil,
 	}

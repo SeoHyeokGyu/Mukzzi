@@ -32,6 +32,7 @@ func main() {
 
 	// DB 초기화
 	db := config.InitDB()
+	config.SeedBadges(db)
 
 	// 포트 설정
 	port := os.Getenv("SERVER_PORT")
@@ -84,10 +85,9 @@ func main() {
 	socialHandler := handler.NewSocialHandler(socialUsecase)
 
 	// Meal 도메인
-	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, db)
+	masteryTracker := usecase.NewMasteryTracker(masteryRepo)
+	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, badgeGranter, masteryTracker, db)
 	mealHandler := handler.NewMealHandler(mealUsecase)
-
-	_ = badgeGranter // 추후 Meal 유즈케이스에 주입 예정
 
 	// 라우터 초기화
 	r := route.NewRouter(

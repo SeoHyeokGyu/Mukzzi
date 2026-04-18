@@ -10,6 +10,9 @@ type BadgeRepository interface {
 	// FindAllBadges 모든 뱃지 목록 조회
 	FindAllBadges(limit int, offset int) ([]domain.Badge, error)
 
+	// FindUnacquiredBadges 사용자가 미획득한 뱃지만 조회
+	FindUnacquiredBadges(userID int64, limit, offset int) ([]domain.Badge, error)
+
 	// CountAllBadges 전체 뱃지 개수
 	CountAllBadges() (int64, error)
 
@@ -43,6 +46,20 @@ func NewBadgeRepository(db *gorm.DB) BadgeRepository {
 func (r *badgeRepositoryImpl) FindAllBadges(limit int, offset int) ([]domain.Badge, error) {
 	var badges []domain.Badge
 	if err := r.db.
+		Limit(limit).
+		Offset(offset).
+		Order("id ASC").
+		Find(&badges).Error; err != nil {
+		return nil, err
+	}
+	return badges, nil
+}
+
+// FindUnacquiredBadges 사용자가 미획득한 뱃지만 조회
+func (r *badgeRepositoryImpl) FindUnacquiredBadges(userID int64, limit, offset int) ([]domain.Badge, error) {
+	var badges []domain.Badge
+	if err := r.db.
+		Where("id NOT IN (SELECT badge_id FROM user_badges WHERE user_id = ?)", userID).
 		Limit(limit).
 		Offset(offset).
 		Order("id ASC").
