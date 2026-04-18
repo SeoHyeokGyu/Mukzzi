@@ -76,8 +76,8 @@ func LoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
 
-		// Skip logging for swagger requests
-		if strings.HasPrefix(path, "/swagger") {
+		// Skip logging for swagger and SSE stream requests
+		if strings.HasPrefix(path, "/swagger") || path == "/api/notifications/stream" {
 			c.Next()
 			return
 		}
