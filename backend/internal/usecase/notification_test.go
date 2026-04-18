@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"testing"
+	"time"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/stretchr/testify/assert"
@@ -35,6 +36,7 @@ func (m *MockNotificationRepository) MarkAllAsRead(userID int64) error {
 func TestNotificationUsecase_GetNotifications(t *testing.T) {
 	mockRepo := new(MockNotificationRepository)
 	uc := NewNotificationUsecase(mockRepo)
+	defer uc.Close()
 
 	t.Run("알림 목록 조회 성공", func(t *testing.T) {
 		userID := int64(123)
@@ -56,18 +58,24 @@ func TestNotificationUsecase_GetNotifications(t *testing.T) {
 }
 
 func TestNotificationUsecase_ReadNotification(t *testing.T) {
-	mockRepo := new(MockNotificationRepository)
-	uc := NewNotificationUsecase(mockRepo)
-
-	t.Run("알림 읽음 처리 성공", func(t *testing.T) {
+	t.Run("알림 읽음 처리 성공 (비동기)", func(t *testing.T) {
+		mockRepo := new(MockNotificationRepository)
+		uc := NewNotificationUsecase(mockRepo)
+		
 		userID := int64(123)
 		id := int64(1)
 
 		mockRepo.On("MarkAsRead", id, userID).Return(nil)
 
 		err := uc.ReadNotification(id, userID)
-
 		assert.NoError(t, err)
+
+		// 비동기 처리를 위해 잠시 대기하거나 Close 호출로 Flush 유도
+		uc.Close() 
+		
+		// 약간의 여유 시간을 주어 워커가 종료되도록 함
+		time.Sleep(10 * time.Millisecond)
+
 		mockRepo.AssertExpectations(t)
 	})
 }
@@ -75,6 +83,7 @@ func TestNotificationUsecase_ReadNotification(t *testing.T) {
 func TestNotificationUsecase_ReadAllNotifications(t *testing.T) {
 	mockRepo := new(MockNotificationRepository)
 	uc := NewNotificationUsecase(mockRepo)
+	defer uc.Close()
 
 	t.Run("전체 알림 읽음 처리 성공", func(t *testing.T) {
 		userID := int64(123)
