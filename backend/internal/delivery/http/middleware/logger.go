@@ -137,7 +137,7 @@ func LoggerMiddleware() gin.HandlerFunc {
 			if status >= 400 {
 				logLevel = slog.LevelError
 			}
-			
+
 			slog.Log(c.Request.Context(), logLevel, "API Interaction",
 				slog.String("request_id", fmt.Sprintf("%v", requestID)),
 				slog.Group("req",

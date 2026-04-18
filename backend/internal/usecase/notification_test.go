@@ -61,7 +61,7 @@ func TestNotificationUsecase_ReadNotification(t *testing.T) {
 	t.Run("알림 읽음 처리 성공 (비동기)", func(t *testing.T) {
 		mockRepo := new(MockNotificationRepository)
 		uc := NewNotificationUsecase(mockRepo)
-		
+
 		userID := int64(123)
 		id := int64(1)
 
@@ -71,8 +71,8 @@ func TestNotificationUsecase_ReadNotification(t *testing.T) {
 		assert.NoError(t, err)
 
 		// 비동기 처리를 위해 잠시 대기하거나 Close 호출로 Flush 유도
-		uc.Close() 
-		
+		uc.Close()
+
 		// 약간의 여유 시간을 주어 워커가 종료되도록 함
 		time.Sleep(10 * time.Millisecond)
 
@@ -101,10 +101,10 @@ func TestNotificationUsecase_CreateNotification(t *testing.T) {
 	t.Run("알림 생성 성공 (비동기)", func(t *testing.T) {
 		mockRepo := new(MockNotificationRepository)
 		uc := NewNotificationUsecase(mockRepo)
-		
+
 		notification := &domain.Notification{
-			UserID: 123,
-			Title:  "New Notification",
+			UserID:  123,
+			Title:   "New Notification",
 			Content: "Hello World",
 		}
 
@@ -114,7 +114,7 @@ func TestNotificationUsecase_CreateNotification(t *testing.T) {
 		assert.NoError(t, err)
 
 		uc.Close() // 워커 종료 및 채널 flush 대기
-		
+
 		time.Sleep(10 * time.Millisecond)
 		mockRepo.AssertExpectations(t)
 	})

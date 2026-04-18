@@ -28,13 +28,13 @@ type NotificationUsecase interface {
 
 type notificationUsecase struct {
 	notificationRepo repository.NotificationRepository
-	readChan         chan readTask              // 알림 읽음 처리 작업을 전달하는 채널
-	createChan       chan *domain.Notification  // 알림 생성 작업을 전달하는 채널
-	
+	readChan         chan readTask             // 알림 읽음 처리 작업을 전달하는 채널
+	createChan       chan *domain.Notification // 알림 생성 작업을 전달하는 채널
+
 	// SSE 구독자 관리를 위한 동기화 객체
 	mu          sync.RWMutex
 	subscribers map[int64][]chan *domain.Notification // userID별로 열려있는 SSE 채널 목록
-	
+
 	wg     sync.WaitGroup
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -56,8 +56,8 @@ func NewNotificationUsecase(notificationRepo repository.NotificationRepository) 
 	ctx, cancel := context.WithCancel(context.Background())
 	u := &notificationUsecase{
 		notificationRepo: notificationRepo,
-		readChan:         make(chan readTask, 1000),             // 1000개까지 대기 가능
-		createChan:       make(chan *domain.Notification, 500),  // 500개까지 대기 가능
+		readChan:         make(chan readTask, 1000),            // 1000개까지 대기 가능
+		createChan:       make(chan *domain.Notification, 500), // 500개까지 대기 가능
 		subscribers:      make(map[int64][]chan *domain.Notification),
 		ctx:              ctx,
 		cancel:           cancel,
@@ -165,10 +165,10 @@ func (u *notificationUsecase) Subscribe(userID int64) (<-chan *domain.Notificati
 	// 10개까지 버퍼링 가능한 채널 생성
 	ch := make(chan *domain.Notification, 10)
 	u.subscribers[userID] = append(u.subscribers[userID], ch)
-	
+
 	slog.Info("SSE 구독 시작", slog.Int64("user_id", userID), slog.Int("current_subscribers", len(u.subscribers[userID])))
 
-	// sync.Once 를 사용하여 여러 경로(컨텍스트 종료, 하트비트 실패 등)에서 
+	// sync.Once 를 사용하여 여러 경로(컨텍스트 종료, 하트비트 실패 등)에서
 	// 동시에 구독 해제 요청이 오더라도 실제 정리 로직은 단 한 번만 안전하게 실행되도록 보장합니다.
 	// 이는 이미 닫힌 채널을 다시 닫으려 할 때 발생하는 패닉(double close panic)을 원천 차단합니다.
 	var once sync.Once
@@ -189,7 +189,7 @@ func (u *notificationUsecase) Subscribe(userID int64) (<-chan *domain.Notificati
 					break
 				}
 			}
-			
+
 			// 더 이상 구독 중인 채널이 없으면 맵에서 유저 키 삭제 (메모리 해제)
 			subCount := len(u.subscribers[userID])
 			if subCount == 0 {

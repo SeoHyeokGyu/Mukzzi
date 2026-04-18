@@ -35,9 +35,9 @@ type User struct {
 	Password string `gorm:"not null;type:varchar(255)" json:"-"`
 	Nickname string `gorm:"uniqueIndex;not null;type:varchar(50)" json:"nickname"`
 
-	ProfileImageURL string    `gorm:"type:text" json:"profile_image_url"`
+	ProfileImageURL string     `gorm:"type:text" json:"profile_image_url"`
 	LastLoginAt     *time.Time `json:"last_login_at"`
-	Point           int       `gorm:"default:0" json:"point"`
+	Point           int        `gorm:"default:0" json:"point"`
 
 	Provider   *string `gorm:"type:varchar(20)" json:"provider"`
 	ProviderID *string `gorm:"uniqueIndex;type:varchar(100)" json:"provider_id"`

@@ -27,9 +27,9 @@ type SocialUsecase interface {
 }
 
 type socialUsecase struct {
-	socialRepo       repository.SocialRepository
-	userRepo         repository.UserRepository
-	notificationUc   NotificationUsecase
+	socialRepo     repository.SocialRepository
+	userRepo       repository.UserRepository
+	notificationUc NotificationUsecase
 }
 
 func NewSocialUsecase(
