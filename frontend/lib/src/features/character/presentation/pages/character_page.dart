@@ -129,7 +129,6 @@ class CharacterPage extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             BentoCard(
-              padding: EdgeInsets.zero,
               child: Column(
                 children: [
                   _EquipmentItem(
@@ -280,6 +279,7 @@ class _EquipmentItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
