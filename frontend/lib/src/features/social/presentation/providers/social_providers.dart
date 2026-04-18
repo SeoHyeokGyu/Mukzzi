@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mukzzi/src/core/providers/common_providers.dart';
 import '../../../profile/data/models/user_model.dart';
-import '../../data/models/social_models.dart';
 import '../../data/repositories/social_repository.dart';
 
 final socialRepositoryProvider = Provider<SocialRepository>((ref) {

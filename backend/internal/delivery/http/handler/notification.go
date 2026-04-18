@@ -77,7 +77,7 @@ func (h *NotificationHandler) Stream(c *gin.Context) {
 
 	// 구독 시작
 	ch, unsubscribe := h.notificationUsecase.Subscribe(userID)
-	
+
 	// 핸들러 종료 시 반드시 구독 해제
 	defer func() {
 		unsubscribe()
@@ -111,7 +111,7 @@ func (h *NotificationHandler) Stream(c *gin.Context) {
 			c.SSEvent("notification", dto.ToNotificationResponse(n))
 			flusher.Flush()
 			return true
-			
+
 		case <-ticker.C:
 			// 하트비트 전송
 			if _, err := fmt.Fprintf(w, ": heartbeat\n\n"); err != nil {
@@ -120,7 +120,7 @@ func (h *NotificationHandler) Stream(c *gin.Context) {
 			}
 			flusher.Flush()
 			return true
-			
+
 		case <-c.Request.Context().Done():
 			slog.Debug("SSE 컨텍스트 종료 (브라우저 새로고침/종료)", slog.Int64("user_id", userID))
 			return false
