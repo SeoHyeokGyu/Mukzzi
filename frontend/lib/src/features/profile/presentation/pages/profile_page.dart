@@ -304,7 +304,7 @@ class _ProfileHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  username,
+                  nickname,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
@@ -312,7 +312,7 @@ class _ProfileHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  nickname,
+                  username,
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,

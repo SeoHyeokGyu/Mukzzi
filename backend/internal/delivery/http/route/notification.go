@@ -11,6 +11,7 @@ func NotificationRoute(r *gin.RouterGroup, h *handler.NotificationHandler) {
 	notification.Use(middleware.AuthMiddleware())
 	{
 		notification.GET("", h.GetNotifications)
+		notification.GET("/stream", h.Stream)
 		notification.PATCH("/:id/read", h.ReadNotification)
 		notification.POST("/read-all", h.ReadAllNotifications)
 	}
