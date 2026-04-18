@@ -44,9 +44,9 @@ type UserSearchRequest struct {
 
 // UserProfileResponse 는 타인 프로필 정보 응답 데이터를 정의합니다.
 type UserProfileResponse struct {
-	ID              int64              `json:"id,string"`
-	Nickname        string             `json:"nickname"`
-	ProfileImageURL string             `json:"profile_image_url"`
-	EquippedTitle   string             `json:"equipped_title,omitempty"`
+	ID              int64               `json:"id,string"`
+	Nickname        string              `json:"nickname"`
+	ProfileImageURL string              `json:"profile_image_url"`
+	EquippedTitle   string              `json:"equipped_title,omitempty"`
 	PrivacyLevel    domain.PrivacyLevel `json:"privacy_level"`
 }

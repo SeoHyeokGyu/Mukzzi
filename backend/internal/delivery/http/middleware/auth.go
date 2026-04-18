@@ -14,7 +14,7 @@ import (
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := ""
-		
+
 		// 1. 헤더에서 토큰 추출 시도
 		authHeader := c.GetHeader("Authorization")
 		if authHeader != "" {
