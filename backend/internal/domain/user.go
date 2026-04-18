@@ -39,8 +39,8 @@ type User struct {
 	LastLoginAt     *time.Time `json:"last_login_at"`
 	Point           int       `gorm:"default:0" json:"point"`
 
-	Provider   string `gorm:"type:varchar(20)" json:"provider"`
-	ProviderID string `gorm:"uniqueIndex;type:varchar(100)" json:"provider_id"`
+	Provider   *string `gorm:"type:varchar(20)" json:"provider"`
+	ProviderID *string `gorm:"uniqueIndex;type:varchar(100)" json:"provider_id"`
 
 	// 설정
 	EquippedTitleID      *int64         `gorm:"type:bigint" json:"equipped_title_id,string"`

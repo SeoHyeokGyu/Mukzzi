@@ -2,7 +2,7 @@ package usecase
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
@@ -121,7 +121,7 @@ func (g *badgeGranterImpl) CheckAndGrant(ctx context.Context, userID int64, even
 
 		badge, err := g.badgeRepo.FindBadgeByCode(checker.code)
 		if err != nil {
-			log.Printf("[BadgeGranter] FindBadgeByCode(%s) 오류: %v", checker.code, err)
+			slog.Error("뱃지 정보 조회 실패", slog.String("code", checker.code), slog.Any("error", err))
 			continue
 		}
 		if badge == nil {
@@ -132,7 +132,7 @@ func (g *badgeGranterImpl) CheckAndGrant(ctx context.Context, userID int64, even
 		// 이미 보유한 뱃지면 스킵
 		existing, err := g.badgeRepo.FindUserBadgeByID(userID, badge.ID)
 		if err != nil {
-			log.Printf("[BadgeGranter] FindUserBadgeByID(user=%d, badge=%s) 오류: %v", userID, checker.code, err)
+			slog.Error("사용자 뱃지 보유 여부 확인 실패", slog.Int64("user_id", userID), slog.String("code", checker.code), slog.Any("error", err))
 			continue
 		}
 		if existing != nil {
@@ -142,7 +142,7 @@ func (g *badgeGranterImpl) CheckAndGrant(ctx context.Context, userID int64, even
 		// 조건 체크
 		ok, err := checker.check(ctx, g, userID)
 		if err != nil {
-			log.Printf("[BadgeGranter] 조건 체크(%s, user=%d) 오류: %v", checker.code, userID, err)
+			slog.Error("뱃지 조건 체크 실패", slog.String("code", checker.code), slog.Int64("user_id", userID), slog.Any("error", err))
 			continue
 		}
 		if !ok {
@@ -156,12 +156,12 @@ func (g *badgeGranterImpl) CheckAndGrant(ctx context.Context, userID int64, even
 			AcquiredAt: time.Now(),
 		}
 		if err := g.badgeRepo.CreateUserBadge(userBadge); err != nil {
-			log.Printf("[BadgeGranter] CreateUserBadge(%s, user=%d) 오류: %v", checker.code, userID, err)
+			slog.Error("사용자 뱃지 부여 실패", slog.String("code", checker.code), slog.Int64("user_id", userID), slog.Any("error", err))
 			continue
 		}
 
 		granted = append(granted, *badge)
-		log.Printf("[BadgeGranter] 뱃지 부여: code=%s, userID=%d", checker.code, userID)
+		slog.Info("뱃지 부여 완료", slog.String("code", checker.code), slog.Int64("user_id", userID))
 	}
 
 	return granted, nil

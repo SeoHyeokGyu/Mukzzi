@@ -18,7 +18,7 @@ const (
 	// MaxLogBodySize 는 로그에 기록할 요청/응답 본문의 최대 크기입니다 (2KB).
 	MaxLogBodySize = 2048
 
-	// ANSI 색상 코드 (Foreground 전용으로 변경하여 터미널 호환성 및 가독성 향상)
+	// ANSI 색상 코드
 	green   = "\033[32m"
 	white   = "\033[37m"
 	yellow  = "\033[33m"
@@ -71,13 +71,13 @@ func RequestIDMiddleware() gin.HandlerFunc {
 	}
 }
 
-// LoggerMiddleware 는 보안 및 성능이 강화된 상세 API 로그를 기록합니다.
+// LoggerMiddleware 는 slog를 기반으로 상세 API 로그를 기록합니다.
 func LoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
 
-		// Skip logging for swagger requests
-		if strings.HasPrefix(path, "/swagger") {
+		// Skip logging for swagger and SSE stream requests
+		if strings.HasPrefix(path, "/swagger") || path == "/api/notifications/stream" {
 			c.Next()
 			return
 		}
@@ -87,18 +87,12 @@ func LoggerMiddleware() gin.HandlerFunc {
 		isDev := os.Getenv("ENVIRONMENT") == "development"
 
 		// 1. Request Body 로깅 준비
-		var reqBodyLog string
+		var bodyBytes []byte
 		contentType := c.GetHeader("Content-Type")
 
 		if isLoggable(contentType) && c.Request.Body != nil {
-			bodyBytes, _ := io.ReadAll(c.Request.Body)
+			bodyBytes, _ = io.ReadAll(c.Request.Body)
 			c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-
-			if len(bodyBytes) > MaxLogBodySize {
-				reqBodyLog = maskSensitiveJSON(bodyBytes[:MaxLogBodySize]) + "... [TRUNCATED]"
-			} else if len(bodyBytes) > 0 {
-				reqBodyLog = maskSensitiveJSON(bodyBytes)
-			}
 		}
 
 		// 2. Response Body 캡처 설정
@@ -116,6 +110,10 @@ func LoggerMiddleware() gin.HandlerFunc {
 		status := c.Writer.Status()
 		method := c.Request.Method
 
+		// 로깅용 바디 가공 (마스킹 및 객체화)
+		reqBody := processBodyLog(bodyBytes)
+		resBody := processBodyLog(blw.body.Bytes())
+
 		if isDev {
 			// 개발 환경용 컬러 로그 출력
 			fmt.Printf("[MUKZZI] %s | %v | %s %3d %s | %13v | %15s | %s %-7s %s %s\n",
@@ -127,28 +125,71 @@ func LoggerMiddleware() gin.HandlerFunc {
 				methodColor(method), method, reset,
 				path,
 			)
-			fmt.Printf("   ├─ [Request Body]  : %s\n", reqBodyLog)
-			fmt.Printf("   └─ [Response Body] : %s\n", blw.body.String())
+
+			// 본문은 직접 마샬링하여 예쁘게 출력
+			reqStr, _ := json.Marshal(reqBody)
+			resStr, _ := json.Marshal(resBody)
+			fmt.Printf("   ├─ [Req] : %s\n", string(reqStr))
+			fmt.Printf("   └─ [Res] : %s\n", string(resStr))
 		} else {
-			// 운영 환경용 구조화 로그 (slog)
+			// 운영 환경용 구조화 로그 (JSON)
 			logLevel := slog.LevelInfo
 			if status >= 400 {
 				logLevel = slog.LevelError
 			}
+			
 			slog.Log(c.Request.Context(), logLevel, "API Interaction",
 				slog.String("request_id", fmt.Sprintf("%v", requestID)),
 				slog.Group("req",
 					slog.String("method", method),
 					slog.String("path", path),
-					slog.String("body", reqBodyLog),
+					slog.Any("body", reqBody),
 					slog.String("ip", c.ClientIP()),
 				),
 				slog.Group("res",
 					slog.Int("status", status),
-					slog.String("body", blw.body.String()),
+					slog.Any("body", resBody),
 					slog.Duration("latency", latency),
 				),
 			)
+		}
+	}
+}
+
+// processBodyLog 는 바디 데이터를 마스킹 처리하고, 가능하다면 JSON 객체(map)로 반환합니다.
+func processBodyLog(data []byte) any {
+	if len(data) == 0 {
+		return nil
+	}
+
+	var bodyMap any
+	if err := json.Unmarshal(data, &bodyMap); err != nil {
+		str := string(data)
+		if len(str) > MaxLogBodySize {
+			return str[:MaxLogBodySize] + "... [TRUNCATED]"
+		}
+		return str
+	}
+
+	if m, ok := bodyMap.(map[string]any); ok {
+		maskFields(m)
+	}
+
+	return bodyMap
+}
+
+func maskFields(m map[string]any) {
+	for k, v := range m {
+		if sensitiveFields[strings.ToLower(k)] {
+			m[k] = "********"
+		} else if nm, ok := v.(map[string]any); ok {
+			maskFields(nm)
+		} else if slice, ok := v.([]any); ok {
+			for _, item := range slice {
+				if im, ok := item.(map[string]any); ok {
+					maskFields(im)
+				}
+			}
 		}
 	}
 }
@@ -190,24 +231,4 @@ func methodColor(method string) string {
 func isLoggable(contentType string) bool {
 	ct := strings.ToLower(contentType)
 	return strings.Contains(ct, "application/json") || strings.Contains(ct, "text/") || ct == ""
-}
-
-func maskSensitiveJSON(data []byte) string {
-	var bodyMap map[string]any
-	if err := json.Unmarshal(data, &bodyMap); err != nil {
-		return string(data)
-	}
-	maskFields(bodyMap)
-	maskedData, _ := json.Marshal(bodyMap)
-	return string(maskedData)
-}
-
-func maskFields(m map[string]any) {
-	for k, v := range m {
-		if sensitiveFields[strings.ToLower(k)] {
-			m[k] = "********"
-		} else if nm, ok := v.(map[string]any); ok {
-			maskFields(nm)
-		}
-	}
 }

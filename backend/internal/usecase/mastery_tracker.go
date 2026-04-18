@@ -2,7 +2,7 @@ package usecase
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
@@ -35,7 +35,7 @@ func (t *masteryTrackerImpl) OnMealCreated(_ context.Context, userID, menuID int
 	// 기존 마스터리 조회 (등급 변경 감지용)
 	existing, err := t.masteryRepo.FindByUserIDAndMenuID(userID, menuID)
 	if err != nil {
-		log.Printf("[MasteryTracker] FindByUserIDAndMenuID(user=%d, menu=%d) 오류: %v", userID, menuID, err)
+		slog.Error("마스터리 조회 실패", slog.Int64("user_id", userID), slog.Int64("menu_id", menuID), slog.Any("error", err))
 		return nil, err
 	}
 	if existing != nil {
@@ -44,14 +44,17 @@ func (t *masteryTrackerImpl) OnMealCreated(_ context.Context, userID, menuID int
 
 	updated, err := t.masteryRepo.Upsert(userID, menuID, time.Now())
 	if err != nil {
-		log.Printf("[MasteryTracker] Upsert(user=%d, menu=%d) 오류: %v", userID, menuID, err)
+		slog.Error("마스터리 업데이트 실패", slog.Int64("user_id", userID), slog.Int64("menu_id", menuID), slog.Any("error", err))
 		return nil, err
 	}
 
 	// 등급이 변경된 경우에만 반환 (호출자가 알림/뱃지 처리에 활용)
 	if updated.Grade != prevGrade {
-		log.Printf("[MasteryTracker] 마스터리 등급 변경: user=%d, menu=%d, %s -> %s",
-			userID, menuID, prevGrade, updated.Grade)
+		slog.Info("마스터리 등급 변경",
+			slog.Int64("user_id", userID),
+			slog.Int64("menu_id", menuID),
+			slog.String("prev_grade", string(prevGrade)),
+			slog.String("new_grade", string(updated.Grade)))
 		return updated, nil
 	}
 

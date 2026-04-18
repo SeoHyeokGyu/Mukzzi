@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 	"os"
 
 	_ "github.com/SeoHyeokGyu/Mukzzi/backend/docs"
@@ -24,8 +24,11 @@ import (
 func main() {
 	// 환경 변수 로드 (현재 디렉토리 또는 상위 디렉토리에서 .env 탐색)
 	if err := godotenv.Load("../.env"); err != nil {
-		log.Println(".env 파일을 찾을 수 없습니다. 환경 변수를 직접 사용합니다.")
+		slog.Info(".env 파일을 찾을 수 없습니다. 환경 변수를 직접 사용합니다.")
 	}
+
+	// 로거 초기화
+	config.InitLogger()
 
 	// DB 초기화
 	db := config.InitDB()
@@ -40,12 +43,14 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	badgeRepo := repository.NewBadgeRepository(db)
 	menuRepo := repository.NewMenuRepository(db)
+	socialRepo := repository.NewSocialRepository(db)
 	mealRepo := repository.NewMealRepository(db)
 	dailyIntakeRepo := repository.NewDailyIntakeRepository(db)
 	charCollectionRepo := repository.NewCharacterCollectionRepository(db)
 	masteryRepo := repository.NewMasteryRepository(db)
 	titleRepo := repository.NewTitleRepository(db)
 	rewardRepo := repository.NewRewardRepository(db)
+	notificationRepo := repository.NewNotificationRepository(db)
 
 	// Auth 도메인
 	authUsecase := usecase.NewAuthUsecase(userRepo)
@@ -68,6 +73,14 @@ func main() {
 	menuUsecase := usecase.NewMenuUsecase(menuRepo)
 	menuHandler := handler.NewMenuHandler(menuUsecase)
 
+	// Notification 도메인
+	notificationUsecase := usecase.NewNotificationUsecase(notificationRepo)
+	notificationHandler := handler.NewNotificationHandler(notificationUsecase)
+
+	// Social 도메인
+	socialUsecase := usecase.NewSocialUsecase(socialRepo, userRepo, notificationUsecase)
+	socialHandler := handler.NewSocialHandler(socialUsecase)
+
 	_ = badgeGranter // Meal 유즈케이스 구현 시 주입
 
 	// 라우터 초기화 (모든 미들웨어 및 라우트 등록)
@@ -76,11 +89,14 @@ func main() {
 		userHandler,
 		collectionHandler,
 		menuHandler,
+		socialHandler,
+		notificationHandler,
 	)
 
 	// 서버 실행
-	log.Printf("Mukzzi server listening on :%s", port)
+	slog.Info("Mukzzi server listening", slog.String("port", port))
 	if err := r.Run(":" + port); err != nil {
-		log.Fatal("서버 실행 실패:", err)
+		slog.Error("서버 실행 실패", slog.Any("error", err))
+		os.Exit(1)
 	}
 }

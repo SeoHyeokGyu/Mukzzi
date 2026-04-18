@@ -4,11 +4,13 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/bento_card.dart';
-import '../../../../core/widgets/gradient_scaffold.dart';
-import '../../../../core/widgets/shimmer_card.dart';
-import '../../../profile/presentation/providers/user_provider.dart';
+import 'package:mukzzi/src/core/theme/app_theme.dart';
+import 'package:mukzzi/src/core/widgets/bento_card.dart';
+import 'package:mukzzi/src/core/widgets/gradient_scaffold.dart';
+import 'package:mukzzi/src/core/widgets/shimmer_card.dart';
+import 'package:mukzzi/src/features/auth/presentation/providers/auth_provider.dart';
+import 'package:mukzzi/src/features/notification/presentation/providers/notification_provider.dart';
+import 'package:mukzzi/src/features/profile/presentation/providers/user_provider.dart';
 
 // Mock 데이터 - 추후 API로 교체
 const double _caloriesConsumed = 1200;
@@ -31,31 +33,127 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  bool _isLoading = true;
-
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 1400), () {
-      if (mounted) setState(() => _isLoading = false);
+    // 진입 시 환영 메시지 노출 (필요 시)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final user = ref.read(userProvider).user;
+        if (user != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('반가워요! 로그인이 완료되었습니다.'),
+              backgroundColor: AppColors.orange,
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // 1. 실시간 알림 리스너
+    ref.listen(notificationProvider, (previous, next) {
+      if (previous == null || (previous.notifications.isEmpty && next.notifications.isNotEmpty)) {
+        return;
+      }
+      if (next.notifications.length > previous.notifications.length) {
+        final newNotification = next.notifications.first;
+        final isRecent = DateTime.now().difference(newNotification.createdAt).inMinutes < 1;
+        if (!newNotification.isRead && isRecent) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(newNotification.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(newNotification.content, style: const TextStyle(fontSize: 12)),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+              action: SnackBarAction(
+                label: '보기',
+                onPressed: () => context.push('/home/notifications'),
+              ),
+            ),
+          );
+        }
+      }
+    });
+
+    // 2. 유저 세션 체크 리스너
+    ref.listen(userProvider, (previous, next) {
+      if (previous?.isLoading == true && !next.isLoading && next.user == null) {
+        debugPrint('[HomePage] 유저 정보 로드 실패 또는 누락 - 자동 로그아웃 실행');
+        ref.read(authProvider.notifier).logout().then((_) {
+          if (context.mounted) {
+            context.go('/auth');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('세션이 만료되었습니다. 다시 로그인해주세요.')),
+            );
+          }
+        });
+      }
+    });
+
+    final notificationState = ref.watch(notificationProvider);
+    final userState = ref.watch(userProvider);
+    final unreadCount = notificationState.unreadCount;
+
     return GradientScaffold(
       appBar: AppBar(
         title: const Text('먹찌'),
         actions: [
-          IconButton(tooltip: '알림', icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
+          Stack(
+            children: [
+              IconButton(
+                tooltip: '알림',
+                icon: const Icon(Icons.notifications_outlined),
+                onPressed: () => context.push('/home/notifications'),
+              ),
+              if (unreadCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      unreadCount > 99 ? '99+' : '$unreadCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
-            tooltip: '마이페이지',
+            tooltip: '프로필',
             icon: const Icon(Icons.person_outline),
-            onPressed: () => context.push('/home/profile'),
+            onPressed: () => context.go('/profile'),
           ),
         ],
       ),
-      body: _isLoading ? _buildShimmer() : _buildContent(),
+      body: userState.isLoading && userState.user == null 
+          ? _buildShimmer() 
+          : _buildContent(),
     );
   }
 
@@ -126,6 +224,12 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _buildCharacterCard() {
     final userState = ref.watch(userProvider);
+    
+    // 데이터가 없으면 수동으로 가져오기 시도
+    if (userState.user == null && !userState.isLoading && userState.error == null) {
+      Future.microtask(() => ref.read(userProvider.notifier).fetchMe());
+    }
+
     final nickname = userState.user?.nickname ?? userState.user?.username ?? '먹찌';
     
     const double xp = 0;

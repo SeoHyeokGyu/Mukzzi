@@ -27,7 +27,7 @@ class ProfilePage extends ConsumerWidget {
 
     return GradientScaffold(
       appBar: AppBar(
-        title: const Text('마이페이지'),
+        title: const Text('프로필'),
         actions: [
           IconButton(
             tooltip: '로그아웃',
@@ -304,7 +304,7 @@ class _ProfileHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  username,
+                  nickname,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
@@ -312,7 +312,7 @@ class _ProfileHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  nickname,
+                  username,
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,

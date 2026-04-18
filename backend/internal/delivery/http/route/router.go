@@ -16,6 +16,8 @@ func NewRouter(
 	userHandler *handler.UserHandler,
 	collectionHandler *handler.CollectionHandler,
 	menuHandler *handler.MenuHandler,
+	socialHandler *handler.SocialHandler,
+	notificationHandler *handler.NotificationHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -23,7 +25,7 @@ func NewRouter(
 	config := cors.DefaultConfig()
 	config.AllowAllOrigins = true
 	config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
-	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization", "X-Request-ID"}
+	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization", "X-Request-ID", "Cache-Control"}
 	config.AllowCredentials = true
 
 	// 전역 미들웨어 설정
@@ -51,6 +53,8 @@ func NewRouter(
 		UserRoute(api, userHandler)
 		CollectionRoute(api, collectionHandler)
 		MenuRoute(api, menuHandler)
+		SocialRoute(api, socialHandler)
+		NotificationRoute(api, notificationHandler)
 	}
 
 	return r

@@ -5,9 +5,9 @@
 기획 문서([planning.md](planning.md))의 기능 정의를 기반으로 바운디드 컨텍스트를 정의하고, 도메인 간 관계를 설계합니다.
 
 **구현 현황:**
-- ✓ **구현 완료**: Collection (Badge), Menu
+- ✓ **구현 완료**: Collection (Badge), Menu, Social, Notification
 - ⚠️ **부분 구현**: Auth (기본 회원가입 + Bearer JWT), User (기본 필드만)
-- ❌ **미구현**: Character, Meal, Nutrition, Quest, Social, Notification
+- ❌ **미구현**: Character, Meal, Nutrition, Quest
 
 ---
 
@@ -182,24 +182,33 @@ type BaseDomain struct {
   - 칭호는 획득한 목록 중 하나를 선택하여 프로필에 장착할 수 있음.
   - 먹찌 도감에는 달성한 적 있는 모든 파츠 조합이 기록됨.
 
-### Social (소셜) - ❌ 미구현
+### Social (소셜) - ⚠️ 부분 구현
 
 **설계:**
 - 책임: 친구 관리, 추천 사용자, 응원하기(Nudge), 방명록, 차단/신고
-- 핵심 엔티티: Friendship, Nudge, GuestbookEntry, Report
+- 핵심 엔티티: Friendship, Block, Guestbook, Nudge, Report
 - 비즈니스 규칙:
   - 친구 요청은 수신자가 수락해야만 정식 친구 상태가 되며, 차단 시 상대방의 모든 상호작용이 차단됨.
-  - 최대 친구 수: 100명, 일일 친구 요청 수: 20회.
-  - 응원하기(Nudge): 같은 친구에게 1일 1회 제한. 친구의 먹찌가 허기짐/배고픔 상태일 때 발송 가능. 친구가 기록을 재개하면 양쪽에 보상 지급.
-  - 신고: 같은 대상에 대해 1일 1회 제한. PENDING -> REVIEWED -> RESOLVED 상태 관리.
+  - 차단 시 기존의 친구 관계는 즉시 삭제됨.
+  - 응원하기(Nudge)는 동일 대상에게 1일 1회로 제한함. (현재 로직은 스텁 단계)
+  - 방명록 작성 시 비밀글 여부를 설정할 수 있음.
 
-### Notification (알림) - ❌ 미구현
+**현재 구현:**
+- ✓ 핵심 엔티티 정의 (`Friendship`, `Block`, `Guestbook`, `Report`)
+- ✓ 친구 목록 조회, 삭제, 요청, 수락/거절 API 구현
+- ✓ 방명록 조회/작성, 차단/해제, 신고 API 구현
+- ✓ 사용자 검색 및 단순 추천 로직 구현
+- ❌ 응원하기(Nudge) 1일 1회 제한 실제 구현 (Redis 필요)
+- ❌ 고도화된 추천 로직 (식습관 분석 기반) 미구현
+
+### Notification (알림) - ✓ 구현 완료
 
 **설계:**
 - 책임: 인앱 알림 목록 관리, FCM 푸시 알림 발송, 알림 읽음 처리
 - 핵심 엔티티: Notification
 - 비즈니스 규칙:
-  - 알림 유형: NUDGE, QUEST_COMPLETE, FRIEND_REQUEST, PENALTY, GUESTBOOK, LEVEL_UP.
+  - 알림 유형: `FRIEND_REQUEST`, `FRIEND_ACCEPTED`, `NUDGE`, `GUESTBOOK`, `LEVEL_UP`, `BADGE_ACQUIRED`, `MEAL_TAG`, `MEAL_TAG_ACCEPTED`.
+  - **성능 최적화**: 알림 읽음 처리는 고루틴과 채널을 이용한 비동기 배칭(Batching)으로 처리하여 DB 부하를 최소화함 (5초 주기 또는 100건 누적 시 Bulk Update).
   - 인앱 알림과 FCM 푸시 알림을 병행하여 발송함.
   - 사용자 설정에 따라 알림 유형별 on/off 가능.
   - 도메인 이벤트의 소비자로 동작하며, 이벤트 수신 시 알림을 생성하고 FCM으로 전송함.

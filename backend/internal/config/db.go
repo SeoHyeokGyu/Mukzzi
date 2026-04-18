@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 
 	"gorm.io/driver/postgres"
@@ -23,10 +23,11 @@ func InitDB() *gorm.DB {
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("데이터베이스 연결 실패: %v\n사용한 DSN: %s", err, dsn)
+		slog.Error("데이터베이스 연결 실패", slog.Any("error", err), slog.String("dsn", dsn))
+		os.Exit(1)
 	}
 
-	log.Printf("데이터베이스 연결 성공! (Host: %s, DB: %s)", host, dbName)
+	slog.Info("데이터베이스 연결 성공", slog.String("host", host), slog.String("db", dbName))
 
 	//// 오토 마이그레이션
 	//err = db.AutoMigrate(
@@ -36,7 +37,8 @@ func InitDB() *gorm.DB {
 	//	&domain.Menu{},
 	//)
 	//if err != nil {
-	//	log.Fatalf("마이그레이션 실패: %v", err)
+	//	slog.Error("마이그레이션 실패", slog.Any("error", err))
+	//	os.Exit(1)
 	//}
 
 	return db

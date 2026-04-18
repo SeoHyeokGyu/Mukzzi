@@ -13,22 +13,28 @@ import (
 // AuthMiddleware 는 JWT 토큰을 검증하는 미들웨어입니다.
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		tokenString := ""
+		
+		// 1. 헤더에서 토큰 추출 시도
 		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
+		if authHeader != "" {
+			parts := strings.Split(authHeader, " ")
+			if len(parts) == 2 && parts[0] == "Bearer" {
+				tokenString = parts[1]
+			}
+		}
+
+		// 2. 헤더에 없으면 쿼리 파라미터에서 추출 시도 (SSE EventSource 용)
+		if tokenString == "" {
+			tokenString = c.Query("token")
+		}
+
+		if tokenString == "" {
 			handler.Unauthorized(c, "MISSING_TOKEN", "인증 토큰이 필요합니다.")
 			c.Abort()
 			return
 		}
 
-		// Bearer 토큰 형식 확인
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			handler.Unauthorized(c, "INVALID_TOKEN_FORMAT", "토큰 형식이 올바르지 않습니다.")
-			c.Abort()
-			return
-		}
-
-		tokenString := parts[1]
 		jwtSecret := os.Getenv("JWT_SECRET")
 		if jwtSecret == "" {
 			jwtSecret = "mukzzi-secret"
@@ -47,7 +53,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// 토큰에서 사용자 ID 추출 (문자열로 파싱하여 64비트 정밀도 손실 방지)
+		// 토큰에서 사용자 ID 추출
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
 			userIDStr, ok := claims["user_id"].(string)
 			if !ok {
