@@ -26,17 +26,20 @@ type SocialUsecase interface {
 }
 
 type socialUsecase struct {
-	socialRepo repository.SocialRepository
-	userRepo   repository.UserRepository
+	socialRepo       repository.SocialRepository
+	userRepo         repository.UserRepository
+	notificationUc   NotificationUsecase
 }
 
 func NewSocialUsecase(
 	socialRepo repository.SocialRepository,
 	userRepo repository.UserRepository,
+	notificationUc NotificationUsecase,
 ) SocialUsecase {
 	return &socialUsecase{
-		socialRepo: socialRepo,
-		userRepo:   userRepo,
+		socialRepo:     socialRepo,
+		userRepo:       userRepo,
+		notificationUc: notificationUc,
 	}
 }
 
@@ -96,11 +99,44 @@ func (u *socialUsecase) SendFriendRequest(requesterID, receiverID int64) error {
 		ReceiverID:  receiverID,
 		Status:      domain.FriendshipPending,
 	}
-	return u.socialRepo.CreateFriendship(f)
+
+	if err := u.socialRepo.CreateFriendship(f); err != nil {
+		return err
+	}
+
+	// 알림 생성
+	sender, err := u.userRepo.GetByID(requesterID)
+	if err == nil {
+		_ = u.notificationUc.CreateNotification(&domain.Notification{
+			UserID:   receiverID,
+			SenderID: &requesterID,
+			Type:     domain.NotificationTypeFriendRequest,
+			Title:    "새로운 친구 요청",
+			Content:  sender.Nickname + "님이 친구 요청을 보냈습니다.",
+		})
+	}
+
+	return nil
 }
 
 func (u *socialUsecase) AcceptFriendRequest(receiverID, requesterID int64) error {
-	return u.socialRepo.UpdateFriendshipStatus(requesterID, receiverID, domain.FriendshipAccepted)
+	if err := u.socialRepo.UpdateFriendshipStatus(requesterID, receiverID, domain.FriendshipAccepted); err != nil {
+		return err
+	}
+
+	// 알림 생성 (요청을 보냈던 사람에게 수락 알림 전송)
+	sender, err := u.userRepo.GetByID(receiverID)
+	if err == nil {
+		_ = u.notificationUc.CreateNotification(&domain.Notification{
+			UserID:   requesterID,
+			SenderID: &receiverID,
+			Type:     domain.NotificationTypeFriendAccepted,
+			Title:    "친구 요청 수락",
+			Content:  sender.Nickname + "님이 친구 요청을 수락했습니다.",
+		})
+	}
+
+	return nil
 }
 
 func (u *socialUsecase) RejectFriendRequest(receiverID, requesterID int64) error {
@@ -108,7 +144,19 @@ func (u *socialUsecase) RejectFriendRequest(receiverID, requesterID int64) error
 }
 
 func (u *socialUsecase) Nudge(senderID, receiverID int64) error {
-	return nil
+	// 알림 생성
+	sender, err := u.userRepo.GetByID(senderID)
+	if err != nil {
+		return err
+	}
+
+	return u.notificationUc.CreateNotification(&domain.Notification{
+		UserID:   receiverID,
+		SenderID: &senderID,
+		Type:     domain.NotificationTypeNudge,
+		Title:    "응원 도착!",
+		Content:  sender.Nickname + "님이 당신을 응원합니다!",
+	})
 }
 
 func (u *socialUsecase) GetGuestbooks(targetUserID int64, page, limit int) ([]domain.Guestbook, error) {
@@ -120,7 +168,23 @@ func (u *socialUsecase) GetGuestbooks(targetUserID int64, page, limit int) ([]do
 }
 
 func (u *socialUsecase) WriteGuestbook(entry *domain.Guestbook) error {
-	return u.socialRepo.CreateGuestbook(entry)
+	if err := u.socialRepo.CreateGuestbook(entry); err != nil {
+		return err
+	}
+
+	// 알림 생성
+	sender, err := u.userRepo.GetByID(entry.WriterID)
+	if err == nil {
+		_ = u.notificationUc.CreateNotification(&domain.Notification{
+			UserID:   entry.TargetUserID,
+			SenderID: &entry.WriterID,
+			Type:     domain.NotificationTypeGuestbook,
+			Title:    "방명록 새 글",
+			Content:  sender.Nickname + "님이 방명록에 글을 남겼습니다.",
+		})
+	}
+
+	return nil
 }
 
 func (u *socialUsecase) BlockUser(blockerID, blockedID int64) error {

@@ -70,13 +70,13 @@ func main() {
 	menuUsecase := usecase.NewMenuUsecase(menuRepo)
 	menuHandler := handler.NewMenuHandler(menuUsecase)
 
-	// Social 도메인
-	socialUsecase := usecase.NewSocialUsecase(socialRepo, userRepo)
-	socialHandler := handler.NewSocialHandler(socialUsecase)
-
 	// Notification 도메인
 	notificationUsecase := usecase.NewNotificationUsecase(notificationRepo)
 	notificationHandler := handler.NewNotificationHandler(notificationUsecase)
+
+	// Social 도메인
+	socialUsecase := usecase.NewSocialUsecase(socialRepo, userRepo, notificationUsecase)
+	socialHandler := handler.NewSocialHandler(socialUsecase)
 
 	_ = badgeGranter // Meal 유즈케이스 구현 시 주입
 
