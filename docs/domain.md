@@ -5,9 +5,9 @@
 기획 문서([planning.md](planning.md))의 기능 정의를 기반으로 바운디드 컨텍스트를 정의하고, 도메인 간 관계를 설계합니다.
 
 **구현 현황:**
-- ✓ **구현 완료**: Collection (Badge), Menu
+- ✓ **구현 완료**: Collection (Badge), Menu, Social, Notification
 - ⚠️ **부분 구현**: Auth (기본 회원가입 + Bearer JWT), User (기본 필드만)
-- ❌ **미구현**: Character, Meal, Nutrition, Quest, Social, Notification
+- ❌ **미구현**: Character, Meal, Nutrition, Quest
 
 ---
 
@@ -201,13 +201,14 @@ type BaseDomain struct {
 - ❌ 응원하기(Nudge) 1일 1회 제한 실제 구현 (Redis 필요)
 - ❌ 고도화된 추천 로직 (식습관 분석 기반) 미구현
 
-### Notification (알림) - ❌ 미구현
+### Notification (알림) - ✓ 구현 완료
 
 **설계:**
 - 책임: 인앱 알림 목록 관리, FCM 푸시 알림 발송, 알림 읽음 처리
 - 핵심 엔티티: Notification
 - 비즈니스 규칙:
-  - 알림 유형: NUDGE, QUEST_COMPLETE, FRIEND_REQUEST, PENALTY, GUESTBOOK, LEVEL_UP.
+  - 알림 유형: `FRIEND_REQUEST`, `FRIEND_ACCEPTED`, `NUDGE`, `GUESTBOOK`, `LEVEL_UP`, `BADGE_ACQUIRED`, `MEAL_TAG`, `MEAL_TAG_ACCEPTED`.
+  - **성능 최적화**: 알림 읽음 처리는 고루틴과 채널을 이용한 비동기 배칭(Batching)으로 처리하여 DB 부하를 최소화함 (5초 주기 또는 100건 누적 시 Bulk Update).
   - 인앱 알림과 FCM 푸시 알림을 병행하여 발송함.
   - 사용자 설정에 따라 알림 유형별 on/off 가능.
   - 도메인 이벤트의 소비자로 동작하며, 이벤트 수신 시 알림을 생성하고 FCM으로 전송함.

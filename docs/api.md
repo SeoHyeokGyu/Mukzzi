@@ -1,6 +1,6 @@
 # API 명세
 
-> 상태: 진행 중 (Badge, User, Social 완성, 기타 미구현)
+> 상태: 진행 중 (Badge, User, Social, Notification 완성, 기타 미구현)
 
 백엔드 REST API 엔드포인트 명세입니다. 기획 문서([planning.md](planning.md))와 ERD([erd.md](erd.md))를 기반으로 작성합니다. 상세한 Request/Response 스펙은 Swagger를 참조하세요.
 
@@ -259,6 +259,17 @@
 | GET | /notifications | O | 알림 목록 조회 (cursor 기반 페이지네이션) |
 | PATCH | /notifications/{id}/read | O | 알림 읽음 처리 |
 | POST | /notifications/read-all | O | 전체 알림 읽음 처리 |
+
+#### 알림 유형 (Notification Types)
+
+- `FRIEND_REQUEST`: 친구 요청 수신
+- `FRIEND_ACCEPTED`: 친구 요청 수락됨
+- `NUDGE`: 응원하기(푸시) 수신
+- `GUESTBOOK`: 방명록 새 글 등록
+- `LEVEL_UP`: 캐릭터 레벨업 달성
+- `BADGE_ACQUIRED`: 새로운 뱃지 획득
+- `MEAL_TAG`: 식사 기록에 태그됨
+- `MEAL_TAG_ACCEPTED`: 보낸 식사 태그가 수락됨
 
 ---
 

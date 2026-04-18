@@ -105,6 +105,20 @@
 | detail | TEXT | NULL | 상세 사유 |
 | status | VARCHAR(20) | DEFAULT 'PENDING' | 처리 상태 |
 
+### 알림 (notifications)
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| user_id | BIGINT | FK (users.id), NOT NULL | 수신자 |
+| sender_id | BIGINT | FK (users.id), NULL | 발신자 (시스템 알림인 경우 NULL) |
+| type | VARCHAR(50) | NOT NULL | 알림 유형 (FRIEND_REQUEST 등) |
+| title | VARCHAR(100) | NOT NULL | 알림 제목 |
+| content | TEXT | NOT NULL | 알림 본문 |
+| link_url | TEXT | NULL | 클릭 시 이동할 URL |
+| is_read | BOOLEAN | DEFAULT FALSE | 읽음 여부 |
+| read_at | TIMESTAMPTZ | NULL | 읽은 일시 |
+| metadata | JSONB | NULL | 추가 데이터 (이벤트 관련 ID 등) |
+
 ---
 
 ## ER 다이어그램
