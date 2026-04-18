@@ -8,6 +8,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/shimmer_card.dart';
+import '../../../notification/presentation/providers/notification_provider.dart';
 import '../../../profile/presentation/providers/user_provider.dart';
 
 // Mock 데이터 - 추후 API로 교체
@@ -43,11 +44,76 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // 실시간 알림 리스너 추가
+    ref.listen(notificationProvider, (previous, next) {
+      if (previous != null && next.notifications.length > previous.notifications.length) {
+        final newNotification = next.notifications.first;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(newNotification.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(newNotification.content, style: const TextStyle(fontSize: 12)),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: '보기',
+              onPressed: () {
+                // TODO: 알림 목록 페이지로 이동
+              },
+            ),
+          ),
+        );
+      }
+    });
+
+    final notificationState = ref.watch(notificationProvider);
+    final unreadCount = notificationState.unreadCount;
+
     return GradientScaffold(
       appBar: AppBar(
         title: const Text('먹찌'),
         actions: [
-          IconButton(tooltip: '알림', icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
+          Stack(
+            children: [
+              IconButton(
+                tooltip: '알림',
+                icon: const Icon(Icons.notifications_outlined),
+                onPressed: () {
+                  // TODO: 알림 목록 페이지 이동
+                },
+              ),
+              if (unreadCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      unreadCount > 99 ? '99+' : '$unreadCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
             tooltip: '마이페이지',
             icon: const Icon(Icons.person_outline),
