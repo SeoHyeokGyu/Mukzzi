@@ -1,56 +1,35 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import '../../../../core/network/api_client.dart';
-import '../models/notification_model.dart';
+import 'package:intl/intl.dart';
+import 'package:mukzzi/src/core/network/api_client.dart';
+import 'package:mukzzi/src/core/constants/app_constants.dart';
+import 'package:mukzzi/src/features/notification/data/models/notification_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'sse/sse_client.dart';
 
 class NotificationRepository {
   final ApiClient _apiClient;
+  final SharedPreferences _prefs;
 
-  NotificationRepository(this._apiClient);
+  NotificationRepository(this._apiClient, this._prefs);
+
+  String get _now => DateFormat('HH:mm:ss.SSS').format(DateTime.now());
 
   /// 실시간 알림 스트림 수신 (SSE)
-  Stream<NotificationModel> subscribeToNotifications() async* {
-    final dio = _apiClient.dio;
+  /// 조건부 임포트된 SseClient를 통해 Web(HttpRequest) 또는 Mobile(Dio Stream)로 자동 분기됩니다.
+  Stream<NotificationModel> subscribeToNotifications() {
+    final token = _prefs.getString(AppConstants.accessTokenKey);
+    final baseUrl = AppConstants.apiBaseUrl;
     
-    // SSE는 일반적인 JSON 응답이 아니므로 ResponseType.stream 사용
-    final response = await dio.get<ResponseBody>(
-      '/notifications/stream',
-      options: Options(
-        responseType: ResponseType.stream,
-        headers: {
-          'Accept': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-        },
-      ),
-    );
+    // Web 환경일 경우 쿼리 파라미터 방식을 위해 URL 가공 (헤더 지원이 불안정할 경우 대비)
+    final url = kIsWeb 
+        ? '$baseUrl/notifications/stream?token=$token'
+        : '$baseUrl/notifications/stream';
 
-    if (response.data == null) return;
-
-    // 스트림 데이터를 라인 단위로 읽어 처리
-    await for (final chunk in response.data!.stream) {
-      final content = utf8.decode(chunk);
-      final lines = content.split('\n');
-      
-      String? currentEvent;
-      for (final line in lines) {
-        if (line.isEmpty) continue;
-        
-        if (line.startsWith('event:')) {
-          currentEvent = line.substring(6).trim();
-        } else if (line.startsWith('data:') && currentEvent == 'notification') {
-          final data = line.substring(5).trim();
-          try {
-            final json = jsonDecode(data) as Map<String, dynamic>;
-            yield NotificationModel.fromJson(json);
-          } catch (e) {
-            debugPrint('[NotificationRepository] JSON 파싱 에러: $e');
-          }
-          currentEvent = null; // 초기화
-        }
-      }
-    }
+    debugPrint('[$_now][NotificationRepository] SSE 구독 요청 시작 (Platform: ${kIsWeb ? "Web" : "Mobile"})');
+    
+    return getSseClientInstance().subscribe(url, token, _apiClient.dio);
   }
 
   /// 알림 목록 조회
@@ -67,12 +46,10 @@ class NotificationRepository {
     return data.map((e) => NotificationModel.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  /// 알림 읽음 처리
   Future<void> markAsRead(String id) async {
     await _apiClient.patch('/notifications/$id/read', data: {});
   }
 
-  /// 전체 알림 읽음 처리
   Future<void> markAllAsRead() async {
     await _apiClient.post('/notifications/read-all', data: {});
   }
