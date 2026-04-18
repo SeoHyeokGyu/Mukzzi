@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:mukzzi/src/core/theme/app_theme.dart';
 import 'package:mukzzi/src/core/widgets/gradient_scaffold.dart';
@@ -45,8 +46,11 @@ class NotificationListPage extends ConsumerWidget {
                       return _NotificationItem(
                         notification: n,
                         onTap: () {
+                          // 1. 읽음 처리
                           if (!n.isRead) notifier.markAsRead(n.id);
-                          // TODO: linkUrl이 있으면 해당 경로로 이동 로직 추가
+                          
+                          // 2. 관련 페이지로 이동
+                          context.push(n.navigationPath);
                         },
                       );
                     },
@@ -144,21 +148,27 @@ class _NotificationItem extends StatelessWidget {
       case NotificationType.FRIEND_ACCEPTED:
         icon = Icons.person_add_outlined;
         color = Colors.blue;
+        break;
       case NotificationType.NUDGE:
         icon = Icons.favorite_border;
         color = Colors.pink;
+        break;
       case NotificationType.GUESTBOOK:
         icon = Icons.chat_bubble_outline;
         color = Colors.green;
+        break;
       case NotificationType.LEVEL_UP:
         icon = Icons.auto_awesome;
         color = Colors.amber;
+        break;
       case NotificationType.BADGE_ACQUIRED:
         icon = Icons.military_tech_outlined;
         color = AppColors.orange;
+        break;
       case NotificationType.MEAL_TAG:
         icon = Icons.restaurant_outlined;
         color = Colors.deepPurple;
+        break;
       default:
         icon = Icons.notifications_outlined;
         color = AppColors.textSecondary;

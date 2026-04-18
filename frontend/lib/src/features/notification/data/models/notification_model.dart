@@ -64,4 +64,25 @@ class NotificationModel {
       sender: json['sender'] != null ? UserModel.fromJson(json['sender'] as Map<String, dynamic>) : null,
     );
   }
+
+  /// 알림 클릭 시 이동할 경로를 결정합니다.
+  String get navigationPath {
+    if (linkUrl != null && linkUrl!.isNotEmpty) return linkUrl!;
+
+    switch (type) {
+      case NotificationType.FRIEND_REQUEST:
+        return '/social'; // 요청 탭으로 자동 전환 필요 시 추가 로직 가능
+      case NotificationType.FRIEND_ACCEPTED:
+      case NotificationType.NUDGE:
+      case NotificationType.GUESTBOOK:
+        if (senderId != null) return '/social/profile/$senderId';
+        return '/social';
+      case NotificationType.LEVEL_UP:
+        return '/character';
+      case NotificationType.BADGE_ACQUIRED:
+        return '/profile/badges';
+      default:
+        return '/home';
+    }
+  }
 }
