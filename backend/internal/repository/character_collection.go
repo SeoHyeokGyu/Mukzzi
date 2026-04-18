@@ -43,7 +43,7 @@ func (r *characterCollectionRepositoryImpl) FindByUserID(userID int64, limit, of
 	}
 
 	if err := r.db.Where("user_id = ?", userID).
-		Order("achieved_at DESC").
+		Order("id DESC").
 		Limit(limit).
 		Offset(offset).
 		Find(&collections).Error; err != nil {

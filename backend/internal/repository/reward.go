@@ -27,7 +27,7 @@ func NewRewardRepository(db *gorm.DB) RewardRepository {
 
 func (r *rewardRepositoryImpl) FindAll() ([]domain.Reward, error) {
 	var rewards []domain.Reward
-	if err := r.db.Order("reward_type ASC, created_at ASC").Find(&rewards).Error; err != nil {
+	if err := r.db.Order("reward_type ASC, id ASC").Find(&rewards).Error; err != nil {
 		return nil, err
 	}
 	return rewards, nil
@@ -37,7 +37,7 @@ func (r *rewardRepositoryImpl) FindUserRewards(userID int64) ([]domain.UserRewar
 	var userRewards []domain.UserReward
 	if err := r.db.Preload("Reward").
 		Where("user_id = ?", userID).
-		Order("achieved_at DESC").
+		Order("id DESC").
 		Find(&userRewards).Error; err != nil {
 		return nil, err
 	}

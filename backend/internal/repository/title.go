@@ -33,7 +33,7 @@ func NewTitleRepository(db *gorm.DB) TitleRepository {
 
 func (r *titleRepositoryImpl) FindAll() ([]domain.Title, error) {
 	var titles []domain.Title
-	if err := r.db.Order("created_at ASC").Find(&titles).Error; err != nil {
+	if err := r.db.Order("id ASC").Find(&titles).Error; err != nil {
 		return nil, err
 	}
 	return titles, nil
@@ -54,7 +54,7 @@ func (r *titleRepositoryImpl) FindUserTitles(userID int64) ([]domain.UserTitle, 
 	var userTitles []domain.UserTitle
 	if err := r.db.Preload("Title").
 		Where("user_id = ?", userID).
-		Order("achieved_at DESC").
+		Order("id DESC").
 		Find(&userTitles).Error; err != nil {
 		return nil, err
 	}
