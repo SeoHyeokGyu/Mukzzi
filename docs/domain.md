@@ -1,13 +1,13 @@
 # DDD 도메인 설계
 
-> 상태: 진행 중 (Badge/Menu 구현 완료, MVP 핵심 도메인 미완성)
+> 상태: 진행 중 (Meal/Nutrition/Collection 구현 완료, Character/Quest/Onboarding 미구현)
 
 기획 문서([planning.md](planning.md))의 기능 정의를 기반으로 바운디드 컨텍스트를 정의하고, 도메인 간 관계를 설계합니다.
 
 **구현 현황:**
-- ✓ **구현 완료**: Collection (Badge), Menu, Social, Notification
-- ⚠️ **부분 구현**: Auth (기본 회원가입 + Bearer JWT), User (기본 필드만)
-- ❌ **미구현**: Character, Meal, Nutrition, Quest
+- ✓ **구현 완료**: Auth (기본), User, Meal, Nutrition (오늘/주간), Collection (전체), Social, Notification
+- ⚠️ **부분 구현**: Menu (검색만), Auth (OAuth 미구현)
+- ❌ **미구현**: Character, Quest, Onboarding
 
 ---
 
@@ -107,11 +107,10 @@ type BaseDomain struct {
 - ✓ 핵심 엔티티 분리 (`User`, `UserBody`, `UserNutritionGoal`)
 - ✓ 프로필 조회/수정, 신체 정보 등록, 영양 목표 설정 API 구현
 - ✓ 신체 정보 및 목표 기반 자동 권장 섭취량 계산 로직 구현
+- ✓ User 엔티티 필드 확장 (OAuth, 신체정보, 영양목표, 설정, 칭호장착)
 - ❌ OAuth 소셜 로그인 미구현
 - ❌ 온보딩 통합 프로세스 미구현
 - ❌ 회원 탈퇴 (Soft Delete) 물리적 정리 로직 미구현
-
-**TODO:** User 엔티티 필드 확장 필요 (OAuth + 신체정보 + 영양목표 + 설정)
 
 ### Character (캐릭터/성장) - ❌ 미구현
 
@@ -126,7 +125,7 @@ type BaseDomain struct {
   - 패널티 상태: NORMAL -> HUNGRY(미기록 2일 경과) -> STARVING(미기록 3일 경과) -> WEAKENED(미기록 5일 이상). 식사 1회 기록 시 즉시 NORMAL 복구.
   - 달성한 외형은 도감에 기록되며, 이전 외형으로 변경 가능 (가역적).
 
-### Meal (식사 기록) - ❌ 미구현
+### Meal (식사 기록) - ✓ 구현 완료
 
 **설계:**
 - 책임: 식사 등록/수정/삭제, 메뉴 검색, 즐겨찾기, 메뉴 선호도 관리, 식사 타임라인 및 캘린더 관리
@@ -140,7 +139,13 @@ type BaseDomain struct {
   - DB에 없는 메뉴 입력 시 메뉴명만 저장하고, 영양소는 유사 카테고리 평균값으로 추정 적용함.
   - 식사 기록 시 친구를 태그할 수 있으며, 태그는 친구 관계인 사용자에게만 가능함. 태그된 친구가 수락하면 양쪽 모두에게 보너스 경험치(5 EXP)가 지급됨.
 
-### Nutrition (영양소) - ❌ 미구현
+**현재 구현:**
+- ✓ 식사 기록 CRUD (`POST/GET/PATCH/DELETE /meals`)
+- ✓ 친구 태그 수락 (`POST /meals/:id/tags/:tagId/accept`)
+- ✓ MealCreated 이벤트 → 마스터리 갱신, 뱃지 조건 체크 연결
+- ❌ 메뉴 즐겨찾기 / 선호도 API 미구현
+
+### Nutrition (영양소) - ⚠️ 부분 구현
 
 **설계:**
 - 책임: 영양소 DB 연동, 섭취 비율 계산, 밸런스 피드백
@@ -148,6 +153,11 @@ type BaseDomain struct {
 - 비즈니스 규칙:
   - 일일 섭취량 통계는 매일 00시에 초기화되나, 캐릭터 성장을 위한 누적 통계는 별도로 관리함.
   - 3대 영양소(탄수화물/단백질/지방) 외에 식이섬유(fiber), 비타민 달성률(vitamin_score)을 관리하여 파츠 조합(피부색)에 반영함.
+
+**현재 구현:**
+- ✓ 오늘 영양 요약 (`GET /nutrition/today`)
+- ✓ 주간 영양 요약 (`GET /nutrition/weekly`)
+- ❌ 영양소 DB 연동 및 캐릭터 파츠 재계산 미구현
 
 ### Quest (퀘스트) - ❌ 미구현
 
@@ -161,21 +171,20 @@ type BaseDomain struct {
   - 주간 퀘스트는 매주 월요일 새벽 5시에 초기화됨.
   - 업적 퀘스트는 최초 달성 시 1회만 보상이 지급됨.
 
-### Collection (도감/뱃지) - ⚠️ 부분 구현 (Badge만)
+### Collection (도감/뱃지) - ✓ 구현 완료
 
 **설계:**
 - 책임: 먹찌 도감, 메뉴 마스터리, 뱃지, 칭호 관리, 보상 아이템 관리
 - 핵심 엔티티: CharacterCollection, Mastery, Badge, UserBadge, Title, UserTitle, Reward, UserReward
 
 **현재 구현:**
-- ✓ Badge 엔티티 및 API (`GET /collections/badges`)
-- ✓ Badge 응답 DTO (BadgeSuccessResponse/BadgeErrorResponse)
-- ❌ CharacterCollection 미구현 (먹찌 도감)
-- ❌ Mastery 미구현 (메뉴 마스터리)
-- ❌ Title/UserTitle 미구현 (칭호 관리)
-- ❌ Reward/UserReward 미구현 (보상 아이템)
-
-**TODO:** Mastery, Title, Reward 도메인 구현 필요
+- ✓ Badge 엔티티 및 API (`GET /collections/badges`, cursor 페이지네이션, acquired 필터)
+- ✓ BadgeGranter 서비스 (조건 달성 시 자동 부여, MealCreated 이벤트 연결)
+- ✓ 뱃지 시드 데이터 (`SeedBadges`)
+- ✓ CharacterCollection API (`GET /collections/characters`)
+- ✓ Mastery API (`GET /collections/mastery`, `GET /collections/mastery/:menuId`)
+- ✓ Title/UserTitle API (`GET /collections/titles`, `PATCH /collections/titles/equip`)
+- ✓ Reward/UserReward API (`GET /collections/rewards`)
 - 비즈니스 규칙:
   - 특정 메뉴를 일정 횟수 이상 섭취 시 해당 메뉴에 대한 마스터리 레벨이 상승함 (BEGINNER 1회 -> MANIA 5회 -> ARTISAN 20회 -> MASTER 50회).
   - 뱃지는 조건 달성 시 자동 부여됨.

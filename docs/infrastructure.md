@@ -107,45 +107,77 @@ backend/
 │   ├── swagger.json
 │   └── swagger.yaml
 └── internal/                        # 캡슐화된 애플리케이션 레이어
-    ├── config/                      # 설정 (DB, Redis 연결)
-    │   └── db.go
+    ├── config/                      # 설정 (DB, Redis 연결, 로거, 시드)
+    │   ├── db.go
+    │   ├── logger.go
+    │   └── seed.go                  # 뱃지 시드 데이터
     ├── domain/                      # 1. 엔티티 (Entities) 계층
     │   ├── base.go                  # BaseDomain (Sonyflake ID, 타임스탬프, Soft Delete)
-    │   ├── user.go                  # 데이터 구조 정의
-    │   ├── menu.go
-    │   ├── collection.go            # Badge, UserBadge 엔티티
-    │   └── auth.go
-    ├── usecase/                     # 2. 유스케이스 (Usecase) 계층
-    │   ├── auth.go                  # 인증 비즈니스 로직
     │   ├── user.go
-    │   ├── badge_usecase.go         # Badge 조회 로직
-    │   ├── menu_usecase.go
-    │   └── menu_usecase_test.go     # 유스케이스 단위 테스트
+    │   ├── character.go
+    │   ├── meal.go
+    │   ├── menu.go
+    │   ├── collection.go            # Badge, Mastery, Title, Reward 엔티티
+    │   ├── social.go
+    │   └── notification.go
+    ├── usecase/                     # 2. 유스케이스 (Usecase) 계층
+    │   ├── auth.go
+    │   ├── user.go
+    │   ├── meal.go
+    │   ├── menu.go
+    │   ├── badge.go
+    │   ├── badge_granter.go         # 조건 달성 시 뱃지 자동 부여
+    │   ├── mastery.go
+    │   ├── mastery_tracker.go       # 식사 기록 시 마스터리 갱신
+    │   ├── character_collection.go
+    │   ├── title.go
+    │   ├── reward.go
+    │   ├── social.go
+    │   ├── notification.go
+    │   └── *_test.go                # 유스케이스 단위 테스트 (auth, badge, menu, notification, social, user)
     ├── delivery/                    # 3. 인터페이스 어댑터 (Delivery) 계층
     │   └── http/
     │       ├── handler/             # HTTP 핸들러 (Controller)
     │       │   ├── auth.go
     │       │   ├── user.go
+    │       │   ├── meal.go          # 식사 기록 + 영양소 API
     │       │   ├── menu.go
-    │       │   ├── collection.go    # Badge API 핸들러
+    │       │   ├── collection.go    # Badge/Mastery/Title/Reward API
+    │       │   ├── social.go
+    │       │   ├── notification.go
     │       │   └── response.go      # 공통 응답 헬퍼
-    │       ├── middleware/          # 인증 및 공통 미들웨어
-    │       │   └── auth.go
+    │       ├── middleware/          # 미들웨어
+    │       │   ├── auth.go
+    │       │   └── logger.go
     │       ├── route/               # 라우팅 설정
+    │       │   ├── router.go        # 전체 라우터 통합
     │       │   ├── auth.go
     │       │   ├── user.go
+    │       │   ├── meal.go
     │       │   ├── menu.go
     │       │   ├── collection.go
-    │       │   └── router.go        # 전체 라우터 통합
+    │       │   ├── social.go
+    │       │   └── notification.go
     │       └── dto/                 # Request/Response DTO
     │           ├── auth.go
     │           ├── user.go
+    │           ├── meal.go
     │           ├── menu.go
-    │           └── collection.go    # Badge 응답 구조
+    │           ├── collection.go
+    │           ├── social.go
+    │           └── notification.go
     └── repository/                  # 4. 인프라스트럭처 (Repository) 계층
-        ├── user.go                  # User DB 연동 (GORM)
-        ├── badge_repository.go      # Badge 관련 DB 쿼리
-        └── menu_repository.go       # Menu 관련 DB 쿼리
+        ├── user.go
+        ├── meal.go
+        ├── menu.go
+        ├── badge.go
+        ├── mastery.go
+        ├── character_collection.go
+        ├── title.go
+        ├── reward.go
+        ├── daily_intake.go
+        ├── social.go
+        └── notification.go
 ```
 
 **Frontend (Flutter)**
@@ -169,12 +201,15 @@ frontend/
 │       │   │       ├── pages/
 │       │   │       ├── providers/          # Riverpod 상태 관리
 │       │   │       └── widgets/
-│       │   ├── character/                  # 캐릭터 관련
+│       │   ├── character/                  # 캐릭터 (도감, 마스터리, 뱃지, 칭호, 보상)
 │       │   ├── home/                       # 홈 화면
 │       │   ├── meal_record/                # 식사 기록
-│       │   └── social/                     # 소셜 기능
+│       │   ├── notification/               # 알림 목록 (SSE 실시간)
+│       │   ├── profile/                    # 내 프로필 (설정, 편집)
+│       │   └── social/                     # 소셜 (친구, 방명록, 검색)
 │       ├── core/                           # 공통 레이어 (모든 feature에서 사용)
 │       │   ├── constants/                  # 상수 정의
+│       │   ├── providers/                  # 공통 Riverpod 프로바이더
 │       │   ├── theme/                      # 테마, 스타일 (AppTheme)
 │       │   ├── utils/                      # 유틸 함수
 │       │   ├── widgets/                    # 공통 위젯
