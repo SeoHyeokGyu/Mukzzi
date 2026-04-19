@@ -228,7 +228,7 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
               _menuController.clear();
             },
           ),
-          const _MealListTab(),
+          _MealListTab(onAddTap: () => _tabController.animateTo(0)),
         ],
       ),
     );
@@ -599,7 +599,9 @@ class _NutritionItem extends StatelessWidget {
 // ─────────────────────────────────────────
 
 class _MealListTab extends ConsumerStatefulWidget {
-  const _MealListTab();
+  final VoidCallback? onAddTap;
+
+  const _MealListTab({this.onAddTap});
 
   @override
   ConsumerState<_MealListTab> createState() => _MealListTabState();
@@ -662,10 +664,12 @@ class _MealListTabState extends ConsumerState<_MealListTab> {
     }
 
     if (listState.records.isEmpty) {
-      return const _EmptyState(
+      return _EmptyState(
         icon: Icons.restaurant_outlined,
         message: '아직 기록된 식사가 없어요',
         sub: '첫 번째 식사를 기록해보세요',
+        actionLabel: '기록 추가',
+        onAction: widget.onAddTap,
       );
     }
 
@@ -760,9 +764,28 @@ class _MealListTabState extends ConsumerState<_MealListTab> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ref.read(mealListProvider.notifier).delete(record.id);
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: ctx,
+                builder: (confirmCtx) => AlertDialog(
+                  title: const Text('식사 기록 삭제'),
+                  content: Text('${record.menuName} 기록을 삭제하시겠어요?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(confirmCtx, false),
+                      child: const Text('취소'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(confirmCtx, true),
+                      child: const Text('삭제', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true && ctx.mounted) {
+                Navigator.pop(ctx);
+                ref.read(mealListProvider.notifier).delete(record.id);
+              }
             },
             child: const Text('삭제', style: TextStyle(color: Colors.red)),
           ),
@@ -826,11 +849,15 @@ class _EmptyState extends StatelessWidget {
   final IconData icon;
   final String message;
   final String sub;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   const _EmptyState({
     required this.icon,
     required this.message,
     required this.sub,
+    this.actionLabel,
+    this.onAction,
   });
 
   @override
@@ -850,6 +877,13 @@ class _EmptyState extends StatelessWidget {
           Text(sub,
               style: const TextStyle(
                   fontSize: 13, color: AppColors.textTertiary)),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: onAction,
+              child: Text(actionLabel!),
+            ),
+          ],
         ],
       ),
     );

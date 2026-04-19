@@ -8,6 +8,7 @@ class BentoCard extends StatelessWidget {
   final Gradient? gradient;
   final BorderRadius? borderRadius;
   final List<BoxShadow>? shadows;
+  final VoidCallback? onTap;
 
   const BentoCard({
     super.key,
@@ -17,20 +18,36 @@ class BentoCard extends StatelessWidget {
     this.gradient,
     this.borderRadius,
     this.shadows,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final radius = borderRadius ?? BorderRadius.circular(20);
+    final container = Container(
       height: height,
       padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: gradient == null ? AppColors.white : null,
+        color: gradient == null ? AppColors.surface : null,
         gradient: gradient,
-        borderRadius: borderRadius ?? BorderRadius.circular(20),
+        borderRadius: radius,
         boxShadow: shadows ?? AppColors.cardShadow,
       ),
       child: child,
+    );
+
+    if (onTap == null) return container;
+
+    return ClipRRect(
+      borderRadius: radius,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: radius,
+          onTap: onTap,
+          child: container,
+        ),
+      ),
     );
   }
 }

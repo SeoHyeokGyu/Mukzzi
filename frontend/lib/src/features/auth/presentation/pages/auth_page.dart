@@ -43,6 +43,14 @@ class _AuthPageState extends ConsumerState<AuthPage> {
             _passwordController.text,
           );
       if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('반가워요! 로그인이 완료되었습니다.'),
+            backgroundColor: AppColors.orange,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
         context.go('/home');
       }
     } else {
@@ -143,8 +151,10 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            if (_isLogin)
-                              Container(height: 3, color: AppColors.orange),
+                            Container(
+                              height: 3,
+                              color: _isLogin ? AppColors.orange : Colors.transparent,
+                            ),
                           ],
                         ),
                       ),
@@ -168,8 +178,10 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            if (!_isLogin)
-                              Container(height: 3, color: AppColors.orange),
+                            Container(
+                              height: 3,
+                              color: !_isLogin ? AppColors.orange : Colors.transparent,
+                            ),
                           ],
                         ),
                       ),

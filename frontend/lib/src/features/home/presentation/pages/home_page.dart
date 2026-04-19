@@ -36,22 +36,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void initState() {
     super.initState();
-    // 진입 시 환영 메시지 노출 (필요 시)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        final user = ref.read(userProvider).user;
-        if (user != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('반가워요! 로그인이 완료되었습니다.'),
-              backgroundColor: AppColors.orange,
-              behavior: SnackBarBehavior.floating,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      }
-    });
   }
 
   @override
@@ -572,22 +556,20 @@ class _HomePageState extends ConsumerState<HomePage> {
           child: Semantics(
             label: '메뉴 선택',
             button: true,
-            child: GestureDetector(
+            child: BentoCard(
+              height: 100,
+              gradient: AppColors.primaryGradient,
+              padding: const EdgeInsets.all(12),
               onTap: () => ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('준비 중입니다')),
               ),
-              child: const BentoCard(
-                height: 100,
-                gradient: AppColors.primaryGradient,
-                padding: EdgeInsets.all(12),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.restaurant_menu, color: Colors.white, size: 30, semanticLabel: '메뉴'),
-                    SizedBox(height: 8),
-                    Text('메뉴 선택', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                  ],
-                ),
+              child: const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.restaurant_menu, color: Colors.white, size: 30, semanticLabel: '메뉴'),
+                  SizedBox(height: 8),
+                  Text('메뉴 선택', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                ],
               ),
             ),
           ),
@@ -597,20 +579,18 @@ class _HomePageState extends ConsumerState<HomePage> {
           child: Semantics(
             label: '식사 기록 추가',
             button: true,
-            child: GestureDetector(
+            child: BentoCard(
+              height: 100,
+              gradient: AppColors.primaryGradient,
+              padding: const EdgeInsets.all(12),
               onTap: () => context.go('/meal-record'),
-              child: const BentoCard(
-                height: 100,
-                gradient: AppColors.primaryGradient,
-                padding: EdgeInsets.all(12),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_circle_outline, color: Colors.white, size: 30, semanticLabel: '추가'),
-                    SizedBox(height: 8),
-                    Text('식사 기록', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                  ],
-                ),
+              child: const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add_circle_outline, color: Colors.white, size: 30, semanticLabel: '추가'),
+                  SizedBox(height: 8),
+                  Text('식사 기록', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                ],
               ),
             ),
           ),

@@ -109,19 +109,19 @@ class CharacterPage extends StatelessWidget {
                   _EquipmentItem(
                     label: '칭호',
                     value: '없음',
-                    onTap: () => context.push('/profile/titles'),
+                    onTap: () => context.go('/profile/titles'),
                   ),
                   const Divider(),
                   _EquipmentItem(
                     label: '배경',
                     value: '빈 방',
-                    onTap: () => context.push('/profile/rewards'),
+                    onTap: () => context.go('/profile/rewards'),
                   ),
                   const Divider(),
                   _EquipmentItem(
                     label: '악세서리',
                     value: '없음',
-                    onTap: () => context.push('/profile/rewards'),
+                    onTap: () => context.go('/profile/rewards'),
                   ),
                 ],
               ),
@@ -135,10 +135,26 @@ class CharacterPage extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             BentoCard(
-              child: _EquipmentItem(
-                label: '먹찌 도감',
-                value: '',
-                onTap: () => context.push('/character/collection'),
+              child: Column(
+                children: [
+                  _EquipmentItem(
+                    label: '먹찌 도감',
+                    value: '',
+                    onTap: () => context.push('/character/collection'),
+                  ),
+                  const Divider(),
+                  _EquipmentItem(
+                    label: '먹부림 도감',
+                    value: '',
+                    onTap: () => context.push('/meal-record/masteries'),
+                  ),
+                  const Divider(),
+                  _EquipmentItem(
+                    label: '뱃지',
+                    value: '',
+                    onTap: () => context.go('/profile/badges'),
+                  ),
+                ],
               ),
             ),
           ],
