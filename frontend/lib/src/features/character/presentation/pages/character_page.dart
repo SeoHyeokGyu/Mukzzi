@@ -146,7 +146,7 @@ class CharacterPage extends StatelessWidget {
                   _EquipmentItem(
                     label: '먹부림 도감',
                     value: '',
-                    onTap: () => context.push('/meal-record/masteries'),
+                    onTap: () => context.push('/profile/masteries'),
                   ),
                   const Divider(),
                   _EquipmentItem(

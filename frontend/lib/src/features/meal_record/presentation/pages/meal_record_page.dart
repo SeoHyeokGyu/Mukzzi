@@ -204,7 +204,7 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
           IconButton(
             tooltip: '먹부림 도감',
             icon: const Icon(Icons.menu_book_outlined),
-            onPressed: () => context.push('/meal-record/masteries'),
+            onPressed: () => context.push('/profile/masteries'),
           ),
         ],
         bottom: TabBar(

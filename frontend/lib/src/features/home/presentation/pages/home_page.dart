@@ -63,7 +63,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               duration: const Duration(seconds: 4),
               action: SnackBarAction(
                 label: '보기',
-                onPressed: () => context.push('/home/notifications'),
+                onPressed: () => context.push('/notifications'),
               ),
             ),
           );
@@ -94,12 +94,17 @@ class _HomePageState extends ConsumerState<HomePage> {
       appBar: AppBar(
         title: const Text('먹찌'),
         actions: [
+          IconButton(
+            tooltip: '설정',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push('/profile/settings'),
+          ),
           Stack(
             children: [
               IconButton(
                 tooltip: '알림',
                 icon: const Icon(Icons.notifications_outlined),
-                onPressed: () => context.push('/home/notifications'),
+                onPressed: () => context.push('/notifications'),
               ),
               if (unreadCount > 0)
                 Positioned(
