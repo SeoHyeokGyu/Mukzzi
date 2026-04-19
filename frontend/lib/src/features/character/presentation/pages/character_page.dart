@@ -107,15 +107,21 @@ class CharacterPage extends StatelessWidget {
               child: Column(
                 children: [
                   _EquipmentItem(
+                    label: '칭호',
+                    value: '없음',
+                    onTap: () => context.push('/profile/titles'),
+                  ),
+                  const Divider(),
+                  _EquipmentItem(
                     label: '배경',
                     value: '빈 방',
-                    onTap: () {},
+                    onTap: () => context.push('/profile/rewards'),
                   ),
                   const Divider(),
                   _EquipmentItem(
                     label: '악세서리',
                     value: '없음',
-                    onTap: () {},
+                    onTap: () => context.push('/profile/rewards'),
                   ),
                 ],
               ),

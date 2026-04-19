@@ -99,11 +99,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   name: 'notifications',
                   builder: (context, state) => const NotificationListPage(),
                 ),
-                GoRoute(
-                  path: 'settings',
-                  name: 'settings',
-                  builder: (context, state) => const SettingsPage(),
-                ),
               ],
             ),
           ]),

@@ -164,15 +164,12 @@ class _FriendListTabState extends ConsumerState<_FriendListTab> {
                                       ),
                                       PopupMenuButton<String>(
                                         onSelected: (value) async {
-                                          if (value == 'profile') {
-                                            context.push('/social/profile/${friend.id}');
-                                          } else if (value == 'delete') {
+                                          if (value == 'delete') {
                                             await ref.read(socialRepositoryProvider).deleteFriend(friend.id);
                                             ref.invalidate(friendsListProvider);
                                           }
                                         },
                                         itemBuilder: (context) => const [
-                                          PopupMenuItem(value: 'profile', child: Text('프로필 보기')),
                                           PopupMenuItem(value: 'delete', child: Text('친구 삭제')),
                                         ],
                                       ),

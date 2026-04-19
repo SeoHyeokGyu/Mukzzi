@@ -110,11 +110,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       appBar: AppBar(
         title: const Text('먹찌'),
         actions: [
-          IconButton(
-            tooltip: '설정',
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.push('/home/settings'),
-          ),
           Stack(
             children: [
               IconButton(

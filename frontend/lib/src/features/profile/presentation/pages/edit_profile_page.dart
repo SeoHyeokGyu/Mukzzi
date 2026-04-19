@@ -72,7 +72,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     final userState = ref.watch(userProvider);
 
     return GradientScaffold(
-      appBar: AppBar(title: const Text('프로필 설정')),
+      appBar: AppBar(title: const Text('프로필 편집')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(

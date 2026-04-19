@@ -148,6 +148,7 @@ class _ProfileHeader extends StatelessWidget {
                 ),
               ),
               IconButton(
+                tooltip: '프로필 편집',
                 onPressed: onEditTap,
                 icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.textTertiary),
               ),

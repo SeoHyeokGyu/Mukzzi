@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
@@ -98,12 +97,6 @@ class SettingsPage extends ConsumerWidget {
             padding: EdgeInsets.zero,
             child: Column(
               children: [
-                _SettingsItem(
-                  icon: Icons.person_outline,
-                  label: '프로필 편집',
-                  onTap: () => context.push('/profile/edit'),
-                ),
-                const _Divider(),
                 _SettingsItem(
                   icon: Icons.logout,
                   label: '로그아웃',
