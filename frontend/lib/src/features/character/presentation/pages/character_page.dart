@@ -109,19 +109,19 @@ class CharacterPage extends StatelessWidget {
                   _EquipmentItem(
                     label: '칭호',
                     value: '없음',
-                    onTap: () => context.go('/profile/titles'),
+                    onTap: () => context.push('/character/titles'),
                   ),
                   const Divider(),
                   _EquipmentItem(
                     label: '배경',
                     value: '빈 방',
-                    onTap: () => context.go('/profile/rewards'),
+                    onTap: () => context.push('/character/rewards'),
                   ),
                   const Divider(),
                   _EquipmentItem(
                     label: '악세서리',
                     value: '없음',
-                    onTap: () => context.go('/profile/rewards'),
+                    onTap: () => context.push('/character/rewards'),
                   ),
                 ],
               ),
@@ -146,13 +146,13 @@ class CharacterPage extends StatelessWidget {
                   _EquipmentItem(
                     label: '먹부림 도감',
                     value: '',
-                    onTap: () => context.push('/profile/masteries'),
+                    onTap: () => context.push('/meal-record/masteries'),
                   ),
                   const Divider(),
                   _EquipmentItem(
                     label: '뱃지',
                     value: '',
-                    onTap: () => context.go('/profile/badges'),
+                    onTap: () => context.push('/profile/badges'),
                   ),
                 ],
               ),
