@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers/common_providers.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -199,6 +200,13 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
     return GradientScaffold(
       appBar: AppBar(
         title: const Text('식사 기록'),
+        actions: [
+          IconButton(
+            tooltip: '먹부림 도감',
+            icon: const Icon(Icons.menu_book_outlined),
+            onPressed: () => context.push('/meal-record/masteries'),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [

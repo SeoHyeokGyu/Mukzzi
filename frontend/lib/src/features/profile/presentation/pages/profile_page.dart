@@ -18,7 +18,16 @@ class ProfilePage extends ConsumerWidget {
     }
 
     return GradientScaffold(
-      appBar: AppBar(title: const Text('프로필')),
+      appBar: AppBar(
+        title: const Text('프로필'),
+        actions: [
+          IconButton(
+            tooltip: '설정',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push('/profile/settings'),
+          ),
+        ],
+      ),
       body: userState.isLoading
           ? const Center(child: CircularProgressIndicator())
           : userState.error != null && userState.user == null
@@ -30,6 +39,9 @@ class ProfilePage extends ConsumerWidget {
                       username: userState.user?.username ?? '먹찌 유저',
                       nickname: userState.user?.nickname ?? '부화 단계',
                       onEditTap: () => context.push('/profile/edit'),
+                      // TODO: (cjkang) 캐릭터 API 연동 후 실제 값으로 교체
+                      streakDays: null,
+                      totalMeals: null,
                     ),
                     const SizedBox(height: 20),
                     const _SectionLabel(label: '컬렉션'),
@@ -87,54 +99,110 @@ class _ProfileHeader extends StatelessWidget {
   final String username;
   final String nickname;
   final VoidCallback onEditTap;
+  final int? streakDays;
+  final int? totalMeals;
 
   const _ProfileHeader({
     required this.username,
     required this.nickname,
     required this.onEditTap,
+    this.streakDays,
+    this.totalMeals,
   });
 
   @override
   Widget build(BuildContext context) {
     return BentoCard(
       padding: const EdgeInsets.all(20),
-      child: Row(
+      child: Column(
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: const BoxDecoration(
-              color: AppColors.softPeach,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.egg_outlined, size: 34, color: AppColors.orange),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  nickname,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
+          Row(
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                  color: AppColors.softPeach,
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  username,
-                  style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                child: const Icon(Icons.egg_outlined, size: 34, color: AppColors.orange),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      nickname,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      username,
+                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              IconButton(
+                onPressed: onEditTap,
+                icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.textTertiary),
+              ),
+            ],
           ),
-          IconButton(
-            onPressed: onEditTap,
-            icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.textTertiary),
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: AppColors.divider),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _StatItem(
+                  label: '연속 기록',
+                  value: streakDays != null ? '$streakDays일' : '–',
+                ),
+              ),
+              Container(width: 1, height: 32, color: AppColors.divider),
+              Expanded(
+                child: _StatItem(
+                  label: '누적 기록',
+                  value: totalMeals != null ? '$totalMeals끼' : '–',
+                ),
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StatItem({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: AppColors.orange,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        ),
+      ],
     );
   }
 }

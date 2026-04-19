@@ -113,6 +113,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               path: '/meal-record',
               name: 'meal-record',
               builder: (context, state) => const MealRecordPage(),
+              routes: [
+                GoRoute(
+                  path: 'masteries',
+                  name: 'meal-masteries',
+                  builder: (context, state) => const MasteryListPage(),
+                ),
+              ],
             ),
           ]),
           // 3. 먹찌(캐릭터) 탭
@@ -122,11 +129,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               name: 'character',
               builder: (context, state) => const CharacterPage(),
               routes: [
-                GoRoute(
-                  path: 'masteries',
-                  name: 'character-masteries',
-                  builder: (context, state) => const MasteryListPage(),
-                ),
                 GoRoute(
                   path: 'collection',
                   name: 'character-collection',
@@ -178,6 +180,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   path: 'rewards',
                   name: 'profile-rewards',
                   builder: (context, state) => const RewardListPage(),
+                ),
+                GoRoute(
+                  path: 'settings',
+                  name: 'profile-settings',
+                  builder: (context, state) => const SettingsPage(),
                 ),
               ],
             ),

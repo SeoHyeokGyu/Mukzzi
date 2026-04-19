@@ -578,7 +578,9 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: '메뉴 선택',
             button: true,
             child: GestureDetector(
-              onTap: () => context.go('/meal-record'),
+              onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('준비 중입니다')),
+              ),
               child: const BentoCard(
                 height: 100,
                 gradient: AppColors.primaryGradient,

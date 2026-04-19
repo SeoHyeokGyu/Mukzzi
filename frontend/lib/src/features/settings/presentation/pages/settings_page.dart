@@ -33,28 +33,28 @@ class SettingsPage extends ConsumerWidget {
                 _SettingsItem(
                   icon: Icons.local_fire_department_outlined,
                   label: '일일 칼로리 목표',
-                  value: '2,000 kcal',
+                  value: '미설정',
                   onTap: () => _showComingSoon(context),
                 ),
                 const _Divider(),
                 _SettingsItem(
                   icon: Icons.egg_alt_outlined,
                   label: '단백질 목표',
-                  value: '60 g',
+                  value: '미설정',
                   onTap: () => _showComingSoon(context),
                 ),
                 const _Divider(),
                 _SettingsItem(
                   icon: Icons.grain_outlined,
                   label: '탄수화물 목표',
-                  value: '300 g',
+                  value: '미설정',
                   onTap: () => _showComingSoon(context),
                 ),
                 const _Divider(),
                 _SettingsItem(
                   icon: Icons.opacity_outlined,
                   label: '지방 목표',
-                  value: '60 g',
+                  value: '미설정',
                   onTap: () => _showComingSoon(context),
                 ),
               ],
@@ -107,7 +107,6 @@ class SettingsPage extends ConsumerWidget {
                 _SettingsItem(
                   icon: Icons.logout,
                   label: '로그아웃',
-                  valueColor: AppColors.orange,
                   onTap: () => _showLogoutDialog(context, ref),
                 ),
                 const _Divider(),
@@ -144,6 +143,13 @@ class SettingsPage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 32),
+          const Center(
+            child: Text(
+              'v1.0.0',
+              style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
+            ),
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );

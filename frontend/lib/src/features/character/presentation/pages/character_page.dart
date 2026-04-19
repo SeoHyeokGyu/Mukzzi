@@ -122,71 +122,18 @@ class CharacterPage extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // 메뉴 기록
+            // 도감
             Text(
-              '먹부림 기록',
+              '도감',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 12),
             BentoCard(
-              child: Column(
-                children: [
-                  _EquipmentItem(
-                    label: '마스터리 도감',
-                    value: '',
-                    onTap: () => context.push('/character/masteries'),
-                  ),
-                  const Divider(),
-                  _EquipmentItem(
-                    label: '먹찌 도감',
-                    value: '',
-                    onTap: () => context.push('/character/collection'),
-                  ),
-                ],
+              child: _EquipmentItem(
+                label: '먹찌 도감',
+                value: '',
+                onTap: () => context.push('/character/collection'),
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // 도감
-            Text(
-              '달성한 외형',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 12),
-            GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                childAspectRatio: 1,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-              ),
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 6,
-              itemBuilder: (context, index) {
-                return Semantics(
-                  label: '외형 ${index + 1} 선택',
-                  button: true,
-                  child: GestureDetector(
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('외형이 변경되었습니다')),
-                      );
-                    },
-                    child: BentoCard(
-                      borderRadius: BorderRadius.circular(12),
-                      padding: EdgeInsets.zero,
-                      child: Center(
-                        child: Text(
-                          '외형\n${index + 1}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
             ),
           ],
         ),
