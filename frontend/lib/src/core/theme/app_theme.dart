@@ -49,9 +49,9 @@ class AppColors {
   static const Color textTertiary = Color(0xFF8585A5);
   static const Color divider = Color(0xFF2A2A38);
 
-  static const Color proteinColor = Color(0xFF4CAF50);
-  static const Color carbsColor = Color(0xFF5B9CF6);
-  static const Color fatColor = Color(0xFFFF9800);
+  static const Color proteinColor = Color(0xFF7BD3FF);
+  static const Color carbsColor = Color(0xFFFFB347);
+  static const Color fatColor = Color(0xFFFF6B9D);
 
   static const Color surfaceDark = Color(0xFF1A1A22);
   static const Color iconDisabled = Color(0x66858585);

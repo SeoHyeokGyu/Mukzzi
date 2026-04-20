@@ -143,6 +143,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               builder: (context, state) => const SocialPage(),
               routes: [
                 GoRoute(
+                  path: 'friends',
+                  name: 'social-friends',
+                  builder: (context, state) => const FriendManagePage(),
+                ),
+                GoRoute(
                   path: 'profile/:userId',
                   name: 'other-profile',
                   builder: (context, state) => OtherProfilePage(

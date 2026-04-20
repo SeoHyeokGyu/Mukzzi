@@ -255,30 +255,16 @@ class _HomePageState extends ConsumerState<HomePage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.45),
+                  color: _stateIndicatorColor(_mockState),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: _stateIndicatorColor(_mockState),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      _mockState.label,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: tokens.heroText,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  _mockState.label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A1A1A),
+                  ),
                 ),
               ),
             ],
@@ -361,8 +347,15 @@ class _HomePageState extends ConsumerState<HomePage> {
             button: true,
             child: BentoCard(
               gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(tokens.rItem),
+              borderRadius: BorderRadius.circular(tokens.rCard),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              shadows: [
+                BoxShadow(
+                  color: tokens.primary.withValues(alpha: 0.35),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
               onTap: () => context.go('/meal-record'),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -384,7 +377,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: '사진 촬영',
             button: true,
             child: BentoCard(
-              borderRadius: BorderRadius.circular(tokens.rItem),
+              borderRadius: BorderRadius.circular(tokens.rCard),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               onTap: () => ScaffoldMessenger.of(context)
                   .showSnackBar(const SnackBar(content: Text('준비 중입니다'))),
@@ -446,13 +439,27 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ],
                   ),
                 ),
-                Text(
-                  '${(_caloriesConsumed / _caloriesGoal * 100).round()}%',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: tokens.primary,
-                  ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${_caloriesConsumed.toInt()}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: tokens.primary,
+                        height: 1.1,
+                      ),
+                    ),
+                    Text(
+                      'kcal',
+                      style: TextStyle(
+                        fontSize: 8,
+                        color: tokens.textMuted,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -537,12 +544,26 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ],
                     ),
                   ),
-                  Text(
-                    '${meal.kcal}kcal',
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: tokens.primary,
+                  RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '${meal.kcal}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: tokens.textPrimary,
+                          ),
+                        ),
+                        TextSpan(
+                          text: ' kcal',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                            color: tokens.textMuted,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

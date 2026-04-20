@@ -361,7 +361,7 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
             showSelectedIcon: false,
             style: SegmentedButton.styleFrom(
               textStyle: const TextStyle(fontSize: 15),
-              selectedBackgroundColor: AppColors.orange,
+              selectedBackgroundColor: Theme.of(context).extension<AppColorTokens>()!.primary,
               selectedForegroundColor: Colors.white,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: VisualDensity.comfortable,
@@ -417,16 +417,19 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
           ),
           if (warning != null) ...[
             const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.info_outline,
-                    size: 14, color: AppColors.textTertiary),
-                const SizedBox(width: 4),
-                Text(warning,
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.textTertiary)),
-              ],
-            ),
+            Builder(builder: (context) {
+              final tokens = Theme.of(context).extension<AppColorTokens>()!;
+              return Row(
+                children: [
+                  Icon(Icons.info_outline,
+                      size: 14, color: tokens.textMuted),
+                  const SizedBox(width: 4),
+                  Text(warning,
+                      style: TextStyle(
+                          fontSize: 12, color: tokens.textMuted)),
+                ],
+              );
+            }),
           ],
           const SizedBox(height: 24),
 
@@ -435,18 +438,21 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('인분', style: Theme.of(context).textTheme.titleMedium),
-              Text(
-                '${_servingSize.toStringAsFixed(1)}인분',
-                style: const TextStyle(
-                    color: AppColors.orange, fontWeight: FontWeight.w600),
-              ),
+              Builder(builder: (context) {
+                final tokens = Theme.of(context).extension<AppColorTokens>()!;
+                return Text(
+                  '${_servingSize.toStringAsFixed(1)}인분',
+                  style: TextStyle(
+                      color: tokens.primary, fontWeight: FontWeight.w600),
+                );
+              }),
             ],
           ),
           Slider(
             value: _servingSize,
             min: 0.5,
-            max: 3.0,
-            divisions: 5,
+            max: 1.5,
+            divisions: 2,
             label: '${_servingSize.toStringAsFixed(1)}인분',
             onChanged: (v) => setState(() => _servingSize = v),
           ),
@@ -458,9 +464,10 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
               Text('날씨 / 기분',
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(width: 8),
-              const Text('선택사항',
+              Text('선택사항',
                   style: TextStyle(
-                      fontSize: 12, color: AppColors.textTertiary)),
+                      fontSize: 12,
+                      color: Theme.of(context).extension<AppColorTokens>()!.textMuted)),
             ],
           ),
           const SizedBox(height: 12),
@@ -545,10 +552,11 @@ class _NutritionPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.softPeach,
+        color: tokens.primaryBg,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -580,15 +588,16 @@ class _NutritionItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
     return Column(
       children: [
         Text(value,
-            style: const TextStyle(
-                fontWeight: FontWeight.w700, color: AppColors.orange)),
+            style: TextStyle(
+                fontWeight: FontWeight.w700, color: tokens.primary)),
         const SizedBox(height: 2),
         Text(label,
-            style: const TextStyle(
-                fontSize: 11, color: AppColors.textTertiary)),
+            style: TextStyle(
+                fontSize: 11, color: tokens.textMuted)),
       ],
     );
   }
@@ -644,15 +653,16 @@ class _MealListTabState extends ConsumerState<_MealListTab> {
     }
 
     if (listState.error != null && listState.records.isEmpty) {
+      final tokens = Theme.of(context).extension<AppColorTokens>()!;
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: AppColors.orange),
+            Icon(Icons.error_outline, size: 48, color: tokens.primary),
             const SizedBox(height: 12),
             Text(listState.error!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary)),
+                style: TextStyle(color: tokens.textSub)),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => ref.read(mealListProvider.notifier).refresh(),
@@ -709,8 +719,9 @@ class _MealListTabState extends ConsumerState<_MealListTab> {
                       ),
                     Text(
                       '${record.servingSize.toStringAsFixed(1)}인분',
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.textTertiary),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).extension<AppColorTokens>()!.textMuted),
                     ),
                   ],
                 ),
@@ -809,15 +820,16 @@ class _MealTypeIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
     final type = MealTypeHelper.fromString(mealType);
     return Container(
       width: 44,
       height: 44,
       decoration: BoxDecoration(
-        color: AppColors.softPeach,
+        color: tokens.primaryBg,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Icon(type.icon, color: AppColors.orange, size: 22),
+      child: Icon(type.icon, color: tokens.primary, size: 22),
     );
   }
 }
@@ -829,6 +841,7 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -836,7 +849,7 @@ class _DetailRow extends StatelessWidget {
           SizedBox(
             width: 72,
             child: Text(label,
-                style: const TextStyle(color: AppColors.textTertiary)),
+                style: TextStyle(color: tokens.textMuted)),
           ),
           Expanded(child: Text(value)),
         ],
@@ -862,21 +875,22 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 64, color: AppColors.textTertiary),
+          Icon(icon, size: 64, color: tokens.textMuted),
           const SizedBox(height: 16),
           Text(message,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
-                  ?.copyWith(color: AppColors.textSecondary)),
+                  ?.copyWith(color: tokens.textSub)),
           const SizedBox(height: 6),
           Text(sub,
-              style: const TextStyle(
-                  fontSize: 13, color: AppColors.textTertiary)),
+              style: TextStyle(
+                  fontSize: 13, color: tokens.textMuted)),
           if (actionLabel != null && onAction != null) ...[
             const SizedBox(height: 20),
             FilledButton(

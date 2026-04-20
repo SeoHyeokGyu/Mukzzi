@@ -41,11 +41,10 @@ class CharacterPage extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
               child: Column(
                 children: [
-                  // 상태 뱃지 행
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _badge('Lv.$_mockLevel', tokens),
+                      _levelBadge('Lv.$_mockLevel', tokens),
                       _statePill(_mockState, tokens),
                     ],
                   ),
@@ -66,7 +65,6 @@ class CharacterPage extends ConsumerWidget {
                     style: TextStyle(fontSize: 13, color: tokens.heroTextSub),
                   ),
                   const SizedBox(height: 16),
-                  // XP 바
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -95,33 +93,39 @@ class CharacterPage extends ConsumerWidget {
             // 스탯 그리드
             Text('스탯', style: _sectionStyle(context, tokens)),
             const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(child: _StatTile(label: '레벨', value: '$_mockLevel', icon: Icons.star_outline, tokens: tokens)),
-                const SizedBox(width: 10),
-                Expanded(child: _StatTile(label: '경험치', value: '${_mockXp.toInt()}', icon: Icons.bolt_outlined, tokens: tokens)),
-                const SizedBox(width: 10),
-                Expanded(child: _StatTile(label: '상태', value: _mockState.label, icon: Icons.favorite_outline, tokens: tokens)),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // 파츠 조합
-            Text('파츠 조합', style: _sectionStyle(context, tokens)),
-            const SizedBox(height: 10),
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 1.3,
+              childAspectRatio: 1.6,
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
               children: [
-                _PartCard(icon: Icons.person_outline,           label: '체형',  value: '보통',   tokens: tokens),
-                _PartCard(icon: Icons.fitness_center,           label: '근육',  value: '보통',   tokens: tokens),
-                _PartCard(icon: Icons.palette_outlined,         label: '피부색', value: '건강',  tokens: tokens),
-                _PartCard(icon: Icons.sentiment_satisfied_outlined, label: '표정', value: '기분좋음', tokens: tokens),
+                _StatProgressTile(label: '포만감',    value: 68, color: tokens.primary,      icon: Icons.restaurant_outlined, tokens: tokens),
+                _StatProgressTile(label: '활력',     value: 82, color: const Color(0xFF3DD68C), icon: Icons.bolt_outlined,       tokens: tokens),
+                _StatProgressTile(label: '영양균형',  value: 74, color: const Color(0xFF7BD3FF), icon: Icons.favorite_outline,    tokens: tokens),
+                _StatProgressTile(label: '친밀도',   value: 91, color: const Color(0xFFFF8FA3), icon: Icons.star_outline,         tokens: tokens),
               ],
+            ),
+            const SizedBox(height: 24),
+
+            // 진화 단계
+            Text('진화 단계', style: _sectionStyle(context, tokens)),
+            const SizedBox(height: 10),
+            BentoCard(
+              borderRadius: BorderRadius.circular(tokens.rCard),
+              padding: const EdgeInsets.all(18),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _EvolutionStage(label: '알',    minLevel: 1,  current: _mockLevel == 1, done: _mockLevel > 1,  tokens: tokens),
+                  _EvolutionStage(label: '아기',   minLevel: 3,  current: _mockLevel >= 3 && _mockLevel < 7, done: _mockLevel >= 7,  tokens: tokens),
+                  _EvolutionStage(label: '청소년', minLevel: 7,  current: _mockLevel >= 7 && _mockLevel < 15, done: _mockLevel >= 15, tokens: tokens),
+                  _EvolutionStage(label: '성체',   minLevel: 15, current: _mockLevel >= 15 && _mockLevel < 30, done: _mockLevel >= 30, tokens: tokens),
+                  _EvolutionStage(label: '전설',   minLevel: 30, current: _mockLevel >= 30, done: false, tokens: tokens),
+                ],
+              ),
             ),
             const SizedBox(height: 24),
 
@@ -132,11 +136,11 @@ class CharacterPage extends ConsumerWidget {
               borderRadius: BorderRadius.circular(tokens.rCard),
               child: Column(
                 children: [
-                  _EquipmentItem(label: '칭호',   value: '없음',  onTap: () => context.push('/character/titles'),  tokens: tokens),
-                  const Divider(height: 1),
-                  _EquipmentItem(label: '배경',   value: '빈 방', onTap: () => context.push('/character/rewards'), tokens: tokens),
-                  const Divider(height: 1),
-                  _EquipmentItem(label: '악세서리', value: '없음', onTap: () => context.push('/character/rewards'), tokens: tokens),
+                  _EquipmentItem(label: '칭호',    value: '없음',  onTap: () => context.push('/character/titles'),  tokens: tokens),
+                  Divider(height: 1, color: tokens.primary.withValues(alpha: 0.08)),
+                  _EquipmentItem(label: '배경',    value: '빈 방', onTap: () => context.push('/character/rewards'), tokens: tokens),
+                  Divider(height: 1, color: tokens.primary.withValues(alpha: 0.08)),
+                  _EquipmentItem(label: '악세서리', value: '없음',  onTap: () => context.push('/character/rewards'), tokens: tokens),
                 ],
               ),
             ),
@@ -149,11 +153,11 @@ class CharacterPage extends ConsumerWidget {
               borderRadius: BorderRadius.circular(tokens.rCard),
               child: Column(
                 children: [
-                  _EquipmentItem(label: '먹찌 도감',  value: '', onTap: () => context.push('/character/collection'),   tokens: tokens),
-                  const Divider(height: 1),
-                  _EquipmentItem(label: '먹부림 도감', value: '', onTap: () => context.push('/meal-record/masteries'), tokens: tokens),
-                  const Divider(height: 1),
-                  _EquipmentItem(label: '뱃지',       value: '', onTap: () => context.push('/profile/badges'),         tokens: tokens),
+                  _EquipmentItem(label: '먹찌 도감',   value: '', onTap: () => context.push('/character/collection'),   tokens: tokens),
+                  Divider(height: 1, color: tokens.primary.withValues(alpha: 0.08)),
+                  _EquipmentItem(label: '먹부림 도감',  value: '', onTap: () => context.push('/meal-record/masteries'), tokens: tokens),
+                  Divider(height: 1, color: tokens.primary.withValues(alpha: 0.08)),
+                  _EquipmentItem(label: '뱃지',        value: '', onTap: () => context.push('/profile/badges'),         tokens: tokens),
                 ],
               ),
             ),
@@ -164,29 +168,26 @@ class CharacterPage extends ConsumerWidget {
     );
   }
 
-  TextStyle _sectionStyle(BuildContext context, AppColorTokens tokens) {
-    return Theme.of(context).textTheme.titleMedium!.copyWith(
-      fontWeight: FontWeight.w700,
-      color: tokens.textPrimary,
-    );
-  }
+  TextStyle _sectionStyle(BuildContext context, AppColorTokens tokens) =>
+      Theme.of(context).textTheme.titleMedium!.copyWith(
+        fontWeight: FontWeight.w700,
+        color: tokens.textPrimary,
+      );
 
-  Widget _badge(String text, AppColorTokens tokens) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: tokens.heroText),
-      ),
-    );
-  }
+  Widget _levelBadge(String text, AppColorTokens tokens) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    decoration: BoxDecoration(
+      color: Colors.black.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Text(
+      text,
+      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: tokens.heroText),
+    ),
+  );
 
   Widget _statePill(CharacterState state, AppColorTokens tokens) {
-    final dotColor = switch (state) {
+    final stateColor = switch (state) {
       CharacterState.happy    => const Color(0xFFFF85A1),
       CharacterState.hungry   => const Color(0xFFFFCC33),
       CharacterState.starving => const Color(0xFFFF4444),
@@ -196,77 +197,141 @@ class CharacterPage extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.45),
+        color: stateColor,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
+      child: Text(
+        state.label,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A)),
+      ),
+    );
+  }
+}
+
+class _StatProgressTile extends StatelessWidget {
+  final String label;
+  final int value;
+  final Color color;
+  final IconData icon;
+  final AppColorTokens tokens;
+
+  const _StatProgressTile({
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.icon,
+    required this.tokens,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return BentoCard(
+      borderRadius: BorderRadius.circular(tokens.rCard),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 14, color: color),
+              ),
+              const SizedBox(width: 8),
+              Text(label, style: TextStyle(fontSize: 12, color: tokens.textSub, fontWeight: FontWeight.w500)),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RichText(
+                text: TextSpan(children: [
+                  TextSpan(
+                    text: '$value',
+                    style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w800, color: tokens.textPrimary),
+                  ),
+                  TextSpan(
+                    text: '/100',
+                    style: TextStyle(fontSize: 11, color: tokens.textMuted),
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: LinearProgressIndicator(
+                  value: value / 100,
+                  minHeight: 4,
+                  backgroundColor: tokens.primary.withValues(alpha: 0.1),
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EvolutionStage extends StatelessWidget {
+  final String label;
+  final int minLevel;
+  final bool current;
+  final bool done;
+  final AppColorTokens tokens;
+
+  const _EvolutionStage({
+    required this.label,
+    required this.minLevel,
+    required this.current,
+    required this.done,
+    required this.tokens,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 7, height: 7, decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle)),
-          const SizedBox(width: 5),
-          Text(state.label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: tokens.heroText)),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatTile extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final AppColorTokens tokens;
-
-  const _StatTile({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.tokens,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return BentoCard(
-      borderRadius: BorderRadius.circular(tokens.rItem),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      child: Column(
-        children: [
-          Icon(icon, size: 20, color: tokens.primary),
-          const SizedBox(height: 6),
-          Text(value, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: tokens.textPrimary)),
-          const SizedBox(height: 2),
-          Text(label, style: TextStyle(fontSize: 11, color: tokens.textMuted)),
-        ],
-      ),
-    );
-  }
-}
-
-class _PartCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final AppColorTokens tokens;
-
-  const _PartCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.tokens,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return BentoCard(
-      borderRadius: BorderRadius.circular(tokens.rItem),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 28, color: tokens.primary),
-          const SizedBox(height: 8),
-          Text(label, style: TextStyle(fontSize: 12, color: tokens.textSub)),
-          const SizedBox(height: 4),
-          Text(value, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: tokens.textPrimary)),
+          Container(
+            width: 44,
+            height: 44,
+            margin: const EdgeInsets.only(bottom: 6),
+            decoration: BoxDecoration(
+              color: current ? tokens.primary : done ? tokens.primaryBg : tokens.listItemBg,
+              borderRadius: BorderRadius.circular(12),
+              border: current || done ? null : Border.all(color: tokens.primary.withValues(alpha: 0.15)),
+            ),
+            child: Center(
+              child: done
+                  ? Icon(Icons.check, size: 16, color: tokens.primary)
+                  : current
+                      ? Icon(Icons.egg_outlined, size: 20, color: tokens.bg)
+                      : Text('?', style: TextStyle(color: tokens.textMuted.withValues(alpha: 0.4), fontSize: 16)),
+            ),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: current ? FontWeight.w700 : FontWeight.w500,
+              color: current ? tokens.primary : tokens.textSub,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          Text(
+            'Lv.$minLevel',
+            style: TextStyle(fontSize: 9, color: tokens.textMuted),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -292,7 +357,7 @@ class _EquipmentItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
