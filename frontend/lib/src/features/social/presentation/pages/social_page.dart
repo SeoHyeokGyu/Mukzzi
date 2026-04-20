@@ -5,8 +5,19 @@ import 'package:mukzzi/src/core/theme/app_theme.dart';
 import 'package:mukzzi/src/core/widgets/gradient_scaffold.dart';
 import 'package:mukzzi/src/core/widgets/bento_card.dart';
 import 'package:mukzzi/src/core/widgets/collection_states.dart';
+import 'package:mukzzi/src/core/widgets/mukzzi_character.dart';
 import '../providers/social_providers.dart';
 import '../../../profile/data/models/user_model.dart';
+
+CharacterState _stateFromString(String s) {
+  switch (s) {
+    case '행복':   return CharacterState.happy;
+    case '배고픔': return CharacterState.hungry;
+    case '굶주림': return CharacterState.starving;
+    case '기력저하': return CharacterState.weak;
+    default:       return CharacterState.normal;
+  }
+}
 
 // TODO: (cjkang) 랭킹·피드 데이터를 API로 교체
 typedef _RankEntry = ({String name, int rank, int level, String state, bool isMe});
@@ -255,20 +266,24 @@ class _RankingTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Container(
-                      width: 48,
-                      height: 48,
+                      width: 58,
+                      height: 58,
                       decoration: BoxDecoration(
-                        color: tokens.primaryBg,
-                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFFF5E6D3),
+                            const Color(0xFFE8C89A),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                       child: Center(
-                        child: Text(
-                          r.name[0],
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: tokens.primary,
-                          ),
+                        child: MukzziCharacter(
+                          state: _stateFromString(r.state),
+                          size: 48,
+                          level: r.level,
                         ),
                       ),
                     ),
@@ -323,16 +338,21 @@ class _RankingTab extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Container(
-                      width: 36,
-                      height: 36,
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
-                        color: tokens.primaryBg,
-                        borderRadius: BorderRadius.circular(9),
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Center(
-                        child: Text(
-                          r.name[0],
-                          style: TextStyle(fontWeight: FontWeight.w700, color: tokens.primary),
+                        child: MukzziCharacter(
+                          state: _stateFromString(r.state),
+                          size: 34,
+                          level: r.level,
                         ),
                       ),
                     ),

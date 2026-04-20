@@ -28,12 +28,36 @@ class CharacterPage extends ConsumerWidget {
     };
 
     return GradientScaffold(
-      appBar: AppBar(title: const Text('내 캐릭터')),
+      appBar: AppBar(automaticallyImplyLeading: false, toolbarHeight: 0),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 인라인 헤더
+            Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 4),
+              child: Column(
+                children: [
+                  Text(
+                    'Lv.$_mockLevel · 부화 단계',
+                    style: TextStyle(fontSize: 13, color: tokens.textMuted),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '먹찌',
+                    style: GoogleFonts.poppins(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: tokens.textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
             // 캐릭터 히어로 카드
             BentoCard(
               gradient: heroBg,
@@ -49,20 +73,15 @@ class CharacterPage extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  MukzziCharacter(state: _mockState, size: 180, level: _mockLevel),
+                  MukzziCharacter(state: _mockState, size: 200, level: _mockLevel),
                   const SizedBox(height: 12),
                   Text(
-                    '먹찌',
-                    style: GoogleFonts.poppins(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: tokens.heroText,
+                    'Lv.$_mockLevel까지 ${(_mockXpGoal - _mockXp).toInt()} XP',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black.withValues(alpha: 0.4),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '부화 단계 (EGG)',
-                    style: TextStyle(fontSize: 13, color: tokens.heroTextSub),
                   ),
                   const SizedBox(height: 16),
                   Row(

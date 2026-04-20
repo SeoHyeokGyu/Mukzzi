@@ -204,10 +204,18 @@ class _ProfileHeader extends StatelessWidget {
                         color: tokens.textPrimary,
                       ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   username,
-                  style: TextStyle(fontSize: 13, color: tokens.textSub),
+                  style: TextStyle(fontSize: 12, color: tokens.textMuted),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _Badge(label: '프리미엄', color: tokens.primary, tokens: tokens),
+                    const SizedBox(width: 6),
+                    _Badge(label: '12일째', color: tokens.textSub, tokens: tokens, secondary: true),
+                  ],
                 ),
               ],
             ),
@@ -355,6 +363,39 @@ class _Divider extends StatelessWidget {
       height: 1,
       indent: 60,
       color: tokens.primary.withValues(alpha: 0.08),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  final String label;
+  final Color color;
+  final AppColorTokens tokens;
+  final bool secondary;
+
+  const _Badge({
+    required this.label,
+    required this.color,
+    required this.tokens,
+    this.secondary = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: secondary ? tokens.listItemBg : color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: secondary ? tokens.textSub : color,
+        ),
+      ),
     );
   }
 }

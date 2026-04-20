@@ -120,11 +120,6 @@ class _HomePageState extends ConsumerState<HomePage> {
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: '설정',
-            icon: const Icon(Icons.settings_outlined, size: 22),
-            onPressed: () => context.push('/profile/settings'),
-          ),
           Stack(
             children: [
               IconButton(
@@ -296,7 +291,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'EXP',
+                    '경험치',
                     style: TextStyle(fontSize: 11, color: tokens.heroTextSub),
                   ),
                   Text(
@@ -505,13 +500,29 @@ class _HomePageState extends ConsumerState<HomePage> {
     final col = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '최근 식사 기록',
-          style: GoogleFonts.poppins(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: tokens.textPrimary,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '오늘 먹은 것',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: tokens.textPrimary,
+              ),
+            ),
+            GestureDetector(
+              onTap: () => context.go('/meal-record'),
+              child: Text(
+                '전체 보기',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: tokens.primary,
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 10),
         ...(_mockMeals.indexed.map((entry) {
