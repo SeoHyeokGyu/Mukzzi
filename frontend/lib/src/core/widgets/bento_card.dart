@@ -28,7 +28,9 @@ class BentoCard extends StatelessWidget {
       height: height,
       padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: gradient == null ? AppColors.surface : null,
+        color: gradient == null
+          ? (Theme.of(context).cardTheme.color ?? AppColors.surface)
+          : null,
         gradient: gradient,
         borderRadius: radius,
         boxShadow: shadows ?? AppColors.cardShadow,

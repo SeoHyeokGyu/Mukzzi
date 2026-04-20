@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/providers/theme_provider.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -23,6 +24,12 @@ class SettingsPage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // 테마
+          const _SectionLabel(label: '테마'),
+          const SizedBox(height: 10),
+          const _ThemeToggle(),
+          const SizedBox(height: 20),
+
           // 식사 목표
           const _SectionLabel(label: '식사 목표'),
           const SizedBox(height: 10),
@@ -137,10 +144,13 @@ class SettingsPage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 32),
-          const Center(
+          Center(
             child: Text(
               'v1.0.0',
-              style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).extension<AppColorTokens>()!.textMuted,
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -208,6 +218,43 @@ class SettingsPage extends ConsumerWidget {
   }
 }
 
+class _ThemeToggle extends ConsumerWidget {
+  const _ThemeToggle();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
+    final variant = ref.watch(themeVariantProvider);
+    final notifier = ref.read(themeVariantProvider.notifier);
+
+    return BentoCard(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      child: Row(
+        children: [
+          Icon(Icons.palette_outlined, size: 20, color: tokens.textSub),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text('테마', style: TextStyle(fontSize: 15, color: tokens.textPrimary)),
+          ),
+          SegmentedButton<AppVariant>(
+            segments: const [
+              ButtonSegment(value: AppVariant.hybrid, label: Text('Hybrid')),
+              ButtonSegment(value: AppVariant.light,  label: Text('Light')),
+            ],
+            selected: {variant},
+            onSelectionChanged: (sel) => notifier.setVariant(sel.first),
+            style: ButtonStyle(
+              textStyle: WidgetStatePropertyAll(
+                TextStyle(fontSize: 12, color: tokens.textPrimary),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SectionLabel extends StatelessWidget {
   final String label;
 
@@ -215,10 +262,11 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
     return Text(
       label,
       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: AppColors.textSecondary,
+            color: tokens.textSub,
             fontWeight: FontWeight.w600,
           ),
     );
@@ -242,6 +290,7 @@ class _SettingsItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -250,31 +299,21 @@ class _SettingsItem extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: AppColors.textSecondary),
+              Icon(icon, size: 20, color: tokens.textSub),
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: TextStyle(fontSize: 15, color: tokens.textPrimary),
                 ),
               ),
               if (value != null)
                 Text(
                   value!,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: valueColor ?? AppColors.textSecondary,
-                  ),
+                  style: TextStyle(fontSize: 14, color: valueColor ?? tokens.textSub),
                 ),
               if (value == null)
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 14,
-                  color: valueColor ?? AppColors.textTertiary,
-                ),
+                Icon(Icons.arrow_forward_ios, size: 14, color: valueColor ?? tokens.textMuted),
             ],
           ),
         ),
@@ -309,33 +348,27 @@ class _ToggleItemState extends State<_ToggleItem> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Row(
         children: [
-          Icon(widget.icon, size: 20, color: AppColors.textSecondary),
+          Icon(widget.icon, size: 20, color: tokens.textSub),
           const SizedBox(width: 14),
           Expanded(
             child: Text(
               widget.label,
-              style: const TextStyle(
-                fontSize: 15,
-                color: AppColors.textPrimary,
-              ),
+              style: TextStyle(fontSize: 15, color: tokens.textPrimary),
             ),
           ),
           Switch(
             value: _value,
             onChanged: (v) => setState(() => _value = v),
             thumbColor: WidgetStateProperty.resolveWith(
-              (states) => states.contains(WidgetState.selected)
-                  ? AppColors.orange
-                  : null,
+              (states) => states.contains(WidgetState.selected) ? tokens.primary : null,
             ),
             trackColor: WidgetStateProperty.resolveWith(
-              (states) => states.contains(WidgetState.selected)
-                  ? AppColors.softPeach
-                  : null,
+              (states) => states.contains(WidgetState.selected) ? tokens.primaryBg : null,
             ),
           ),
         ],

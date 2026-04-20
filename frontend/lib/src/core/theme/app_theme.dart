@@ -2,22 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  // Background
+  // Background (legacy — prefer AppColorTokens in new code)
   static const Color background = Color(0xFF0D0F14);
   static const Color backgroundEnd = Color(0xFF16100A);
 
-  // Surface (카드, NavigationBar 등)
-  /// Deprecated: surface와 동일. 신규 코드에서는 surface 사용
   static const Color white = Color(0xFF1C1C26);
   static const Color surface = Color(0xFF1C1C26);
   static const Color surfaceElevated = Color(0xFF252532);
 
-  // Primary palette
   static const Color orange = Color(0xFFFF6B35);
   static const Color peach = Color(0xFFFFB347);
   static const Color softPeach = Color(0xFF2A1C10);
 
-  // Gradient definitions
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [orange, peach],
     begin: Alignment.centerLeft,
@@ -36,7 +32,6 @@ class AppColors {
     end: Alignment.centerRight,
   );
 
-  // Card shadows
   static List<BoxShadow> cardShadow = [
     BoxShadow(
       color: Colors.black.withValues(alpha: 0.3),
@@ -45,138 +40,330 @@ class AppColors {
     ),
   ];
 
-  // Social brand colors
   static const Color kakaoYellow = Color(0xFFFEE500);
   static const Color googleWhite = Color(0xFFFFFFFF);
   static const Color appleBlack = Color(0xFF000000);
 
-  // Neutral colors
   static const Color textPrimary = Color(0xFFF2F2F2);
-  static const Color textSecondary = Color(0xFF9898B2);  // 4.78:1 on surface
-  static const Color textTertiary = Color(0xFF8585A5);   // 4.55:1 on surface (AA 통과)
+  static const Color textSecondary = Color(0xFF9898B2);
+  static const Color textTertiary = Color(0xFF8585A5);
   static const Color divider = Color(0xFF2A2A38);
 
-  // Macro nutrients
-  static const Color proteinColor = Color(0xFF4CAF50);   // 단백질
-  static const Color carbsColor = Color(0xFF5B9CF6);     // 탄수화물
-  static const Color fatColor = Color(0xFFFF9800);       // 지방
+  static const Color proteinColor = Color(0xFF4CAF50);
+  static const Color carbsColor = Color(0xFF5B9CF6);
+  static const Color fatColor = Color(0xFFFF9800);
 
-  // Surface variants
-  static const Color surfaceDark = Color(0xFF1A1A22);    // 잠금/비활성 배경
-  static const Color iconDisabled = Color(0x66858585);   // 비활성 아이콘 (textTertiary 40%)
+  static const Color surfaceDark = Color(0xFF1A1A22);
+  static const Color iconDisabled = Color(0x66858585);
+  static const Color masterGold = Color(0xFFFFD700);
+}
 
-  // Mastery grade colors
-  static const Color masterGold = Color(0xFFFFD700);     // 마스터리 MASTER 등급
+/// Per-variant design tokens. Access via Theme.of(context).extension<AppColorTokens>()!
+class AppColorTokens extends ThemeExtension<AppColorTokens> {
+  final Color bg;
+  final Color card;
+  final Color listItemBg;
+  final Color textPrimary;
+  final Color textSub;
+  final Color textMuted;
+  final Color primary;
+  final Color primarySoft;
+  final Color primaryBg;
+  // Text on the hero card (always a light background in both themes)
+  final Color heroText;
+  final Color heroTextSub;
+  final Gradient bgGrad;
+  final Gradient cardHeroGrad;
+  final Gradient charBgNormal;
+  final Gradient charBgHungry;
+  final Gradient charBgStarving;
+  final double rHero;
+  final double rCard;
+  final double rItem;
+
+  const AppColorTokens({
+    required this.bg,
+    required this.card,
+    required this.listItemBg,
+    required this.textPrimary,
+    required this.textSub,
+    required this.textMuted,
+    required this.primary,
+    required this.primarySoft,
+    required this.primaryBg,
+    required this.heroText,
+    required this.heroTextSub,
+    required this.bgGrad,
+    required this.cardHeroGrad,
+    required this.charBgNormal,
+    required this.charBgHungry,
+    required this.charBgStarving,
+    this.rHero = 32,
+    this.rCard = 22,
+    this.rItem = 14,
+  });
+
+  static final hybrid = AppColorTokens(
+    bg: const Color(0xFF14110E),
+    card: const Color(0xFF201A14),
+    listItemBg: const Color(0x0AFFDCB4),
+    textPrimary: const Color(0xFFFBF4E8),
+    textSub: const Color(0xA6FBF4E8),
+    textMuted: const Color(0x66FBF4E8),
+    primary: const Color(0xFFFF7A3D),
+    primarySoft: const Color(0xFFFFC26B),
+    primaryBg: const Color(0x24FF7A3D),
+    heroText: const Color(0xFF3A2010),
+    heroTextSub: const Color(0xA63A2010),
+    bgGrad: const LinearGradient(
+      colors: [Color(0xFF14110E), Color(0xFF1C1611)],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    ),
+    cardHeroGrad: const LinearGradient(
+      colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    charBgNormal: const LinearGradient(
+      colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    charBgHungry: const LinearGradient(
+      colors: [Color(0xFFF5DFB8), Color(0xFFD9B272)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    charBgStarving: const LinearGradient(
+      colors: [Color(0xFFE6BDB0), Color(0xFFC98878)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+  );
+
+  static final light = AppColorTokens(
+    bg: const Color(0xFFFDF8F2),
+    card: const Color(0xFFFFFFFF),
+    listItemBg: const Color(0x99FFE0C8),
+    textPrimary: const Color(0xFF2A1F15),
+    textSub: const Color(0xA62A1F15),
+    textMuted: const Color(0x662A1F15),
+    primary: const Color(0xFFFF7A3D),
+    primarySoft: const Color(0xFFFFB582),
+    primaryBg: const Color(0x1AFF7A3D),
+    heroText: const Color(0xFF2A1F15),
+    heroTextSub: const Color(0xA62A1F15),
+    bgGrad: const LinearGradient(
+      colors: [Color(0xFFFDF8F2), Color(0xFFF8EFE3)],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    ),
+    cardHeroGrad: const LinearGradient(
+      colors: [Color(0xFFFFE8D1), Color(0xFFFFD1B3)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    charBgNormal: const LinearGradient(
+      colors: [Color(0xFFFFE8D1), Color(0xFFFFD1B3)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    charBgHungry: const LinearGradient(
+      colors: [Color(0xFFFFF0CC), Color(0xFFFFD980)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    charBgStarving: const LinearGradient(
+      colors: [Color(0xFFFFDDD5), Color(0xFFFFB0A0)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+  );
+
+  @override
+  AppColorTokens copyWith({
+    Color? bg,
+    Color? card,
+    Color? listItemBg,
+    Color? textPrimary,
+    Color? textSub,
+    Color? textMuted,
+    Color? primary,
+    Color? primarySoft,
+    Color? primaryBg,
+    Color? heroText,
+    Color? heroTextSub,
+    Gradient? bgGrad,
+    Gradient? cardHeroGrad,
+    Gradient? charBgNormal,
+    Gradient? charBgHungry,
+    Gradient? charBgStarving,
+    double? rHero,
+    double? rCard,
+    double? rItem,
+  }) {
+    return AppColorTokens(
+      bg: bg ?? this.bg,
+      card: card ?? this.card,
+      listItemBg: listItemBg ?? this.listItemBg,
+      textPrimary: textPrimary ?? this.textPrimary,
+      textSub: textSub ?? this.textSub,
+      textMuted: textMuted ?? this.textMuted,
+      primary: primary ?? this.primary,
+      primarySoft: primarySoft ?? this.primarySoft,
+      primaryBg: primaryBg ?? this.primaryBg,
+      heroText: heroText ?? this.heroText,
+      heroTextSub: heroTextSub ?? this.heroTextSub,
+      bgGrad: bgGrad ?? this.bgGrad,
+      cardHeroGrad: cardHeroGrad ?? this.cardHeroGrad,
+      charBgNormal: charBgNormal ?? this.charBgNormal,
+      charBgHungry: charBgHungry ?? this.charBgHungry,
+      charBgStarving: charBgStarving ?? this.charBgStarving,
+      rHero: rHero ?? this.rHero,
+      rCard: rCard ?? this.rCard,
+      rItem: rItem ?? this.rItem,
+    );
+  }
+
+  @override
+  AppColorTokens lerp(ThemeExtension<AppColorTokens>? other, double t) {
+    if (other is! AppColorTokens) return this;
+    return AppColorTokens(
+      bg: Color.lerp(bg, other.bg, t)!,
+      card: Color.lerp(card, other.card, t)!,
+      listItemBg: Color.lerp(listItemBg, other.listItemBg, t)!,
+      textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
+      textSub: Color.lerp(textSub, other.textSub, t)!,
+      textMuted: Color.lerp(textMuted, other.textMuted, t)!,
+      primary: Color.lerp(primary, other.primary, t)!,
+      primarySoft: Color.lerp(primarySoft, other.primarySoft, t)!,
+      primaryBg: Color.lerp(primaryBg, other.primaryBg, t)!,
+      heroText: Color.lerp(heroText, other.heroText, t)!,
+      heroTextSub: Color.lerp(heroTextSub, other.heroTextSub, t)!,
+      // Gradient lerp across dark↔light is jarring; snap at midpoint
+      bgGrad: t < 0.5 ? bgGrad : other.bgGrad,
+      cardHeroGrad: t < 0.5 ? cardHeroGrad : other.cardHeroGrad,
+      charBgNormal: t < 0.5 ? charBgNormal : other.charBgNormal,
+      charBgHungry: t < 0.5 ? charBgHungry : other.charBgHungry,
+      charBgStarving: t < 0.5 ? charBgStarving : other.charBgStarving,
+      rHero: lerpDouble(rHero, other.rHero, t),
+      rCard: lerpDouble(rCard, other.rCard, t),
+      rItem: lerpDouble(rItem, other.rItem, t),
+    );
+  }
+
+  static double lerpDouble(double a, double b, double t) => a + (b - a) * t;
 }
 
 class AppTheme {
-  static ThemeData get lightTheme => darkTheme;
+  static final ThemeData hybridTheme = _buildTheme(AppColorTokens.hybrid, Brightness.dark);
+  static final ThemeData lightTheme = _buildTheme(AppColorTokens.light, Brightness.light);
+  static ThemeData get darkTheme => hybridTheme;
 
-  static ThemeData get darkTheme {
-    final textTheme = GoogleFonts.notoSansKrTextTheme(
-      ThemeData.dark().textTheme,
-    ).copyWith(
-      displayLarge: GoogleFonts.poppins(fontSize: 57, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
-      displayMedium: GoogleFonts.poppins(fontSize: 45, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-      displaySmall: GoogleFonts.poppins(fontSize: 36, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-      headlineLarge: GoogleFonts.poppins(fontSize: 32, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-      headlineMedium: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-      headlineSmall: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+  static ThemeData _buildTheme(AppColorTokens tokens, Brightness brightness) {
+    final isDark = brightness == Brightness.dark;
+    final baseTextTheme = isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme;
+
+    final textTheme = GoogleFonts.notoSansKrTextTheme(baseTextTheme).copyWith(
+      displayLarge: GoogleFonts.poppins(fontSize: 57, fontWeight: FontWeight.w800, color: tokens.textPrimary),
+      displayMedium: GoogleFonts.poppins(fontSize: 45, fontWeight: FontWeight.w700, color: tokens.textPrimary),
+      displaySmall: GoogleFonts.poppins(fontSize: 36, fontWeight: FontWeight.w700, color: tokens.textPrimary),
+      headlineLarge: GoogleFonts.poppins(fontSize: 32, fontWeight: FontWeight.w700, color: tokens.textPrimary),
+      headlineMedium: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.w700, color: tokens.textPrimary),
+      headlineSmall: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.w600, color: tokens.textPrimary),
     ).apply(
-      bodyColor: AppColors.textPrimary,
-      displayColor: AppColors.textPrimary,
+      bodyColor: tokens.textPrimary,
+      displayColor: tokens.textPrimary,
     );
 
     final base = ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: brightness,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.orange,
-        brightness: Brightness.dark,
+        seedColor: tokens.primary,
+        brightness: brightness,
       ).copyWith(
-        surface: AppColors.surface,
-        onSurface: AppColors.textPrimary,
+        surface: tokens.card,
+        onSurface: tokens.textPrimary,
       ),
       textTheme: textTheme,
     );
 
     return base.copyWith(
-      scaffoldBackgroundColor: AppColors.background,
+      scaffoldBackgroundColor: tokens.bg,
+      extensions: [tokens],
 
       cardTheme: CardThemeData(
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        color: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(tokens.rCard)),
+        color: tokens.card,
         shadowColor: Colors.transparent,
       ),
 
       appBarTheme: AppBarTheme(
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
-        foregroundColor: AppColors.textPrimary,
+        foregroundColor: tokens.textPrimary,
         titleTextStyle: GoogleFonts.poppins(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
+          color: tokens.textPrimary,
         ),
-        iconTheme: const IconThemeData(color: AppColors.textSecondary),
+        iconTheme: IconThemeData(color: tokens.textSub),
       ),
 
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.surface,
+        backgroundColor: tokens.card,
         elevation: 0,
-        indicatorColor: AppColors.softPeach,
+        indicatorColor: tokens.primaryBg,
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
             fontSize: 12,
-            color: states.contains(WidgetState.selected)
-                ? AppColors.orange
-                : AppColors.textSecondary,
+            color: states.contains(WidgetState.selected) ? tokens.primary : tokens.textMuted,
           ),
         ),
         iconTheme: WidgetStateProperty.resolveWith(
           (states) => IconThemeData(
-            color: states.contains(WidgetState.selected)
-                ? AppColors.orange
-                : AppColors.textSecondary,
+            color: states.contains(WidgetState.selected) ? tokens.primary : tokens.textMuted,
           ),
         ),
       ),
 
-      sliderTheme: const SliderThemeData(
-        activeTrackColor: AppColors.orange,
-        thumbColor: AppColors.orange,
-        inactiveTrackColor: AppColors.divider,
+      sliderTheme: SliderThemeData(
+        activeTrackColor: tokens.primary,
+        thumbColor: tokens.primary,
+        inactiveTrackColor: isDark ? AppColors.divider : const Color(0xFFE0D8D0),
       ),
 
-      progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: AppColors.orange,
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: tokens.primary,
         linearMinHeight: 8,
       ),
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceElevated,
-        hintStyle: const TextStyle(color: AppColors.textTertiary),
+        fillColor: isDark ? AppColors.surfaceElevated : const Color(0xFFF0EAE2),
+        hintStyle: TextStyle(color: tokens.textMuted),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.divider),
+          borderSide: BorderSide(color: isDark ? AppColors.divider : const Color(0xFFD8CCC0)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.orange, width: 2),
+          borderSide: BorderSide(color: tokens.primary, width: 2),
         ),
       ),
 
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.orange,
+          backgroundColor: tokens.primary,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -185,35 +372,37 @@ class AppTheme {
 
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.textPrimary,
+          foregroundColor: tokens.textPrimary,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          side: const BorderSide(color: AppColors.divider),
+          side: BorderSide(color: isDark ? AppColors.divider : const Color(0xFFD8CCC0)),
         ),
       ),
 
-      tabBarTheme: const TabBarThemeData(
-        labelColor: AppColors.orange,
-        unselectedLabelColor: AppColors.textSecondary,
-        indicatorColor: AppColors.orange,
+      tabBarTheme: TabBarThemeData(
+        labelColor: tokens.primary,
+        unselectedLabelColor: tokens.textSub,
+        indicatorColor: tokens.primary,
       ),
 
-      dividerTheme: const DividerThemeData(color: AppColors.divider),
+      dividerTheme: DividerThemeData(
+        color: isDark ? AppColors.divider : const Color(0xFFE8DDD4),
+      ),
 
       dialogTheme: DialogThemeData(
-        backgroundColor: AppColors.surface,
+        backgroundColor: tokens.card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
 
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.surfaceElevated,
-        contentTextStyle: const TextStyle(color: AppColors.textPrimary),
+        backgroundColor: isDark ? AppColors.surfaceElevated : const Color(0xFF3A2010),
+        contentTextStyle: const TextStyle(color: Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
       ),
 
-      dropdownMenuTheme: const DropdownMenuThemeData(
+      dropdownMenuTheme: DropdownMenuThemeData(
         menuStyle: MenuStyle(
-          backgroundColor: WidgetStatePropertyAll(AppColors.surfaceElevated),
+          backgroundColor: WidgetStatePropertyAll(tokens.card),
         ),
       ),
     );
