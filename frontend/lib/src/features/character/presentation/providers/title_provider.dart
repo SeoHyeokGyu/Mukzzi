@@ -10,3 +10,9 @@ final titleRepositoryProvider = Provider<TitleRepository>((ref) {
 final titleListProvider = FutureProvider<List<TitleModel>>((ref) {
   return ref.watch(titleRepositoryProvider).getTitles();
 });
+
+final equippedTitleProvider = Provider<AsyncValue<TitleModel?>>((ref) {
+  return ref.watch(titleListProvider).whenData(
+    (titles) => titles.where((t) => t.isEquipped).firstOrNull,
+  );
+});

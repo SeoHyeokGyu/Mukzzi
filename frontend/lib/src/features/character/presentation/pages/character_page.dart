@@ -7,6 +7,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../../core/widgets/mukzzi_character.dart';
+import '../providers/title_provider.dart';
 
 // TODO: (cjkang) 캐릭터 상태/레벨/XP를 API 응답에서 가져오도록 교체
 const _mockState = CharacterState.normal;
@@ -155,7 +156,15 @@ class CharacterPage extends ConsumerWidget {
               borderRadius: BorderRadius.circular(tokens.rCard),
               child: Column(
                 children: [
-                  _EquipmentItem(label: '칭호',    value: '없음',  onTap: () => context.push('/character/titles'),  tokens: tokens),
+                  _EquipmentItem(
+                    label: '칭호',
+                    value: ref.watch(equippedTitleProvider).maybeWhen(
+                      data: (t) => t?.name ?? '없음',
+                      orElse: () => '없음',
+                    ),
+                    onTap: () => context.push('/character/titles'),
+                    tokens: tokens,
+                  ),
                   Divider(height: 1, color: tokens.primary.withValues(alpha: 0.08)),
                   _EquipmentItem(label: '배경',    value: '빈 방', onTap: () => context.push('/character/rewards'), tokens: tokens),
                   Divider(height: 1, color: tokens.primary.withValues(alpha: 0.08)),
