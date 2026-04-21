@@ -7,17 +7,31 @@ import '../../../../core/widgets/gradient_scaffold.dart';
 import '../providers/user_provider.dart';
 import '../../../character/presentation/providers/title_provider.dart';
 
-class ProfilePage extends ConsumerWidget {
+class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends ConsumerState<ProfilePage> {
+  @override
+  void initState() {
+    super.initState();
+    // build() 밖에서 한 번만 호출 — 동시 다발적 중복 호출 방지
+    Future.microtask(() {
+      if (!mounted) return;
+      final userState = ref.read(userProvider);
+      if (userState.user == null && !userState.isLoading) {
+        ref.read(userProvider.notifier).fetchMe();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
     final userState = ref.watch(userProvider);
-
-    if (userState.user == null && !userState.isLoading && userState.error == null) {
-      Future.microtask(() => ref.read(userProvider.notifier).fetchMe());
-    }
 
     return GradientScaffold(
       appBar: AppBar(
@@ -33,7 +47,7 @@ class ProfilePage extends ConsumerWidget {
       body: userState.isLoading
           ? const Center(child: CircularProgressIndicator())
           : userState.error != null && userState.user == null
-              ? _buildErrorState(context, ref, tokens, userState.error!)
+              ? _buildErrorState(context, tokens, userState.error!)
               : ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
@@ -135,7 +149,7 @@ class ProfilePage extends ConsumerWidget {
     );
   }
 
-  Widget _buildErrorState(BuildContext context, WidgetRef ref, AppColorTokens tokens, String error) {
+  Widget _buildErrorState(BuildContext context, AppColorTokens tokens, String error) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
