@@ -159,6 +159,40 @@ class CreateMealRequest {
 }
 
 // ─────────────────────────────────────────
+// CreateMealResult (POST /meals 응답)
+// ─────────────────────────────────────────
+
+class GrantedTitleInfo {
+  final String name;
+  final String description;
+
+  const GrantedTitleInfo({required this.name, required this.description});
+
+  factory GrantedTitleInfo.fromJson(Map<String, dynamic> json) =>
+      GrantedTitleInfo(
+        name: json['name'] as String? ?? '',
+        description: json['description'] as String? ?? '',
+      );
+}
+
+class CreateMealResult {
+  final MealRecord meal;
+  final GrantedTitleInfo? grantedTitle;
+
+  const CreateMealResult({required this.meal, this.grantedTitle});
+
+  factory CreateMealResult.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>;
+    final sideEffects = data['side_effects'] as Map<String, dynamic>?;
+    final titleJson = sideEffects?['granted_title'] as Map<String, dynamic>?;
+    return CreateMealResult(
+      meal: MealRecord.fromJson(data['meal'] as Map<String, dynamic>),
+      grantedTitle: titleJson != null ? GrantedTitleInfo.fromJson(titleJson) : null,
+    );
+  }
+}
+
+// ─────────────────────────────────────────
 // MealListFilter / MealListResult
 // ─────────────────────────────────────────
 

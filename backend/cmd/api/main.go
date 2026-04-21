@@ -32,6 +32,7 @@ func main() {
 
 	// DB 초기화
 	db := config.InitDB()
+	config.SeedTitles(db)
 	config.SeedBadges(db)
 
 	// 포트 설정
@@ -86,7 +87,8 @@ func main() {
 
 	// Meal 도메인
 	masteryTracker := usecase.NewMasteryTracker(masteryRepo)
-	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, badgeGranter, masteryTracker, db)
+	titleGranter := usecase.NewTitleGranter(titleRepo)
+	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, badgeGranter, masteryTracker, titleGranter, notificationUsecase, db)
 	mealHandler := handler.NewMealHandler(mealUsecase)
 
 	// 라우터 초기화

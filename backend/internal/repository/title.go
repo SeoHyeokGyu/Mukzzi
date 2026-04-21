@@ -13,6 +13,9 @@ type TitleRepository interface {
 	// FindByID 칭호 ID로 조회
 	FindByID(titleID int64) (*domain.Title, error)
 
+	// FindByCode 칭호 코드로 조회
+	FindByCode(code string) (*domain.Title, error)
+
 	// FindUserTitles 사용자가 획득한 칭호 목록 조회
 	FindUserTitles(userID int64) ([]domain.UserTitle, error)
 
@@ -42,6 +45,17 @@ func (r *titleRepositoryImpl) FindAll() ([]domain.Title, error) {
 func (r *titleRepositoryImpl) FindByID(titleID int64) (*domain.Title, error) {
 	var title domain.Title
 	if err := r.db.First(&title, titleID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &title, nil
+}
+
+func (r *titleRepositoryImpl) FindByCode(code string) (*domain.Title, error) {
+	var title domain.Title
+	if err := r.db.Where("code = ?", code).First(&title).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}

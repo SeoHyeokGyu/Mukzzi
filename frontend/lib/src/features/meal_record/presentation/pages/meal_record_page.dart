@@ -27,13 +27,15 @@ class MealCreateState {
   final bool isLoading;
   final String? error;
   final MealRecord? created;
+  final GrantedTitleInfo? grantedTitle;
 
-  const MealCreateState({this.isLoading = false, this.error, this.created});
+  const MealCreateState({this.isLoading = false, this.error, this.created, this.grantedTitle});
 
   MealCreateState copyWith({
     bool? isLoading,
     String? error,
     MealRecord? created,
+    GrantedTitleInfo? grantedTitle,
     bool clearError = false,
     bool clearCreated = false,
   }) =>
@@ -41,6 +43,7 @@ class MealCreateState {
         isLoading: isLoading ?? this.isLoading,
         error: clearError ? null : error ?? this.error,
         created: clearCreated ? null : created ?? this.created,
+        grantedTitle: grantedTitle ?? this.grantedTitle,
       );
 }
 
@@ -52,8 +55,12 @@ class MealCreateNotifier extends StateNotifier<MealCreateState> {
   Future<bool> submit(CreateMealRequest request) async {
     state = state.copyWith(isLoading: true, clearError: true, clearCreated: true);
     try {
-      final record = await _repo.create(request);
-      state = state.copyWith(isLoading: false, created: record);
+      final result = await _repo.create(request);
+      state = state.copyWith(
+        isLoading: false,
+        created: result.meal,
+        grantedTitle: result.grantedTitle,
+      );
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -275,6 +282,27 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
     return '선택한 시간은 ${labels[expected]} 시간대예요';
   }
 
+  void _showTitleAcquiredSnackBar(GrantedTitleInfo title) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.emoji_events_outlined, color: Colors.amber),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '칭호 획득: ${title.name}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     final menuName = widget.menuController.text.trim();
     if (menuName.isEmpty) {
@@ -309,8 +337,12 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('식사 기록이 저장되었습니다 🎉')),
+        const SnackBar(content: Text('식사 기록이 저장되었습니다')),
       );
+      final grantedTitle = ref.read(mealCreateProvider).grantedTitle;
+      if (grantedTitle != null && mounted) {
+        _showTitleAcquiredSnackBar(grantedTitle);
+      }
       setState(() {
         _selectedMenu = null;
         _servingSize = 1.0;

@@ -90,13 +90,15 @@ type MealUsecase interface {
 // ─────────────────────────────────────────
 
 type mealUsecase struct {
-	mealRepo       repository.MealRepository
-	nutritionRepo  repository.NutritionRepository
-	tagRepo        repository.MealFriendTagRepository
-	menuRepo       repository.MenuRepository
-	badgeGranter   BadgeGranter
-	masteryTracker MasteryTracker
-	db             *gorm.DB
+	mealRepo             repository.MealRepository
+	nutritionRepo        repository.NutritionRepository
+	tagRepo              repository.MealFriendTagRepository
+	menuRepo             repository.MenuRepository
+	badgeGranter         BadgeGranter
+	masteryTracker       MasteryTracker
+	titleGranter         TitleGranter
+	notificationUsecase  NotificationUsecase
+	db                   *gorm.DB
 }
 
 func NewMealUsecase(
@@ -106,16 +108,20 @@ func NewMealUsecase(
 	menuRepo repository.MenuRepository,
 	badgeGranter BadgeGranter,
 	masteryTracker MasteryTracker,
+	titleGranter TitleGranter,
+	notificationUsecase NotificationUsecase,
 	db *gorm.DB,
 ) MealUsecase {
 	return &mealUsecase{
-		mealRepo:       mealRepo,
-		nutritionRepo:  nutritionRepo,
-		tagRepo:        tagRepo,
-		menuRepo:       menuRepo,
-		badgeGranter:   badgeGranter,
-		masteryTracker: masteryTracker,
-		db:             db,
+		mealRepo:            mealRepo,
+		nutritionRepo:       nutritionRepo,
+		tagRepo:             tagRepo,
+		menuRepo:            menuRepo,
+		badgeGranter:        badgeGranter,
+		masteryTracker:      masteryTracker,
+		titleGranter:        titleGranter,
+		notificationUsecase: notificationUsecase,
+		db:                  db,
 	}
 }
 
@@ -180,18 +186,30 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 		return nil, err
 	}
 
-	grantedBadges, err := u.badgeGranter.CheckAndGrant(context.Background(), input.UserID, EventMealCreated)
+	ctx := context.Background()
+
+	grantedBadges, err := u.badgeGranter.CheckAndGrant(ctx, input.UserID, EventMealCreated)
 	if err != nil {
 		slog.Error("뱃지 체크 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
 		grantedBadges = nil
 	}
+	for i := range grantedBadges {
+		badge := &grantedBadges[i]
+		_ = u.notificationUsecase.CreateNotification(&domain.Notification{
+			UserID:  input.UserID,
+			Type:    domain.NotificationTypeBadgeAcquired,
+			Title:   "새 뱃지 획득!",
+			Content: badge.Name + "을(를) 획득했습니다.",
+		})
+	}
 
 	var masteryUpdate *domain.MasteryUpdate
+	var grantedTitle *domain.Title
 	var menuID int64
 	if input.MenuID != nil {
 		menuID = *input.MenuID
 	}
-	updatedMastery, err := u.masteryTracker.OnMealCreated(context.Background(), input.UserID, menuID)
+	updatedMastery, err := u.masteryTracker.OnMealCreated(ctx, input.UserID, menuID)
 	if err != nil {
 		slog.Error("마스터리 업데이트 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
 	} else if updatedMastery != nil {
@@ -201,12 +219,18 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 			Grade:        string(updatedMastery.Grade),
 			GradeChanged: true,
 		}
+		grantedTitle, err = u.titleGranter.OnMasteryGradeChanged(ctx, input.UserID, updatedMastery.Grade)
+		if err != nil {
+			slog.Error("칭호 부여 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
+			grantedTitle = nil
+		}
 	}
 
 	output.SideEffects = &domain.MealSideEffects{
 		QuestsProgressed: []domain.QuestProgress{},
 		MasteryUpdated:   masteryUpdate,
 		GrantedBadges:    grantedBadges,
+		GrantedTitle:     grantedTitle,
 		ExpGained:        10,
 		LevelUp:          nil,
 	}

@@ -149,6 +149,7 @@ type MealSideEffects struct {
 	QuestsProgressed []QuestProgress `json:"quests_progressed"`
 	MasteryUpdated   *MasteryUpdate  `json:"mastery_updated"`
 	GrantedBadges    []Badge         `json:"granted_badges"`
+	GrantedTitle     *Title          `json:"granted_title,omitempty"`
 	ExpGained        int             `json:"exp_gained"`
 	LevelUp          interface{}     `json:"level_up"`
 }

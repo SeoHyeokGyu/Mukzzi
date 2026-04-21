@@ -9,6 +9,33 @@ import (
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 )
 
+func SeedTitles(db *gorm.DB) {
+	titles := []domain.Title{
+		{
+			Code:        "MASTERY_ARTISAN",
+			Name:        "먹찌 장인",
+			Description: "하나의 메뉴를 20회 이상 기록했습니다.",
+		},
+		{
+			Code:        "MASTERY_MASTER",
+			Name:        "먹찌 마스터",
+			Description: "하나의 메뉴를 50회 이상 기록했습니다.",
+		},
+	}
+
+	result := db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "code"}},
+		DoNothing: true,
+	}).Create(&titles)
+
+	if result.Error != nil {
+		slog.Error("칭호 시드 데이터 삽입 실패", slog.Any("error", result.Error))
+		return
+	}
+
+	slog.Info("칭호 시드 완료", slog.Int64("inserted", result.RowsAffected))
+}
+
 func SeedBadges(db *gorm.DB) {
 	badges := []domain.Badge{
 		{

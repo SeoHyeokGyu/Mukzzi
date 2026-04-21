@@ -9,10 +9,9 @@ class MealRepository {
   MealRepository(this._apiClient);
 
   /// 식사 기록 생성 — POST /meals
-  Future<MealRecord> create(CreateMealRequest request) async {
+  Future<CreateMealResult> create(CreateMealRequest request) async {
     final response = await _apiClient.post('/meals', data: request.toJson());
-    final data = response['data'] as Map<String, dynamic>;
-    return MealRecord.fromJson(data['meal'] as Map<String, dynamic>);
+    return CreateMealResult.fromJson(response as Map<String, dynamic>);
   }
 
   /// 식사 기록 단건 조회 — GET /meals/:id
