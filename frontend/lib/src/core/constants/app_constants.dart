@@ -38,6 +38,11 @@ class AppConstants {
   static const double minServingSize = 0.5;
   static const double maxServingSize = 3.0;
 
+  // App Info
+  static const String appVersion = '1.0.0';
+  static const String privacyPolicyUrl = 'https://mukzzi.app/privacy';
+  static const String termsOfServiceUrl = 'https://mukzzi.app/terms';
+
   // Pagination
   static const int defaultPageSize = 20;
   static const int maxPageSize = 50;

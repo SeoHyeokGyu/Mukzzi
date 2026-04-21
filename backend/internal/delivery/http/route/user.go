@@ -15,6 +15,7 @@ func UserRoute(rg *gin.RouterGroup, userHandler *handler.UserHandler) {
 
 		// 내 정보 관련
 		users.GET("/me", userHandler.GetMe)
+		users.GET("/me/stats", userHandler.GetStats)
 		users.PATCH("/me", userHandler.UpdateMe)
 		users.PATCH("/me/body", userHandler.UpdateBody)
 		users.PATCH("/me/nutrition-goal", userHandler.UpdateNutritionGoal)

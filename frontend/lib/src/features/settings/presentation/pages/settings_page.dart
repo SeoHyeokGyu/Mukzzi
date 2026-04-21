@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/providers/theme_provider.dart';
 import '../../../../core/widgets/bento_card.dart';
@@ -19,6 +20,10 @@ class SettingsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
+    final userState = ref.watch(userProvider);
+    final ns = userState.user?.notificationSettings ?? const {'meal': true, 'social': true, 'badge': true};
+
     return GradientScaffold(
       appBar: AppBar(title: const Text('설정')),
       body: ListView(
@@ -72,26 +77,38 @@ class SettingsPage extends ConsumerWidget {
           // 알림
           const _SectionLabel(label: '알림'),
           const SizedBox(height: 10),
-          const BentoCard(
+          BentoCard(
             padding: EdgeInsets.zero,
             child: Column(
               children: [
                 _ToggleItem(
                   icon: Icons.restaurant_outlined,
                   label: '식사 알림',
-                  initialValue: true,
+                  value: ns['meal'] ?? true,
+                  onChanged: (v) {
+                    final updated = Map<String, bool>.from(ns)..['meal'] = v;
+                    ref.read(userProvider.notifier).updateNotificationSettings(updated);
+                  },
                 ),
-                _Divider(),
+                const _Divider(),
                 _ToggleItem(
                   icon: Icons.people_outlined,
                   label: '소셜 알림',
-                  initialValue: true,
+                  value: ns['social'] ?? true,
+                  onChanged: (v) {
+                    final updated = Map<String, bool>.from(ns)..['social'] = v;
+                    ref.read(userProvider.notifier).updateNotificationSettings(updated);
+                  },
                 ),
-                _Divider(),
+                const _Divider(),
                 _ToggleItem(
                   icon: Icons.military_tech_outlined,
                   label: '뱃지 획득 알림',
-                  initialValue: true,
+                  value: ns['badge'] ?? true,
+                  onChanged: (v) {
+                    final updated = Map<String, bool>.from(ns)..['badge'] = v;
+                    ref.read(userProvider.notifier).updateNotificationSettings(updated);
+                  },
                 ),
               ],
             ),
@@ -108,13 +125,13 @@ class SettingsPage extends ConsumerWidget {
                 _SettingsItem(
                   icon: Icons.logout,
                   label: '로그아웃',
-                  onTap: () => _showLogoutDialog(context, ref),
+                  onTap: () => _showLogoutDialog(context, ref, tokens),
                 ),
                 const _Divider(),
                 _SettingsItem(
                   icon: Icons.person_remove_outlined,
                   label: '회원 탈퇴',
-                  valueColor: AppColors.textTertiary,
+                  valueColor: Colors.red.withValues(alpha: 0.7),
                   onTap: () => _showDeleteAccountDialog(context, ref),
                 ),
               ],
@@ -132,13 +149,13 @@ class SettingsPage extends ConsumerWidget {
                 _SettingsItem(
                   icon: Icons.privacy_tip_outlined,
                   label: '개인정보처리방침',
-                  onTap: () => _showComingSoon(context),
+                  onTap: () => context.push('/profile/settings/privacy'),
                 ),
                 const _Divider(),
                 _SettingsItem(
                   icon: Icons.description_outlined,
                   label: '이용약관',
-                  onTap: () => _showComingSoon(context),
+                  onTap: () => context.push('/profile/settings/terms'),
                 ),
               ],
             ),
@@ -146,7 +163,7 @@ class SettingsPage extends ConsumerWidget {
           const SizedBox(height: 32),
           Center(
             child: Text(
-              'v1.0.0',
+              'v${AppConstants.appVersion}',
               style: TextStyle(
                 fontSize: 12,
                 color: Theme.of(context).extension<AppColorTokens>()!.textMuted,
@@ -159,26 +176,26 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 
-  void _showLogoutDialog(BuildContext context, WidgetRef ref) {
+  void _showLogoutDialog(BuildContext context, WidgetRef ref, AppColorTokens tokens) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('로그아웃'),
         content: const Text('로그아웃 하시겠어요?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('취소'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(ctx);
               ref.read(authProvider.notifier).logout();
               GoRouter.of(context).go('/auth');
             },
-            child: const Text(
+            child: Text(
               '로그아웃',
-              style: TextStyle(color: AppColors.orange),
+              style: TextStyle(color: tokens.primary),
             ),
           ),
         ],
@@ -189,31 +206,57 @@ class SettingsPage extends ConsumerWidget {
   void _showDeleteAccountDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('회원 탈퇴'),
-        content: const Text('정말로 탈퇴하시겠습니까?\n모든 기록이 삭제되며 복구할 수 없습니다.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final success =
-                  await ref.read(userProvider.notifier).deleteAccount();
-              if (success && context.mounted) {
-                Navigator.pop(context);
-                await ref.read(authProvider.notifier).logout();
-                if (context.mounted) GoRouter.of(context).go('/auth');
-              }
-            },
-            child: const Text(
-              '탈퇴하기',
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
+      builder: (ctx) => _DeleteAccountDialog(ref: ref),
+    );
+  }
+}
+
+class _DeleteAccountDialog extends ConsumerStatefulWidget {
+  final WidgetRef ref;
+  const _DeleteAccountDialog({required this.ref});
+
+  @override
+  ConsumerState<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('회원 탈퇴'),
+      content: const Text('정말로 탈퇴하시겠습니까?\n모든 기록이 삭제되며 복구할 수 없습니다.'),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
+          child: const Text('취소'),
+        ),
+        TextButton(
+          onPressed: _isLoading
+              ? null
+              : () async {
+                  setState(() => _isLoading = true);
+                  final success = await ref.read(userProvider.notifier).deleteAccount();
+                  if (!mounted) return;
+                  if (success) {
+                    if (context.mounted) Navigator.pop(context);
+                    await ref.read(authProvider.notifier).logout();
+                    if (context.mounted) GoRouter.of(context).go('/auth');
+                  } else {
+                    setState(() => _isLoading = false);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('탈퇴 처리 중 오류가 발생했습니다')),
+                      );
+                    }
+                  }
+                },
+          child: _isLoading
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('탈퇴하기', style: TextStyle(color: Colors.red)),
+        ),
+      ],
     );
   }
 }
@@ -299,21 +342,21 @@ class _SettingsItem extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: tokens.textSub),
+              Icon(icon, size: 20, color: valueColor ?? tokens.textSub),
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
                   label,
-                  style: TextStyle(fontSize: 15, color: tokens.textPrimary),
+                  style: TextStyle(fontSize: 15, color: valueColor ?? tokens.textPrimary),
                 ),
               ),
               if (value != null)
                 Text(
                   value!,
-                  style: TextStyle(fontSize: 14, color: valueColor ?? tokens.textSub),
+                  style: TextStyle(fontSize: 14, color: tokens.textSub),
                 ),
               if (value == null)
-                Icon(Icons.arrow_forward_ios, size: 14, color: valueColor ?? tokens.textMuted),
+                Icon(Icons.arrow_forward_ios, size: 14, color: tokens.textMuted),
             ],
           ),
         ),
@@ -322,29 +365,18 @@ class _SettingsItem extends StatelessWidget {
   }
 }
 
-class _ToggleItem extends StatefulWidget {
+class _ToggleItem extends StatelessWidget {
   final IconData icon;
   final String label;
-  final bool initialValue;
+  final bool value;
+  final ValueChanged<bool> onChanged;
 
   const _ToggleItem({
     required this.icon,
     required this.label,
-    required this.initialValue,
+    required this.value,
+    required this.onChanged,
   });
-
-  @override
-  State<_ToggleItem> createState() => _ToggleItemState();
-}
-
-class _ToggleItemState extends State<_ToggleItem> {
-  late bool _value;
-
-  @override
-  void initState() {
-    super.initState();
-    _value = widget.initialValue;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -353,17 +385,17 @@ class _ToggleItemState extends State<_ToggleItem> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Row(
         children: [
-          Icon(widget.icon, size: 20, color: tokens.textSub),
+          Icon(icon, size: 20, color: tokens.textSub),
           const SizedBox(width: 14),
           Expanded(
             child: Text(
-              widget.label,
+              label,
               style: TextStyle(fontSize: 15, color: tokens.textPrimary),
             ),
           ),
           Switch(
-            value: _value,
-            onChanged: (v) => setState(() => _value = v),
+            value: value,
+            onChanged: onChanged,
             thumbColor: WidgetStateProperty.resolveWith(
               (states) => states.contains(WidgetState.selected) ? tokens.primary : null,
             ),

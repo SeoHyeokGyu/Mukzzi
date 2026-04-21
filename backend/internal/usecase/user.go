@@ -1,15 +1,25 @@
 package usecase
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
+	"gorm.io/datatypes"
 )
+
+// UserStats 프로필 통계 데이터
+type UserStats struct {
+	TotalMeals int64 `json:"total_meals"`
+	StreakDays int   `json:"streak_days"`
+	BadgeCount int64 `json:"badge_count"`
+}
 
 // UserUsecase 인터페이스는 사용자 프로필 관련 비즈니스 로직을 정의합니다.
 type UserUsecase interface {
 	GetProfile(id int64) (*domain.User, error)
+	GetStats(id int64) (*UserStats, error)
 	UpdateProfile(id int64, nickname, profileImageURL string) error
 	UpdateBody(id int64, height, weight float64, activityLevel domain.ActivityLevel) error
 	UpdateNutritionGoal(id int64, goal domain.DietGoal) error
@@ -20,12 +30,25 @@ type UserUsecase interface {
 }
 
 type userUsecase struct {
-	userRepo repository.UserRepository
+	userRepo        repository.UserRepository
+	mealRepo        repository.MealRepository
+	dailyIntakeRepo repository.DailyIntakeRepository
+	badgeRepo       repository.BadgeRepository
 }
 
 // NewUserUsecase 는 UserUsecase 인터페이스의 구현체를 반환합니다.
-func NewUserUsecase(userRepo repository.UserRepository) UserUsecase {
-	return &userUsecase{userRepo: userRepo}
+func NewUserUsecase(
+	userRepo repository.UserRepository,
+	mealRepo repository.MealRepository,
+	dailyIntakeRepo repository.DailyIntakeRepository,
+	badgeRepo repository.BadgeRepository,
+) UserUsecase {
+	return &userUsecase{
+		userRepo:        userRepo,
+		mealRepo:        mealRepo,
+		dailyIntakeRepo: dailyIntakeRepo,
+		badgeRepo:       badgeRepo,
+	}
 }
 
 func (u *userUsecase) GetProfile(id int64) (*domain.User, error) {
@@ -35,6 +58,26 @@ func (u *userUsecase) GetProfile(id int64) (*domain.User, error) {
 	}
 	user.Password = ""
 	return user, nil
+}
+
+func (u *userUsecase) GetStats(id int64) (*UserStats, error) {
+	totalMeals, err := u.mealRepo.CountByUserID(id)
+	if err != nil {
+		return nil, err
+	}
+	streakDays, err := u.dailyIntakeRepo.CountStreakDays(id)
+	if err != nil {
+		return nil, err
+	}
+	badgeCount, err := u.badgeRepo.CountUserAcquiredBadges(id)
+	if err != nil {
+		return nil, err
+	}
+	return &UserStats{
+		TotalMeals: totalMeals,
+		StreakDays:  streakDays,
+		BadgeCount: badgeCount,
+	}, nil
 }
 
 func (u *userUsecase) UpdateProfile(id int64, nickname, profileImageURL string) error {
@@ -102,6 +145,14 @@ func (u *userUsecase) UpdateSettings(id int64, privacyLevel *domain.PrivacyLevel
 
 	if privacyLevel != nil {
 		user.PrivacyLevel = *privacyLevel
+	}
+
+	if notificationSettings != nil {
+		b, err := json.Marshal(notificationSettings)
+		if err != nil {
+			return err
+		}
+		user.NotificationSettings = datatypes.JSON(b)
 	}
 
 	return u.userRepo.Update(user)

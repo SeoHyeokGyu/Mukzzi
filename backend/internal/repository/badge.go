@@ -16,6 +16,9 @@ type BadgeRepository interface {
 	// CountAllBadges 전체 뱃지 개수
 	CountAllBadges() (int64, error)
 
+	// CountUserAcquiredBadges 사용자가 획득한 뱃지 수
+	CountUserAcquiredBadges(userID int64) (int64, error)
+
 	// FindUserAcquiredBadges 사용자가 획득한 뱃지 조회
 	FindUserAcquiredBadges(userID int64) ([]domain.UserBadge, error)
 
@@ -118,6 +121,17 @@ func (r *badgeRepositoryImpl) FindBadgeByCode(code string) (*domain.Badge, error
 		return nil, err
 	}
 	return &badge, nil
+}
+
+// CountUserAcquiredBadges 사용자가 획득한 뱃지 수 조회
+func (r *badgeRepositoryImpl) CountUserAcquiredBadges(userID int64) (int64, error) {
+	var count int64
+	if err := r.db.Model(&domain.UserBadge{}).
+		Where("user_id = ?", userID).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 // FindUserBadgeByID 사용자 뱃지 기록 조회

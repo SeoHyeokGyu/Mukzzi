@@ -5,6 +5,7 @@ class UserModel {
   final String? nickname;
   final String? profileImageUrl;
   final String? equippedTitle;
+  final Map<String, bool> notificationSettings;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -15,15 +16,28 @@ class UserModel {
     this.nickname,
     this.profileImageUrl,
     this.equippedTitle,
+    Map<String, bool>? notificationSettings,
     this.createdAt,
     this.updatedAt,
-  });
+  }) : notificationSettings = notificationSettings ?? const {'meal': true, 'social': true, 'badge': true};
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     final equippedTitleJson = json['equipped_title'];
     final String? titleName = equippedTitleJson is Map
         ? (equippedTitleJson['Name'] ?? equippedTitleJson['name']) as String?
         : equippedTitleJson as String?;
+
+    final rawNs = json['notification_settings'];
+    final Map<String, bool> notificationSettings;
+    if (rawNs is Map) {
+      notificationSettings = {
+        'meal': rawNs['meal'] as bool? ?? true,
+        'social': rawNs['social'] as bool? ?? true,
+        'badge': rawNs['badge'] as bool? ?? true,
+      };
+    } else {
+      notificationSettings = const {'meal': true, 'social': true, 'badge': true};
+    }
 
     return UserModel(
       id: json['id']?.toString() ?? '',
@@ -32,6 +46,7 @@ class UserModel {
       nickname: json['nickname'] as String?,
       profileImageUrl: json['profile_image_url'] as String?,
       equippedTitle: titleName,
+      notificationSettings: notificationSettings,
       createdAt: json['CreatedAt'] != null
           ? DateTime.tryParse(json['CreatedAt'] as String)
           : null,

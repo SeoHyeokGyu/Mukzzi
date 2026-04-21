@@ -1,5 +1,6 @@
 import '../../../../core/network/api_client.dart';
 import '../models/user_model.dart';
+import '../models/user_stats_model.dart';
 
 class UserRepository {
   final ApiClient _apiClient;
@@ -8,6 +9,19 @@ class UserRepository {
 
   Future<UserModel> getMe() async {
     final response = await _apiClient.get('/users/me');
+    return UserModel.fromJson(response['data'] as Map<String, dynamic>);
+  }
+
+  Future<UserStatsModel> getStats() async {
+    final response = await _apiClient.get('/users/me/stats');
+    return UserStatsModel.fromJson(response['data'] as Map<String, dynamic>);
+  }
+
+  Future<UserModel> updateNotificationSettings(Map<String, bool> settings) async {
+    final response = await _apiClient.patch(
+      '/users/me/settings',
+      data: {'notification_settings': settings},
+    );
     return UserModel.fromJson(response['data'] as Map<String, dynamic>);
   }
 

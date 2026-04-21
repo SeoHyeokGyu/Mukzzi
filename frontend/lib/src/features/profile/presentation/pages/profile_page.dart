@@ -5,6 +5,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../providers/user_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../character/presentation/providers/title_provider.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
@@ -48,104 +49,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ? const Center(child: CircularProgressIndicator())
           : userState.error != null && userState.user == null
               ? _buildErrorState(context, tokens, userState.error!)
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    _ProfileHeader(
-                      nickname: userState.user?.nickname ?? '먹찌 유저',
-                      username: userState.user?.username ?? '',
-                      onEditTap: () => context.push('/profile/edit'),
-                      tokens: tokens,
-                    ),
-                    const SizedBox(height: 12),
-                    // 3열 스탯 그리드
-                    Row(
-                      children: [
-                        Expanded(child: _StatTile(label: '총 식사', value: '–', sub: '회', tokens: tokens)),
-                        const SizedBox(width: 8),
-                        Expanded(child: _StatTile(label: '연속 기록', value: '–', sub: '일', tokens: tokens)),
-                        const SizedBox(width: 8),
-                        Expanded(child: _StatTile(label: '달성 뱃지', value: '–', sub: '개', tokens: tokens)),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    _SectionLabel(label: '계정', tokens: tokens),
-                    const SizedBox(height: 8),
-                    BentoCard(
-                      borderRadius: BorderRadius.circular(tokens.rCard),
-                      padding: EdgeInsets.zero,
-                      child: Column(
-                        children: [
-                          _MenuItem(
-                            icon: Icons.person_outline,
-                            label: '프로필 편집',
-                            onTap: () => context.push('/profile/edit'),
-                            tokens: tokens,
-                          ),
-                          _Divider(tokens: tokens),
-                          _MenuItem(
-                            icon: Icons.notifications_outlined,
-                            label: '알림 설정',
-                            detail: '켜짐',
-                            onTap: () => context.push('/profile/settings'),
-                            tokens: tokens,
-                          ),
-                          _Divider(tokens: tokens),
-                          _MenuItem(
-                            icon: Icons.military_tech_outlined,
-                            label: '달성 뱃지',
-                            onTap: () => context.push('/profile/badges'),
-                            tokens: tokens,
-                          ),
-                          _Divider(tokens: tokens),
-                          _MenuItem(
-                            icon: Icons.bar_chart_outlined,
-                            label: '통계 리포트',
-                            onTap: () => ScaffoldMessenger.of(context)
-                                .showSnackBar(const SnackBar(content: Text('준비 중입니다'))),
-                            tokens: tokens,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    _SectionLabel(label: '앱', tokens: tokens),
-                    const SizedBox(height: 8),
-                    BentoCard(
-                      borderRadius: BorderRadius.circular(tokens.rCard),
-                      padding: EdgeInsets.zero,
-                      child: Column(
-                        children: [
-                          _MenuItem(
-                            icon: Icons.settings_outlined,
-                            label: '환경설정',
-                            onTap: () => context.push('/profile/settings'),
-                            tokens: tokens,
-                            secondary: true,
-                          ),
-                          _Divider(tokens: tokens),
-                          _MenuItem(
-                            icon: Icons.people_outline,
-                            label: '친구 초대',
-                            onTap: () => ScaffoldMessenger.of(context)
-                                .showSnackBar(const SnackBar(content: Text('준비 중입니다'))),
-                            tokens: tokens,
-                            secondary: true,
-                          ),
-                          _Divider(tokens: tokens),
-                          _MenuItem(
-                            icon: Icons.logout,
-                            label: '로그아웃',
-                            onTap: () => context.push('/profile/settings'),
-                            tokens: tokens,
-                            secondary: true,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                  ],
-                ),
+              : _ProfileBody(userState: userState, tokens: tokens),
     );
   }
 
@@ -164,6 +68,157 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ProfileBody extends ConsumerWidget {
+  final UserState userState;
+  final AppColorTokens tokens;
+
+  const _ProfileBody({required this.userState, required this.tokens});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statsAsync = ref.watch(userStatsProvider);
+    final ns = userState.user?.notificationSettings ?? const {'meal': true, 'social': true, 'badge': true};
+    final allOn = ns['meal'] == true && ns['social'] == true && ns['badge'] == true;
+    final notifDetail = allOn ? '켜짐' : '일부 꺼짐';
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _ProfileHeader(
+          nickname: userState.user?.nickname ?? '먹찌 유저',
+          username: userState.user?.username ?? '',
+          onEditTap: () => context.push('/profile/edit'),
+          tokens: tokens,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: statsAsync.when(
+                data: (s) => _StatTile(label: '총 식사', value: s.totalMeals.toString(), sub: '회', tokens: tokens),
+                loading: () => _StatTile(label: '총 식사', value: '–', sub: '회', tokens: tokens),
+                error: (_, __) => _StatTile(label: '총 식사', value: '–', sub: '회', tokens: tokens),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: statsAsync.when(
+                data: (s) => _StatTile(label: '연속 기록', value: s.streakDays.toString(), sub: '일', tokens: tokens),
+                loading: () => _StatTile(label: '연속 기록', value: '–', sub: '일', tokens: tokens),
+                error: (_, __) => _StatTile(label: '연속 기록', value: '–', sub: '일', tokens: tokens),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: statsAsync.when(
+                data: (s) => _StatTile(label: '달성 뱃지', value: s.badgeCount.toString(), sub: '개', tokens: tokens),
+                loading: () => _StatTile(label: '달성 뱃지', value: '–', sub: '개', tokens: tokens),
+                error: (_, __) => _StatTile(label: '달성 뱃지', value: '–', sub: '개', tokens: tokens),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _SectionLabel(label: '계정', tokens: tokens),
+        const SizedBox(height: 8),
+        BentoCard(
+          borderRadius: BorderRadius.circular(tokens.rCard),
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              _MenuItem(
+                icon: Icons.person_outline,
+                label: '프로필 편집',
+                onTap: () => context.push('/profile/edit'),
+                tokens: tokens,
+              ),
+              _Divider(tokens: tokens),
+              _MenuItem(
+                icon: Icons.notifications_outlined,
+                label: '알림 설정',
+                detail: notifDetail,
+                onTap: () => context.push('/profile/settings'),
+                tokens: tokens,
+              ),
+              _Divider(tokens: tokens),
+              _MenuItem(
+                icon: Icons.military_tech_outlined,
+                label: '달성 뱃지',
+                onTap: () => context.push('/profile/badges'),
+                tokens: tokens,
+              ),
+              _Divider(tokens: tokens),
+              _MenuItem(
+                icon: Icons.bar_chart_outlined,
+                label: '통계 리포트',
+                onTap: () => ScaffoldMessenger.of(context)
+                    .showSnackBar(const SnackBar(content: Text('준비 중입니다'))),
+                tokens: tokens,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        _SectionLabel(label: '앱', tokens: tokens),
+        const SizedBox(height: 8),
+        BentoCard(
+          borderRadius: BorderRadius.circular(tokens.rCard),
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              _MenuItem(
+                icon: Icons.settings_outlined,
+                label: '환경설정',
+                onTap: () => context.push('/profile/settings'),
+                tokens: tokens,
+                secondary: true,
+              ),
+              _Divider(tokens: tokens),
+              _MenuItem(
+                icon: Icons.people_outline,
+                label: '친구 초대',
+                onTap: () => ScaffoldMessenger.of(context)
+                    .showSnackBar(const SnackBar(content: Text('준비 중입니다'))),
+                tokens: tokens,
+                secondary: true,
+              ),
+              _Divider(tokens: tokens),
+              _MenuItem(
+                icon: Icons.logout,
+                label: '로그아웃',
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('로그아웃'),
+                    content: const Text('로그아웃 하시겠어요?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('취소'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          ref.read(authProvider.notifier).logout();
+                          context.go('/auth');
+                        },
+                        child: Text('로그아웃', style: TextStyle(color: tokens.primary)),
+                      ),
+                    ],
+                  ),
+                ),
+                tokens: tokens,
+                secondary: true,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 32),
+      ],
     );
   }
 }
@@ -387,13 +442,11 @@ class _Badge extends StatelessWidget {
   final String label;
   final Color color;
   final AppColorTokens tokens;
-  final bool secondary;
 
   const _Badge({
     required this.label,
     required this.color,
     required this.tokens,
-    this.secondary = false,
   });
 
   @override
@@ -401,7 +454,7 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: secondary ? tokens.listItemBg : color.withValues(alpha: 0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(99),
       ),
       child: Text(
@@ -409,7 +462,7 @@ class _Badge extends StatelessWidget {
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w600,
-          color: secondary ? tokens.textSub : color,
+          color: color,
         ),
       ),
     );

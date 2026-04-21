@@ -59,6 +59,16 @@ func (m *MockBadgeRepository) FindBadgeByCode(code string) (*domain.Badge, error
 	return args.Get(0).(*domain.Badge), args.Error(1)
 }
 
+func (m *MockBadgeRepository) FindUnacquiredBadges(userID int64, limit, offset int) ([]domain.Badge, error) {
+	args := m.Called(userID, limit, offset)
+	return args.Get(0).([]domain.Badge), args.Error(1)
+}
+
+func (m *MockBadgeRepository) CountUserAcquiredBadges(userID int64) (int64, error) {
+	args := m.Called(userID)
+	return args.Get(0).(int64), args.Error(1)
+}
+
 func TestBadgeUsecase_GetBadges(t *testing.T) {
 	mockRepo := new(MockBadgeRepository)
 	uc := NewBadgeUsecase(mockRepo)

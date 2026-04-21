@@ -14,6 +14,9 @@ type DailyIntakeRepository interface {
 
 	// FindRecentByUserID 최근 N일 일일 섭취 통계 조회 (날짜 내림차순)
 	FindRecentByUserID(userID int64, limit int) ([]domain.DailyIntake, error)
+
+	// CountStreakDays 오늘부터 연속 식사 기록 일수 계산
+	CountStreakDays(userID int64) (int, error)
 }
 
 type dailyIntakeRepositoryImpl struct {
@@ -47,4 +50,32 @@ func (r *dailyIntakeRepositoryImpl) FindRecentByUserID(userID int64, limit int) 
 		return nil, err
 	}
 	return intakes, nil
+}
+
+// CountStreakDays 오늘부터 거슬러 올라가며 식사 기록이 있는 연속 일수를 반환합니다.
+func (r *dailyIntakeRepositoryImpl) CountStreakDays(userID int64) (int, error) {
+	var dates []time.Time
+	if err := r.db.
+		Model(&domain.DailyIntake{}).
+		Where("user_id = ? AND meal_count > 0", userID).
+		Order("date DESC").
+		Limit(365).
+		Pluck("date", &dates).Error; err != nil {
+		return 0, err
+	}
+	if len(dates) == 0 {
+		return 0, nil
+	}
+
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	streak := 0
+	for i, d := range dates {
+		expected := today.AddDate(0, 0, -i)
+		if d.UTC().Truncate(24 * time.Hour).Equal(expected) {
+			streak++
+		} else {
+			break
+		}
+	}
+	return streak, nil
 }

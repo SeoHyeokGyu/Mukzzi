@@ -21,6 +21,8 @@ import '../features/profile/presentation/pages/edit_profile_page.dart';
 import '../features/meal_record/presentation/pages/meal_record_page.dart';
 import '../features/social/presentation/pages/social_page.dart';
 import '../features/social/presentation/pages/other_profile_page.dart';
+import '../features/settings/presentation/pages/privacy_policy_page.dart';
+import '../features/settings/presentation/pages/terms_page.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
 
 // authProvider 상태 변화를 GoRouter에 전달하는 ChangeNotifier.
@@ -188,6 +190,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   path: 'settings',
                   name: 'profile-settings',
                   builder: (context, state) => const SettingsPage(),
+                  routes: [
+                    GoRoute(
+                      path: 'privacy',
+                      name: 'privacy-policy',
+                      builder: (context, state) => const PrivacyPolicyPage(),
+                    ),
+                    GoRoute(
+                      path: 'terms',
+                      name: 'terms-of-service',
+                      builder: (context, state) => const TermsPage(),
+                    ),
+                  ],
                 ),
               ],
             ),

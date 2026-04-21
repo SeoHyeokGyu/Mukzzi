@@ -47,6 +47,30 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 	Success(c, user)
 }
 
+// GetStats 내 프로필 통계 조회
+// @Summary      프로필 통계 조회
+// @Description  총 식사 수, 연속 기록 일수, 달성 뱃지 수를 반환합니다.
+// @Tags         users
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  Response  "통계 조회 성공"
+// @Router       /api/users/me/stats [get]
+func (h *UserHandler) GetStats(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		Unauthorized(c, "UNAUTHORIZED", "인증 정보가 없습니다.")
+		return
+	}
+
+	stats, err := h.userUsecase.GetStats(userID.(int64))
+	if err != nil {
+		InternalError(c, "통계 조회에 실패했습니다.", err.Error())
+		return
+	}
+
+	Success(c, stats)
+}
+
 // UpdateMe 내 프로필 정보 수정 (닉네임, 이미지 등)
 // @Summary      내 프로필 정보 수정
 // @Description  자신의 프로필 정보(닉네임, 이미지)를 수정합니다.

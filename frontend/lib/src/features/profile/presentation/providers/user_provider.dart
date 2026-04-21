@@ -3,6 +3,7 @@ import '../../../../core/network/exceptions.dart';
 import '../../../../core/providers/common_providers.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/models/user_model.dart';
+import '../../data/models/user_stats_model.dart';
 import '../../data/repositories/user_repository.dart';
 
 final userRepositoryProvider = Provider<UserRepository>((ref) {
@@ -73,6 +74,24 @@ class UserNotifier extends StateNotifier<UserState> {
     }
   }
 
+  Future<bool> updateNotificationSettings(Map<String, bool> settings) async {
+    if (!mounted) return false;
+    try {
+      final user = await _repository.updateNotificationSettings(settings);
+      if (!mounted) return false;
+      state = state.copyWith(user: user);
+      return true;
+    } on AppException catch (e) {
+      if (!mounted) return false;
+      state = state.copyWith(error: e.message);
+      return false;
+    } catch (_) {
+      if (!mounted) return false;
+      state = state.copyWith(error: '설정 저장 중 오류가 발생했습니다.');
+      return false;
+    }
+  }
+
   Future<bool> deleteAccount() async {
     if (!mounted) return false;
     state = state.copyWith(isLoading: true, error: null);
@@ -92,6 +111,10 @@ class UserNotifier extends StateNotifier<UserState> {
     }
   }
 }
+
+final userStatsProvider = FutureProvider<UserStatsModel>((ref) {
+  return ref.watch(userRepositoryProvider).getStats();
+});
 
 final userProvider = StateNotifierProvider<UserNotifier, UserState>((ref) {
   final repository = ref.watch(userRepositoryProvider);
