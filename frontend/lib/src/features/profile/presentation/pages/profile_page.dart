@@ -5,6 +5,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../providers/user_provider.dart';
+import '../../../character/presentation/providers/title_provider.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -153,7 +154,7 @@ class ProfilePage extends ConsumerWidget {
   }
 }
 
-class _ProfileHeader extends StatelessWidget {
+class _ProfileHeader extends ConsumerWidget {
   final String nickname;
   final String username;
   final VoidCallback onEditTap;
@@ -167,8 +168,13 @@ class _ProfileHeader extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final initial = nickname.isNotEmpty ? nickname[0] : '?';
+    final equippedTitle = ref.watch(equippedTitleProvider).maybeWhen(
+      data: (t) => t?.name,
+      orElse: () => null,
+    );
+
     return BentoCard(
       borderRadius: BorderRadius.circular(tokens.rCard),
       padding: const EdgeInsets.all(20),
@@ -204,18 +210,14 @@ class _ProfileHeader extends StatelessWidget {
                         color: tokens.textPrimary,
                       ),
                 ),
+                if (equippedTitle != null) ...[
+                  const SizedBox(height: 3),
+                  _Badge(label: equippedTitle, color: tokens.primary, tokens: tokens),
+                ],
                 const SizedBox(height: 2),
                 Text(
                   username,
                   style: TextStyle(fontSize: 12, color: tokens.textMuted),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _Badge(label: '프리미엄', color: tokens.primary, tokens: tokens),
-                    const SizedBox(width: 6),
-                    _Badge(label: '12일째', color: tokens.textSub, tokens: tokens, secondary: true),
-                  ],
                 ),
               ],
             ),

@@ -3,7 +3,8 @@ class UserModel {
   final String username;
   final String email;
   final String? nickname;
-  final String? profileImageUrl; // 추가
+  final String? profileImageUrl;
+  final String? equippedTitle;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -13,22 +14,29 @@ class UserModel {
     required this.email,
     this.nickname,
     this.profileImageUrl,
+    this.equippedTitle,
     this.createdAt,
     this.updatedAt,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    final equippedTitleJson = json['equipped_title'];
+    final String? titleName = equippedTitleJson is Map
+        ? (equippedTitleJson['Name'] ?? equippedTitleJson['name']) as String?
+        : equippedTitleJson as String?;
+
     return UserModel(
       id: json['id']?.toString() ?? '',
       username: json['username'] as String? ?? '',
       email: json['email'] as String? ?? '',
       nickname: json['nickname'] as String?,
-      profileImageUrl: json['profile_image_url'] as String?, // 추가
-      createdAt: json['CreatedAt'] != null 
-          ? DateTime.tryParse(json['CreatedAt'] as String) 
+      profileImageUrl: json['profile_image_url'] as String?,
+      equippedTitle: titleName,
+      createdAt: json['CreatedAt'] != null
+          ? DateTime.tryParse(json['CreatedAt'] as String)
           : null,
-      updatedAt: json['UpdatedAt'] != null 
-          ? DateTime.tryParse(json['UpdatedAt'] as String) 
+      updatedAt: json['UpdatedAt'] != null
+          ? DateTime.tryParse(json['UpdatedAt'] as String)
           : null,
     );
   }

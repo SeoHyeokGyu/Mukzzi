@@ -57,7 +57,7 @@ func (r *socialRepository) GetFriendship(userID1, userID2 int64) (*domain.Friend
 
 func (r *socialRepository) GetFriends(userID int64) ([]domain.Friendship, error) {
 	var friends []domain.Friendship
-	err := r.db.Preload("Requester").Preload("Receiver").
+	err := r.db.Preload("Requester.EquippedTitle").Preload("Receiver.EquippedTitle").
 		Where("status = ? AND (requester_id = ? OR receiver_id = ?)", domain.FriendshipAccepted, userID, userID).
 		Find(&friends).Error
 	return friends, err
@@ -65,7 +65,7 @@ func (r *socialRepository) GetFriends(userID int64) ([]domain.Friendship, error)
 
 func (r *socialRepository) GetPendingRequests(userID int64) ([]domain.Friendship, error) {
 	var requests []domain.Friendship
-	err := r.db.Preload("Requester").
+	err := r.db.Preload("Requester.EquippedTitle").
 		Where("receiver_id = ? AND status = ?", userID, domain.FriendshipPending).
 		Find(&requests).Error
 	return requests, err
@@ -73,7 +73,7 @@ func (r *socialRepository) GetPendingRequests(userID int64) ([]domain.Friendship
 
 func (r *socialRepository) GetSentRequests(userID int64) ([]domain.Friendship, error) {
 	var requests []domain.Friendship
-	err := r.db.Preload("Receiver").
+	err := r.db.Preload("Receiver.EquippedTitle").
 		Where("requester_id = ? AND status = ?", userID, domain.FriendshipPending).
 		Find(&requests).Error
 	return requests, err

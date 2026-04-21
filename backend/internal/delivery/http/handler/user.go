@@ -222,12 +222,14 @@ func (h *UserHandler) GetOtherProfile(c *gin.Context) {
 		return
 	}
 
-	// 타인 프로필이므로 민감 정보는 제외한 DTO로 반환하는 것이 좋음
 	res := dto.UserProfileResponse{
 		ID:              user.ID,
 		Nickname:        user.Nickname,
 		ProfileImageURL: user.ProfileImageURL,
 		PrivacyLevel:    user.PrivacyLevel,
+	}
+	if user.EquippedTitle != nil {
+		res.EquippedTitle = user.EquippedTitle.Name
 	}
 
 	Success(c, res)

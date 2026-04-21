@@ -520,7 +520,7 @@ class _FriendListTabState extends ConsumerState<_FriendListTab> {
                                     child: !hasImage ? const Icon(Icons.person) : null,
                                   ),
                                   title: Text(friend.nickname ?? friend.username),
-                                  subtitle: const Text('Lv.1 · 기분좋음'),
+                                  subtitle: Text(friend.equippedTitle ?? '칭호 없음'),
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [

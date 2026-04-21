@@ -47,7 +47,8 @@ type User struct {
 	PrivacyLevel         PrivacyLevel   `gorm:"type:varchar(20);default:'PUBLIC'" json:"privacy_level"`
 	NotificationSettings datatypes.JSON `gorm:"type:jsonb;default:'{}'" json:"notification_settings"`
 
-	// 연관 관계 (Has One)
+	// 연관 관계
+	EquippedTitle *Title             `gorm:"foreignKey:EquippedTitleID" json:"equipped_title,omitempty"`
 	Body          *UserBody          `gorm:"foreignKey:UserID" json:"body,omitempty"`
 	NutritionGoal *UserNutritionGoal `gorm:"foreignKey:UserID" json:"nutrition_goal,omitempty"`
 }
