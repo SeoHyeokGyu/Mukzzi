@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'package:rive/rive.dart' hide LinearGradient; // mukzzi.riv 추가 시 활성화
+// import 'package:lottie/lottie.dart'; // mukzzi.json 추가 시 활성화
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';

@@ -117,7 +117,7 @@
 ### Frontend (iOS / Android / Web)
 - **Framework**: Flutter 3.24, Dart 3.5
 - **State Management**: Riverpod
-- **Animation**: Rive (먹찌 성장 인터랙티브 연출)
+- **Animation**: Lottie (먹찌 성장 인터랙티브 연출)
 - **Routing**: GoRouter
 - **HTTP**: Dio
 - **Responsive**: 모바일 / 데스크톱 반응형 레이아웃 (LayoutBuilder)

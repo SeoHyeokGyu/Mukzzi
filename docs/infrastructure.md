@@ -9,7 +9,7 @@
 | 프레임워크 | Flutter 3.24 | 단일 코드베이스로 iOS/Android/Web 동시 개발 |
 | 언어 | Dart 3.5 | Flutter 네이티브 언어, Null Safety 기본 지원 |
 | 상태관리 | Riverpod | 컴파일 타임 안전성, 의존성 주입 통합 |
-| 애니메이션 | Rive | 인터랙티브 벡터 애니메이션, 앱/웹 동일 품질 렌더링 |
+| 애니메이션 | Lottie | JSON 기반 벡터 애니메이션, After Effects/LottieFiles 에디터 연동 |
 | 라우팅 | GoRouter | 선언적 라우팅, 딥링크 지원 |
 | HTTP | Dio | 인터셉터, 토큰 갱신 자동화 |
 | 반응형 | LayoutBuilder | 모바일/데스크톱 레이아웃 분기, 공통 로직 공유 |
@@ -218,7 +218,7 @@ frontend/
 │       └── router/                         # GoRouter 설정 및 라우팅 로직
 ├── assets/
 │   ├── images/                             # 이미지 에셋
-│   └── animations/                         # Rive 애니메이션 파일
+│   └── animations/                         # Lottie 애니메이션 파일 (.json)
 ├── web/                                    # Flutter Web 설정
 ├── pubspec.yaml                            # Flutter 패키지 관리
 └── analysis_options.yaml                   # 린트 설정
@@ -232,7 +232,7 @@ frontend/
 | riverpod_generator | ^2.4.3 | Riverpod 생성 도구 |
 | go_router | ^14.2.7 | 내비게이션/라우팅 |
 | dio | ^5.7.0 | HTTP 클라이언트 |
-| rive | ^0.13.14 | 인터랙티브 애니메이션 |
+| lottie | ^3.1.0 | JSON 기반 벡터 애니메이션 |
 | shared_preferences | ^2.3.2 | 로컬 저장소 |
 | flutter_secure_storage | ^9.2.2 | 보안 저장소 (토큰) |
 | intl | ^0.19.0 | 국제화 및 날짜 포맷 |

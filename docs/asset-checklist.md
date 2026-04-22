@@ -5,6 +5,130 @@ MVP 우선 제작 에셋의 작업 단위별 체크리스트입니다.
 
 ---
 
+## 에셋 제작 워크플로우: Claude Design → LottieFiles
+
+### 0단계: 조합 전략 결정
+
+에셋 제작 착수 전에 아래 세 가지 중 하나를 먼저 선택합니다. 선택 결과가 파츠 분리 단위와 캔버스 규격을 결정합니다.
+
+| 방식 | 설명 | 레이어 분리 | 적합한 시점 |
+|------|------|------------|------------|
+| 파일 분리 | 파츠 상태별 별도 .json 생성, Flutter에서 파일 교체 | 불필요 | MVP (대표 케이스 3~6종) |
+| 파츠 Stack 컴포지션 | 파츠별(체형/근육/피부색/표정) 독립 .json을 Flutter의 Stack으로 겹쳐 조합 | 파츠 단위로 분리 | 전체 확장 (5 × 4 = 20개 파일로 625가지 조합 대응) |
+| 레이어 opacity 제어 | 단일 .json에서 `ValueDelegate<double>`로 레이어 opacity 전환 | 필요 | 파일 수 최소화가 중요한 경우 (구현 복잡도 높음) |
+
+> MVP 단계에서는 **파일 분리 방식**을 권장합니다. 이후 조합 수가 늘어날 때 **파츠 Stack 컴포지션 방식**으로 확장합니다. Lottie는 Rive처럼 단일 파일 내 State Machine 전환이 불가능하므로, 파츠별 파일을 Flutter Stack에서 합성하는 방식이 현실적입니다.
+
+### 1단계: 에셋 규격 사전 정의
+
+파츠 20개를 만든 뒤 정렬이 어긋나 전면 재작업하는 상황을 막기 위해, 제작 착수 전에 아래 규격을 확정합니다.
+
+**캔버스 / 좌표**
+
+- 모든 파츠 `.json` 캔버스 크기 동일: **500 × 500 px**
+- 앵커 포인트: 캔버스 중앙(250, 250), 체형 중심 기준
+- 배경: **투명 필수** (합성 시 겹침 보장)
+
+**애니메이션 스펙**
+
+- 프레임 레이트: **30 fps**
+- idle 루프: 2~3초, 미세한 상하 이동(±4px) + 호흡
+- blink: 5~8초당 1회, 눈 레이어 scale Y 0 → 1 (0.15초)
+- 파일 크기 타겟: **파츠당 50KB 이하**
+
+**네이밍 컨벤션** (파츠 Stack 방식 기준)
+
+```
+{파츠}_{단계}.json
+예) body_stage3.json, muscle_stage2.json, skin_stage4.json, face_stage3.json
+```
+
+진화 단계별 파일은 `evolution_{단계}.json` (예: `evolution_baby.json`).
+
+### 2단계: Claude Design에서 SVG 생성
+
+1. [claude.ai/design](https://claude.ai/design) 접속 (Claude Pro/Max/Team/Enterprise 구독 필요)
+2. 1단계 규격(캔버스 500×500, 투명 배경)을 프롬프트에 명시
+   - 예: "귀엽고 동글동글한 먹찌 캐릭터, 보통 체형, 기분좋은 표정, 500x500 투명 배경 SVG, 그라디언트/마스크 사용 최소화"
+3. 생성된 결과에서 SVG 코드를 복사 후 `.svg` 파일로 저장
+
+> 파츠별로 별도 생성 (체형/근육/피부색/표정/악세서리 분리 요청).
+> **Expression, 필터, 마스크, 3D 변환은 Flutter `lottie`에서 미지원** 이므로 SVG 생성 단계에서 피할 것.
+
+### 3단계: SVG 보정
+
+1. SVG를 Figma 또는 Inkscape에서 열어 불필요한 요소 제거, 색상/크기 보정, 앵커 정렬
+2. **LottieFiles 경로 선택**
+
+| SVG 복잡도 | 권장 경로 |
+|----------|---------|
+| 단순 (단색 + 기본 도형) | LottieFiles 웹 에디터에 직접 import |
+| 복잡 (gradient / clip-path / mask) | **Figma → LottieFiles Plugin** 경유 (웹 에디터 직접 import 시 누락/왜곡 발생) |
+| 고품질 필요 | After Effects + Bodymovin plugin → `.json` export (표준 프로덕션 파이프라인) |
+
+### 4단계: LottieFiles에서 애니메이션 제작
+
+1. 3단계 경로로 SVG 임포트
+2. 애니메이션 추가 (1단계 스펙 준수)
+   - idle: 상하 ±4px, 2~3초 루프
+   - blink: 눈 레이어 scale Y 트윈, 5~8초당 1회
+3. 타임라인 구성 및 루프 설정
+4. `.json` 파일로 export 후 파일 크기 확인 (50KB 이하)
+
+> **사용 금지 기능** (Flutter `lottie` 미지원): Expression, 3D Layer, Text auto-orient, 일부 Mate/Matte 효과. LottieFiles 에디터에서는 동작해도 앱에서 깨짐.
+
+### 5단계: Flutter 연동
+
+1. export한 `.json` 파일을 `assets/animations/` 폴더에 추가 (1단계 네이밍 컨벤션 준수)
+2. `pubspec.yaml`에 lottie 패키지 및 assets 경로 등록
+
+   ```yaml
+   # dependencies 섹션
+   dependencies:
+     lottie: ^3.1.0
+   ```
+
+   ```yaml
+   # flutter 섹션 (top-level, dependencies와 별개)
+   flutter:
+     assets:
+       - assets/animations/
+   ```
+
+3. 위젯에서 사용
+
+   ```dart
+   Lottie.asset('assets/animations/body_stage3.json')
+   ```
+
+4. 파츠 Stack 컴포지션 예시
+
+   ```dart
+   Stack(
+     alignment: Alignment.center,
+     children: [
+       Lottie.asset('assets/animations/body_stage${body}.json'),
+       Lottie.asset('assets/animations/muscle_stage${muscle}.json'),
+       Lottie.asset('assets/animations/skin_stage${skin}.json'),
+       Lottie.asset('assets/animations/face_stage${face}.json'),
+     ],
+   )
+   ```
+
+### 6단계: 품질 검증
+
+| # | 검증 항목 | 기준 |
+|---|---------|------|
+| Q-1 | iOS 시뮬레이터 렌더링 | 색상/레이어/정렬 정상 |
+| Q-2 | Android 에뮬레이터 렌더링 | iOS와 동일 출력 |
+| Q-3 | Flutter Web 렌더링 | CanvasKit 기준 동일 출력 (HTML renderer 차이 체크) |
+| Q-4 | 애니메이션 프레임 드랍 | 구형 단말(2019년 출시 이하)에서 30fps 유지 |
+| Q-5 | 파일 크기 | 파츠당 50KB 이하, 전체 번들 증가 < 1MB |
+| Q-6 | 파츠 정렬 | Stack 합성 시 체형 중심 기준 어긋남 없음 |
+| Q-7 | Lottie 미지원 기능 사용 여부 | Expression / 3D / auto-orient 미검출 |
+
+---
+
 ## 1단계: 캐릭터 디자인 확립
 
 MVP 에셋 제작 전에 먹찌의 기본 디자인을 확정합니다.
@@ -32,7 +156,7 @@ MVP 에셋 제작 전에 먹찌의 기본 디자인을 확정합니다.
 | 2-6 | 6단계: 최종 형태 이미지 생성 | 래스터 이미지 | [ ] |
 | 2-7 | 6종 벡터(SVG) 변환 | SVG 파일 x6 | [ ] |
 | 2-8 | 벡터 품질 확인 및 수동 보정 | 보정된 SVG x6 | [ ] |
-| 2-9 | Rive 임포트 + 뼈대 구조 설정 | .riv 파일 | [ ] |
+| 2-9 | LottieFiles 임포트 + 뼈대 구조 설정 | .json (Lottie) | [ ] |
 
 ---
 
@@ -45,7 +169,7 @@ MVP 에셋 제작 전에 먹찌의 기본 디자인을 확정합니다.
 | 3-1 | 체형 5단계 이미지 생성 | 래스터 이미지 x5 | [ ] |
 | 3-2 | 벡터 변환 | SVG x5 | [ ] |
 | 3-3 | 체형 레이어 분리 | 분리된 SVG x5 | [ ] |
-| 3-4 | Rive 임포트 + State Machine 체형 전환 설정 | .riv 파일 | [ ] |
+| 3-4 | LottieFiles 임포트 + 체형별 애니메이션 설정 | .json (Lottie) | [ ] |
 
 ### 근육 (5단계: 없음 / 미약 / 보통 / 탄탄 / 뚜렷)
 
@@ -54,7 +178,7 @@ MVP 에셋 제작 전에 먹찌의 기본 디자인을 확정합니다.
 | 3-5 | 근육 5단계 이미지 생성 | 래스터 이미지 x5 | [ ] |
 | 3-6 | 벡터 변환 | SVG x5 | [ ] |
 | 3-7 | 근육 레이어 분리 | 분리된 SVG x5 | [ ] |
-| 3-8 | Rive 임포트 + State Machine 근육 전환 설정 | .riv 파일 | [ ] |
+| 3-8 | LottieFiles 임포트 + 근육별 애니메이션 설정 | .json (Lottie) | [ ] |
 
 ### 피부색 (5단계: 창백 / 연함 / 보통 / 건강 / 싱그러움)
 
@@ -63,7 +187,7 @@ MVP 에셋 제작 전에 먹찌의 기본 디자인을 확정합니다.
 | 3-9 | 피부색 5단계 이미지 생성 | 래스터 이미지 x5 | [ ] |
 | 3-10 | 벡터 변환 | SVG x5 | [ ] |
 | 3-11 | 피부색 레이어 분리 | 분리된 SVG x5 | [ ] |
-| 3-12 | Rive 임포트 + State Machine 피부색 전환 설정 | .riv 파일 | [ ] |
+| 3-12 | LottieFiles 임포트 + 피부색별 애니메이션 설정 | .json (Lottie) | [ ] |
 
 ### 표정 (5단계: 지침 / 무기력 / 보통 / 기분좋음 / 활력)
 
@@ -72,14 +196,14 @@ MVP 에셋 제작 전에 먹찌의 기본 디자인을 확정합니다.
 | 3-13 | 표정 5단계 이미지 생성 | 래스터 이미지 x5 | [ ] |
 | 3-14 | 벡터 변환 | SVG x5 | [ ] |
 | 3-15 | 표정 레이어 분리 | 분리된 SVG x5 | [ ] |
-| 3-16 | Rive 임포트 + State Machine 표정 전환 설정 | .riv 파일 | [ ] |
+| 3-16 | LottieFiles 임포트 + 표정별 애니메이션 설정 | .json (Lottie) | [ ] |
 
 ### 파츠 조합 검증
 
 | # | 작업 | 산출물 | 완료 |
 |---|------|--------|------|
 | 3-17 | 영양소 비율에 따른 조합 (625가지 중 대표 케이스) 렌더링 확인 | 조합 스크린샷 | [ ] |
-| 3-18 | 부자연스러운 조합 보정 | 수정된 .riv | [ ] |
+| 3-18 | 부자연스러운 조합 보정 | 수정된 .json | [ ] |
 
 ---
 
@@ -87,9 +211,9 @@ MVP 에셋 제작 전에 먹찌의 기본 디자인을 확정합니다.
 
 | # | 작업 | 산출물 | 완료 |
 |---|------|--------|------|
-| 4-1 | 가만히 서기 (idle) 애니메이션 제작 | Rive 애니메이션 | [ ] |
-| 4-2 | 눈 깜빡임 (blink) 애니메이션 제작 | Rive 애니메이션 | [ ] |
-| 4-3 | State Machine에 idle + blink 연결 | .riv 파일 | [ ] |
+| 4-1 | 가만히 서기 (idle) 애니메이션 제작 | Lottie 애니메이션 | [ ] |
+| 4-2 | 눈 깜빡임 (blink) 애니메이션 제작 | Lottie 애니메이션 | [ ] |
+| 4-3 | idle + blink 애니메이션 통합 | .json (Lottie) | [ ] |
 
 ---
 
@@ -107,9 +231,9 @@ MVP 에셋 제작 전에 먹찌의 기본 디자인을 확정합니다.
 
 | # | 작업 | 산출물 | 완료 |
 |---|------|--------|------|
-| 6-1 | Rive 파일 Flutter 프로젝트에 추가 | assets/ 폴더 | [ ] |
-| 6-2 | Rive 런타임으로 캐릭터 렌더링 확인 | 동작하는 화면 | [ ] |
-| 6-3 | 영양소 입력값 -> State Machine 파라미터 연결 | 파츠 전환 동작 | [ ] |
+| 6-1 | Lottie JSON 파일 Flutter 프로젝트에 추가 | assets/ 폴더 | [ ] |
+| 6-2 | lottie 패키지로 캐릭터 렌더링 확인 | 동작하는 화면 | [ ] |
+| 6-3 | 영양소 입력값 -> 파츠별 Lottie 컴포지션 연결 | 파츠 전환 동작 | [ ] |
 | 6-4 | 배경 전환 동작 확인 | 배경 교체 동작 | [ ] |
 
 ---
@@ -120,7 +244,7 @@ MVP 에셋 제작 전에 먹찌의 기본 디자인을 확정합니다.
 
 1. AI로 먹찌 이미지 1장 생성 -> 소요 시간 측정 (프롬프트 시행착오 포함)
 2. 해당 이미지 벡터 변환 -> 품질 확인 및 보정 시간 측정
-3. Rive에 임포트 후 간단한 애니메이션 1개 제작 -> 소요 시간 측정
-4. Flutter에서 Rive 런타임 렌더링 -> 연동 소요 시간 측정
+3. LottieFiles에 임포트 후 간단한 애니메이션 1개 제작 -> 소요 시간 측정
+4. Flutter에서 lottie 패키지로 렌더링 -> 연동 소요 시간 측정
 
 각 단계의 파일럿 결과를 기반으로 전체 일정을 산출할 수 있습니다.
