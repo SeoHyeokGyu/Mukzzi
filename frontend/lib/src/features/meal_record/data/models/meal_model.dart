@@ -106,7 +106,7 @@ class MealRecord {
 // ─────────────────────────────────────────
 
 class CreateMealRequest {
-  final int? menuId;
+  final String? menuId;
   final String menuName;
   final String category;
   final String mealType;

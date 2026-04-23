@@ -7,12 +7,22 @@ import (
 )
 
 // MenuRoute 는 메뉴 관련 라우트를 등록합니다.
-func MenuRoute(rg *gin.RouterGroup, menuHandler *handler.MenuHandler) {
+func MenuRoute(
+	rg *gin.RouterGroup,
+	menuHandler *handler.MenuHandler,
+	favoriteHandler *handler.FavoriteHandler,
+) {
 	menus := rg.Group("/menus")
+	menus.Use(middleware.AuthMiddleware())
 	{
-		// 로그인이 필요한 요청들에 미들웨어 적용
-		menus.Use(middleware.AuthMiddleware())
-
+		// 메뉴 검색/등록/조회
 		menus.GET("/search", menuHandler.Search)
+		menus.POST("", menuHandler.Create)
+		menus.GET("/favorites", favoriteHandler.GetList) // /:id 보다 앞에 등록
+		menus.GET("/:id", menuHandler.FindByID)
+
+		// 즐겨찾기
+		menus.POST("/:id/favorites", favoriteHandler.Add)
+		menus.DELETE("/:id/favorites", favoriteHandler.Remove)
 	}
 }
