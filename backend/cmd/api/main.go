@@ -55,6 +55,7 @@ func main() {
 	titleRepo := repository.NewTitleRepository(db)
 	rewardRepo := repository.NewRewardRepository(db)
 	notificationRepo := repository.NewNotificationRepository(db)
+	favoriteRepo := repository.NewFavoriteRepository(db)
 
 	// Auth 도메인
 	authUsecase := usecase.NewAuthUsecase(userRepo)
@@ -76,6 +77,8 @@ func main() {
 	// Menu 도메인
 	menuUsecase := usecase.NewMenuUsecase(menuRepo)
 	menuHandler := handler.NewMenuHandler(menuUsecase)
+	favoriteUsecase := usecase.NewFavoriteUsecase(favoriteRepo, menuRepo)
+	favoriteHandler := handler.NewFavoriteHandler(favoriteUsecase)
 
 	// Notification 도메인
 	notificationUsecase := usecase.NewNotificationUsecase(notificationRepo)
@@ -100,6 +103,7 @@ func main() {
 		socialHandler,
 		notificationHandler,
 		mealHandler,
+		favoriteHandler,
 	)
 
 	// 서버 실행

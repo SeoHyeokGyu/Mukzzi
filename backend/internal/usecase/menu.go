@@ -12,6 +12,8 @@ import (
 // MenuUsecase 메뉴 유즈케이스 인터페이스
 type MenuUsecase interface {
 	Search(ctx context.Context, query domain.SearchMenuQuery) (*domain.SearchMenuResult, error)
+	Create(ctx context.Context, input domain.CreateMenuInput) (*domain.Menu, bool, error)
+	FindByID(ctx context.Context, id int64) (*domain.Menu, error)
 }
 
 // menuUsecaseImpl 메뉴 유즈케이스 구현체
@@ -56,7 +58,6 @@ func (u *menuUsecaseImpl) Search(ctx context.Context, query domain.SearchMenuQue
 		query.Limit = 50
 	}
 
-	// 한 개 더 조회해서 다음 페이지 여부 판단
 	menus, err := u.menuRepository.Search(query.Query, query.Category, query.Cursor, query.Limit+1)
 	if err != nil {
 		return nil, err
@@ -79,4 +80,48 @@ func (u *menuUsecaseImpl) Search(ctx context.Context, query domain.SearchMenuQue
 		HasNext:    hasNext,
 		Limit:      query.Limit,
 	}, nil
+}
+
+// Create 사용자 정의 메뉴 등록
+// - 영양소 값이 0이면 카테고리 평균값으로 채움
+// - created=false이면 동일 name+category 메뉴가 이미 존재함
+func (u *menuUsecaseImpl) Create(ctx context.Context, input domain.CreateMenuInput) (*domain.Menu, bool, error) {
+	defaults := nutritionDefaultsByCategory(input.Category)
+
+	calories := input.Calories
+	if calories == 0 {
+		calories = defaults.Calories
+	}
+	carbs := input.Carbs
+	if carbs == 0 {
+		carbs = defaults.Carbs
+	}
+	protein := input.Protein
+	if protein == 0 {
+		protein = defaults.Protein
+	}
+	fat := input.Fat
+	if fat == 0 {
+		fat = defaults.Fat
+	}
+	fiber := input.Fiber
+	if fiber == 0 {
+		fiber = defaults.Fiber
+	}
+
+	nutritionDefaults := &domain.MenuNutritionDefaults{
+		Calories:     calories,
+		Carbs:        carbs,
+		Protein:      protein,
+		Fat:          fat,
+		Fiber:        fiber,
+		VitaminScore: defaults.VitaminScore,
+	}
+
+	return u.menuRepository.FindOrCreate(input.Name, input.Category, nutritionDefaults)
+}
+
+// FindByID 단일 메뉴 상세 조회 (없으면 nil 반환)
+func (u *menuUsecaseImpl) FindByID(ctx context.Context, id int64) (*domain.Menu, error) {
+	return u.menuRepository.FindByID(id)
 }

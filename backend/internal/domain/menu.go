@@ -59,3 +59,14 @@ type SearchMenuResult struct {
 	HasNext    bool
 	Limit      int
 }
+
+// CreateMenuInput 사용자 정의 메뉴 생성 입력
+type CreateMenuInput struct {
+	Name     string
+	Category MenuCategory
+	Calories float64
+	Carbs    float64
+	Protein  float64
+	Fat      float64
+	Fiber    float64
+}

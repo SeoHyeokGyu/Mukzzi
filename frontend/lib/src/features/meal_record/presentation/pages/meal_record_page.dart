@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers/common_providers.dart';
+import '../providers/favorite_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
@@ -321,7 +322,7 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
     );
 
     final request = CreateMealRequest(
-      menuId: _selectedMenu != null ? int.tryParse(_selectedMenu!.id) : null,
+      menuId: _selectedMenu?.id,
       menuName: menuName,
       category: _selectedMenu?.category ?? '기타',
       mealType: widget.selectedMealType.apiValue,
@@ -564,7 +565,7 @@ class _PhotoArea extends StatelessWidget {
   }
 }
 
-class _FoodItemRow extends StatelessWidget {
+class _FoodItemRow extends ConsumerWidget {
   final MenuModel menu;
   final double servingSize;
   final VoidCallback onDecrement;
@@ -580,7 +581,11 @@ class _FoodItemRow extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isFav = ref.watch(
+      favoriteListProvider.select((s) => s.isFavorite(menu.id)),
+    );
+
     return Container(
       decoration: BoxDecoration(
         color: tokens.card,
@@ -590,19 +595,40 @@ class _FoodItemRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
+            // 즐겨찾기 토글
+            GestureDetector(
+              onTap: () =>
+                  ref.read(favoriteListProvider.notifier).toggle(menu),
+              child: Icon(
+                isFav ? Icons.star : Icons.star_border,
+                size: 22,
+                color: isFav ? Colors.amber : tokens.textMuted,
+              ),
+            ),
+            const SizedBox(width: 10),
+            // 메뉴명 + 인분/칼로리
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(menu.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: tokens.textPrimary)),
+                  Text(
+                    menu.name,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: tokens.textPrimary,
+                    ),
+                  ),
                   const SizedBox(height: 2),
                   Text(
-                    '${servingSize.toStringAsFixed(1)}인분 · ${(menu.defaultCalories * servingSize).toStringAsFixed(0)} kcal',
+                    '${servingSize.toStringAsFixed(1)}인분 · '
+                        '${(menu.defaultCalories * servingSize).toStringAsFixed(0)} kcal',
                     style: TextStyle(fontSize: 11, color: tokens.textMuted),
                   ),
                 ],
               ),
             ),
+            // 인분 조절
             Container(
               decoration: BoxDecoration(
                 color: tokens.listItemBg,
@@ -614,8 +640,12 @@ class _FoodItemRow extends StatelessWidget {
                   GestureDetector(
                     onTap: onDecrement,
                     child: Container(
-                      width: 28, height: 28,
-                      decoration: BoxDecoration(color: tokens.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: tokens.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
                       child: Icon(Icons.remove, size: 14, color: tokens.textSub),
                     ),
                   ),
@@ -623,15 +653,23 @@ class _FoodItemRow extends StatelessWidget {
                     width: 36,
                     child: Text(
                       servingSize.toStringAsFixed(1),
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: tokens.textPrimary),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: tokens.textPrimary,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
                   GestureDetector(
                     onTap: onIncrement,
                     child: Container(
-                      width: 28, height: 28,
-                      decoration: BoxDecoration(color: tokens.primary, shape: BoxShape.circle),
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: tokens.primary,
+                        shape: BoxShape.circle,
+                      ),
                       child: const Icon(Icons.add, size: 14, color: Colors.white),
                     ),
                   ),

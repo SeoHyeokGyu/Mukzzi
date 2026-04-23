@@ -11,10 +11,10 @@ type MenuRepository interface {
 	// Search 메뉴 검색 (USER 포함, 공식 소스 우선 정렬)
 	Search(query string, category *domain.MenuCategory, cursor *int64, limit int) ([]domain.Menu, error)
 
-	// FindByID 메뉴 ID로 조회
+	// FindByID 메뉴 ID로 조회 (없으면 nil 반환)
 	FindByID(id int64) (*domain.Menu, error)
 
-	// FindOrCreate 없으면 자동 생성
+	// FindOrCreate 없으면 자동 생성, created=false이면 이미 존재
 	FindOrCreate(name string, category domain.MenuCategory, defaults *domain.MenuNutritionDefaults) (*domain.Menu, bool, error)
 }
 

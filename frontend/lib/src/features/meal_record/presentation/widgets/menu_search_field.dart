@@ -1,8 +1,10 @@
+// lib/src/features/meal_record/presentation/widgets/menu_search_field.dart
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/menu_model.dart';
+import '../providers/favorite_provider.dart';
 import '../providers/menu_search_provider.dart';
 
 class MenuSearchField extends ConsumerStatefulWidget {
@@ -21,6 +23,7 @@ class MenuSearchField extends ConsumerStatefulWidget {
 
 class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
   bool _showDropdown = false;
+  bool _isRegistering = false;
 
   void _onChanged(String value) {
     setState(() => _showDropdown = value.isNotEmpty);
@@ -31,7 +34,6 @@ class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
     }
   }
 
-  // Listener의 onPointerDown에서 호출 — onTapOutside/포커스보다 먼저 실행됨
   void _onSelected(MenuModel menu) {
     widget.controller.text = menu.name;
     widget.controller.selection =
@@ -41,13 +43,35 @@ class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
     setState(() => _showDropdown = false);
   }
 
-  void _onSelectNew(String name) {
-    widget.controller.text = name;
-    widget.controller.selection =
-        TextSelection.collapsed(offset: name.length);
-    ref.read(menuSearchProvider.notifier).clear();
-    widget.onMenuSelected(null);
-    setState(() => _showDropdown = false);
+  Future<void> _onSelectNew(String name) async {
+    if (_isRegistering) return;
+    setState(() => _isRegistering = true);
+    try {
+      final menu = await ref
+          .read(menuRepositoryProvider)
+          .create(name: name, category: 'OTHER');
+      if (!mounted) return;
+      widget.controller.text = menu.name;
+      widget.controller.selection =
+          TextSelection.collapsed(offset: menu.name.length);
+      ref.read(menuSearchProvider.notifier).clear();
+      widget.onMenuSelected(menu);
+      setState(() {
+        _showDropdown = false;
+        _isRegistering = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      widget.controller.text = name;
+      widget.controller.selection =
+          TextSelection.collapsed(offset: name.length);
+      ref.read(menuSearchProvider.notifier).clear();
+      widget.onMenuSelected(null);
+      setState(() {
+        _showDropdown = false;
+        _isRegistering = false;
+      });
+    }
   }
 
   void _clear() {
@@ -60,8 +84,10 @@ class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
   @override
   Widget build(BuildContext context) {
     final searchState = ref.watch(menuSearchProvider);
-    // API 결과 오면 드롭다운 유지 (텍스트 있을 때)
-    if (searchState.results.isNotEmpty && widget.controller.text.isNotEmpty) {
+    final favoriteState = ref.watch(favoriteListProvider);
+    final isEmpty = widget.controller.text.isEmpty;
+
+    if (searchState.results.isNotEmpty && !isEmpty) {
       _showDropdown = true;
     }
 
@@ -79,7 +105,7 @@ class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
           decoration: InputDecoration(
             hintText: '예: 김치찌개',
             prefixIcon: const Icon(Icons.restaurant_menu),
-            suffixIcon: widget.controller.text.isNotEmpty
+            suffixIcon: !isEmpty
                 ? IconButton(
               icon: const Icon(Icons.clear),
               onPressed: _clear,
@@ -90,15 +116,20 @@ class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
             ),
           ),
           onChanged: _onChanged,
-          onTapOutside: (_) {
-            // 드롭다운 영역 터치는 Listener가 먼저 처리하므로
-            // 여기 도달했을 때는 진짜 바깥 터치
-            setState(() => _showDropdown = false);
-          },
+          onTapOutside: (_) => setState(() => _showDropdown = false),
         ),
 
-        // ── 드롭다운 ──
-        if (_showDropdown && widget.controller.text.isNotEmpty)
+        // ── 즐겨찾기 칩 (검색어 없을 때만) ──
+        if (isEmpty && favoriteState.favorites.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          _FavoriteChips(
+            favorites: favoriteState.favorites.map((f) => f.menu).toList(),
+            onSelected: _onSelected,
+          ),
+        ],
+
+        // ── 드롭다운 (검색어 있을 때) ──
+        if (_showDropdown && !isEmpty)
           Container(
             margin: const EdgeInsets.only(top: 4),
             decoration: BoxDecoration(
@@ -112,7 +143,7 @@ class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
                 ),
               ],
             ),
-            child: searchState.isLoading
+            child: (searchState.isLoading || _isRegistering)
                 ? const Padding(
               padding: EdgeInsets.all(16),
               child: Center(
@@ -122,7 +153,6 @@ class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
                 : Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 검색 결과
                 if (searchState.results.isNotEmpty)
                   ...searchState.results.map(
                         (menu) => _DropdownItem(
@@ -137,7 +167,6 @@ class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
                       ),
                     ),
                   ),
-                // 결과 없을 때만 직접 등록
                 if (searchState.results.isEmpty)
                   _DropdownItem(
                     onPointerDown: () =>
@@ -146,6 +175,10 @@ class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
                       leading: const Icon(Icons.add_circle_outline),
                       title: Text(
                         '"${widget.controller.text}" 직접 등록',
+                      ),
+                      subtitle: const Text(
+                        '새 메뉴로 등록됩니다',
+                        style: TextStyle(fontSize: 11),
                       ),
                     ),
                   ),
@@ -157,8 +190,40 @@ class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
   }
 }
 
-/// Listener로 onPointerDown을 잡아서
-/// 웹에서 onTapOutside/포커스 해제보다 먼저 선택 처리
+// ── 즐겨찾기 가로 스크롤 칩 ──
+
+class _FavoriteChips extends StatelessWidget {
+  final List<MenuModel> favorites;
+  final void Function(MenuModel) onSelected;
+
+  const _FavoriteChips({
+    required this.favorites,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 36,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: favorites.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final menu = favorites[index];
+          return ActionChip(
+            avatar: const Icon(Icons.star, size: 14),
+            label: Text(menu.name),
+            labelStyle: const TextStyle(fontSize: 12),
+            visualDensity: VisualDensity.compact,
+            onPressed: () => onSelected(menu),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _DropdownItem extends StatelessWidget {
   final VoidCallback onPointerDown;
   final Widget child;
