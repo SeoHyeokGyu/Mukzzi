@@ -28,6 +28,7 @@ type UserUsecase interface {
 	UpdateSettings(id int64, privacyLevel *domain.PrivacyLevel, notificationSettings any) error
 	DeleteAccount(id int64) error
 	ProcessPhysicalDeletion() error
+	GetCharacter(id int64) (*domain.Character, error)
 	Search(query string) ([]domain.User, error)
 	GetRecommendations(id int64) ([]domain.User, error)
 	Onboarding(id int64, mukzziName string, height, weight float64, activityLevel domain.ActivityLevel, goal domain.DietGoal, bodyType, muscle, skinTone, expression int) error
@@ -39,6 +40,7 @@ type userUsecase struct {
 	dailyIntakeRepo repository.DailyIntakeRepository
 	badgeRepo       repository.BadgeRepository
 	charRepo        repository.CharacterCollectionRepository
+	characterRepo   repository.CharacterRepository
 	db              *gorm.DB
 }
 
@@ -49,6 +51,7 @@ func NewUserUsecase(
 	dailyIntakeRepo repository.DailyIntakeRepository,
 	badgeRepo repository.BadgeRepository,
 	charRepo repository.CharacterCollectionRepository,
+	characterRepo repository.CharacterRepository,
 	db *gorm.DB,
 ) UserUsecase {
 	return &userUsecase{
@@ -57,6 +60,7 @@ func NewUserUsecase(
 		dailyIntakeRepo: dailyIntakeRepo,
 		badgeRepo:       badgeRepo,
 		charRepo:        charRepo,
+		characterRepo:   characterRepo,
 		db:              db,
 	}
 }
@@ -177,6 +181,10 @@ func (u *userUsecase) ProcessPhysicalDeletion() error {
 	return u.userRepo.DeletePhysicallyExpired(30)
 }
 
+func (u *userUsecase) GetCharacter(id int64) (*domain.Character, error) {
+	return u.characterRepo.GetByUserID(id)
+}
+
 func (u *userUsecase) Search(query string) ([]domain.User, error) {
 	return u.userRepo.Search(query)
 }
@@ -216,21 +224,19 @@ func (u *userUsecase) Onboarding(id int64, mukzziName string, height, weight flo
 		}
 
 		// 3. 캐릭터 생성
-		character := &domain.Character{
-			UserID:         id,
-			Name:           mukzziName,
-			Level:          1,
-			Exp:            0,
-			EvolutionStage: domain.EvolutionEgg,
-			BodyType:       bodyType,
-			Muscle:         muscle,
-			SkinTone:       skinTone,
-			Expression:     expression,
-			PenaltyStatus:  domain.PenaltyNormal,
-		}
-
+		character := &domain.Character{UserID: id}
 		if err := tx.Where(domain.Character{UserID: id}).
-			Assign(character).
+			Assign(domain.Character{
+				Name:           mukzziName,
+				Level:          1,
+				Exp:            0,
+				EvolutionStage: domain.EvolutionEgg,
+				BodyType:       bodyType,
+				Muscle:         muscle,
+				SkinTone:       skinTone,
+				Expression:     expression,
+				PenaltyStatus:  domain.PenaltyNormal,
+			}).
 			FirstOrCreate(character).Error; err != nil {
 			return err
 		}
@@ -242,16 +248,12 @@ func (u *userUsecase) Onboarding(id int64, mukzziName string, height, weight flo
 			Muscle:     muscle,
 			SkinTone:   skinTone,
 			Expression: expression,
-			AchievedAt: time.Now(),
 		}
-
-		if err := tx.Where(domain.CharacterCollection{
-			UserID:     id,
-			BodyType:   bodyType,
-			Muscle:     muscle,
-			SkinTone:   skinTone,
-			Expression: expression,
-		}).FirstOrCreate(charCol).Error; err != nil {
+		if err := tx.Where(charCol).
+			Assign(domain.CharacterCollection{
+				AchievedAt: time.Now(),
+			}).
+			FirstOrCreate(charCol).Error; err != nil {
 			return err
 		}
 

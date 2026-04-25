@@ -47,6 +47,27 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 	Success(c, user)
 }
 
+// GetCharacter 내 캐릭터 조회
+// @Summary      내 캐릭터 조회
+// @Description  로그인한 현재 사용자의 캐릭터 정보를 조회합니다.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  Response  "캐릭터 조회 성공"
+// @Router       /api/users/me/character [get]
+func (h *UserHandler) GetCharacter(c *gin.Context) {
+	userID, _ := c.Get("userID")
+
+	char, err := h.userUsecase.GetCharacter(userID.(int64))
+	if err != nil {
+		NotFound(c, "CHARACTER_NOT_FOUND", "캐릭터 정보를 찾을 수 없습니다.")
+		return
+	}
+
+	Success(c, char)
+}
+
 // GetStats 내 프로필 통계 조회
 // @Summary      프로필 통계 조회
 // @Description  총 식사 수, 연속 기록 일수, 달성 뱃지 수를 반환합니다.

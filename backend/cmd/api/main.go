@@ -51,6 +51,7 @@ func main() {
 	tagRepo := repository.NewMealFriendTagRepository(db)
 	dailyIntakeRepo := repository.NewDailyIntakeRepository(db)
 	charCollectionRepo := repository.NewCharacterCollectionRepository(db)
+	characterRepo := repository.NewCharacterRepository(db)
 	masteryRepo := repository.NewMasteryRepository(db)
 	titleRepo := repository.NewTitleRepository(db)
 	rewardRepo := repository.NewRewardRepository(db)
@@ -62,7 +63,7 @@ func main() {
 	authHandler := handler.NewAuthHandler(authUsecase)
 
 	// User 도메인
-	userUsecase := usecase.NewUserUsecase(userRepo, mealRepo, dailyIntakeRepo, badgeRepo, charCollectionRepo, db)
+	userUsecase := usecase.NewUserUsecase(userRepo, mealRepo, dailyIntakeRepo, badgeRepo, charCollectionRepo, characterRepo, db)
 	userHandler := handler.NewUserHandler(userUsecase)
 
 	// 스케줄러 시작 (30일 경과 탈퇴 회원 물리 삭제 등)
