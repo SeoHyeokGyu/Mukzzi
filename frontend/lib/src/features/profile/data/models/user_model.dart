@@ -49,7 +49,7 @@ class UserModel {
       profileImageUrl: json['profile_image_url'] as String?,
       equippedTitle: titleName,
       notificationSettings: notificationSettings,
-      isOnboarded: json['body'] != null,
+      isOnboarded: json['body'] != null || json['Body'] != null,
       createdAt: json['CreatedAt'] != null
           ? DateTime.tryParse(json['CreatedAt'] as String)
           : null,
