@@ -266,7 +266,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
           const SizedBox(height: 8),
           // Character
-          MukzziCharacter(state: _mockState, size: 160, level: _mockLevel),
+          const MukzziCharacter(state: _mockState, size: 160, level: _mockLevel),
           const SizedBox(height: 8),
           // Name
           Text(
