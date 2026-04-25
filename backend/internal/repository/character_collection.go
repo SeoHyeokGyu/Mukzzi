@@ -12,6 +12,9 @@ type CharacterCollectionRepository interface {
 
 	// FindByUserID 사용자가 달성한 외형 목록 조회
 	FindByUserID(userID int64, limit, offset int) ([]domain.CharacterCollection, int64, error)
+
+	// Create 도감 정보 생성
+	Create(collection *domain.CharacterCollection) error
 }
 
 type characterCollectionRepositoryImpl struct {
@@ -51,4 +54,8 @@ func (r *characterCollectionRepositoryImpl) FindByUserID(userID int64, limit, of
 	}
 
 	return collections, total, nil
+}
+
+func (r *characterCollectionRepositoryImpl) Create(collection *domain.CharacterCollection) error {
+	return r.db.Create(collection).Error
 }

@@ -34,6 +34,7 @@ type User struct {
 	Email    string `gorm:"uniqueIndex;not null;type:varchar(100)" json:"email"`
 	Password string `gorm:"not null;type:varchar(255)" json:"-"`
 	Nickname string `gorm:"uniqueIndex;not null;type:varchar(50)" json:"nickname"`
+	MukzziName string `gorm:"type:varchar(50)" json:"mukzzi_name"`
 
 	ProfileImageURL string     `gorm:"type:text" json:"profile_image_url"`
 	LastLoginAt     *time.Time `json:"last_login_at"`

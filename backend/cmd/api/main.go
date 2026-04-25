@@ -62,7 +62,7 @@ func main() {
 	authHandler := handler.NewAuthHandler(authUsecase)
 
 	// User 도메인
-	userUsecase := usecase.NewUserUsecase(userRepo, mealRepo, dailyIntakeRepo, badgeRepo)
+	userUsecase := usecase.NewUserUsecase(userRepo, mealRepo, dailyIntakeRepo, badgeRepo, charCollectionRepo, db)
 	userHandler := handler.NewUserHandler(userUsecase)
 
 	// Collection 도메인

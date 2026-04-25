@@ -3,10 +3,12 @@ package usecase
 import (
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 )
 
 // UserStats 프로필 통계 데이터
@@ -27,6 +29,7 @@ type UserUsecase interface {
 	DeleteAccount(id int64) error
 	Search(query string) ([]domain.User, error)
 	GetRecommendations(id int64) ([]domain.User, error)
+	Onboarding(id int64, mukzziName string, height, weight float64, activityLevel domain.ActivityLevel, goal domain.DietGoal, bodyType, muscle, skinTone, expression int) error
 }
 
 type userUsecase struct {
@@ -34,6 +37,8 @@ type userUsecase struct {
 	mealRepo        repository.MealRepository
 	dailyIntakeRepo repository.DailyIntakeRepository
 	badgeRepo       repository.BadgeRepository
+	charRepo        repository.CharacterCollectionRepository
+	db              *gorm.DB
 }
 
 // NewUserUsecase 는 UserUsecase 인터페이스의 구현체를 반환합니다.
@@ -42,12 +47,16 @@ func NewUserUsecase(
 	mealRepo repository.MealRepository,
 	dailyIntakeRepo repository.DailyIntakeRepository,
 	badgeRepo repository.BadgeRepository,
+	charRepo repository.CharacterCollectionRepository,
+	db *gorm.DB,
 ) UserUsecase {
 	return &userUsecase{
 		userRepo:        userRepo,
 		mealRepo:        mealRepo,
 		dailyIntakeRepo: dailyIntakeRepo,
 		badgeRepo:       badgeRepo,
+		charRepo:        charRepo,
+		db:              db,
 	}
 }
 
@@ -75,7 +84,7 @@ func (u *userUsecase) GetStats(id int64) (*UserStats, error) {
 	}
 	return &UserStats{
 		TotalMeals: totalMeals,
-		StreakDays:  streakDays,
+		StreakDays: streakDays,
 		BadgeCount: badgeCount,
 	}, nil
 }
@@ -169,6 +178,64 @@ func (u *userUsecase) Search(query string) ([]domain.User, error) {
 func (u *userUsecase) GetRecommendations(id int64) ([]domain.User, error) {
 	// 상위 10명의 추천 사용자 조회
 	return u.userRepo.GetRecommendations(id, 10)
+}
+
+func (u *userUsecase) Onboarding(id int64, mukzziName string, height, weight float64, activityLevel domain.ActivityLevel, goal domain.DietGoal, bodyType, muscle, skinTone, expression int) error {
+	return u.db.Transaction(func(tx *gorm.DB) error {
+		// 0. 유저의 먹찌 이름 업데이트
+		if err := tx.Model(&domain.User{}).Where("id = ?", id).Update("mukzzi_name", mukzziName).Error; err != nil {
+			return err
+		}
+
+		// 1. 신체 정보 생성 또는 업데이트
+		body := &domain.UserBody{UserID: id}
+		if err := tx.Where(domain.UserBody{UserID: id}).
+			Assign(domain.UserBody{
+				Height:        height,
+				Weight:        weight,
+				ActivityLevel: activityLevel,
+			}).
+			FirstOrCreate(body).Error; err != nil {
+			return err
+		}
+
+		// 2. 영양 목표 계산 및 생성/업데이트
+		nutritionGoal := &domain.UserNutritionGoal{UserID: id}
+		u.calculateNutritionTargets(body, nutritionGoal)
+		if err := tx.Where(domain.UserNutritionGoal{UserID: id}).
+			Assign(domain.UserNutritionGoal{
+				Goal:               goal,
+				DailyKcalTarget:    nutritionGoal.DailyKcalTarget,
+				DailyCarbsTarget:   nutritionGoal.DailyCarbsTarget,
+				DailyProteinTarget: nutritionGoal.DailyProteinTarget,
+				DailyFatTarget:     nutritionGoal.DailyFatTarget,
+			}).
+			FirstOrCreate(nutritionGoal).Error; err != nil {
+			return err
+		}
+
+		// 3. 캐릭터 생성 (이미 존재할 경우 기존 데이터를 사용하거나 무시)
+		char := &domain.CharacterCollection{
+			UserID:     id,
+			BodyType:   bodyType,
+			Muscle:     muscle,
+			SkinTone:   skinTone,
+			Expression: expression,
+			AchievedAt: time.Now(),
+		}
+
+		if err := tx.Where(domain.CharacterCollection{
+			UserID:     id,
+			BodyType:   bodyType,
+			Muscle:     muscle,
+			SkinTone:   skinTone,
+			Expression: expression,
+		}).FirstOrCreate(char).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 // calculateNutritionTargets 는 신체 정보와 목표를 기반으로 영양 목표를 계산합니다.

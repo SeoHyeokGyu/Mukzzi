@@ -306,6 +306,46 @@ func (h *UserHandler) GetRecommendations(c *gin.Context) {
 	Success(c, recommendations)
 }
 
+// Onboarding 온보딩 처리
+// @Summary      온보딩 처리
+// @Description  신체 정보 입력, 영양 목표 계산, 캐릭터 생성을 일괄 처리합니다.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        OnboardingRequest   body      dto.OnboardingRequest   true  "온보딩 정보"
+// @Success      200  {object}  Response  "온보딩 성공"
+// @Failure      400  {object}  Response  "잘못된 요청 형식"
+// @Router       /api/users/onboarding [post]
+func (h *UserHandler) Onboarding(c *gin.Context) {
+	userID, _ := c.Get("userID")
+
+	var req dto.OnboardingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		BadRequest(c, "INVALID_REQUEST", "잘못된 요청 형식입니다.", err.Error())
+		return
+	}
+
+	err := h.userUsecase.Onboarding(
+		userID.(int64),
+		req.MukzziName,
+		req.Height,
+		req.Weight,
+		req.ActivityLevel,
+		domain.DietGoal(req.Goal),
+		req.BodyType,
+		req.Muscle,
+		req.SkinTone,
+		req.Expression,
+	)
+	if err != nil {
+		InternalError(c, "온보딩 처리에 실패했습니다.", err.Error())
+		return
+	}
+
+	Success(c, nil)
+}
+
 // Deprecated: GetProfile 은 GetOtherProfile 로 대체됩니다.
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	h.GetOtherProfile(c)
