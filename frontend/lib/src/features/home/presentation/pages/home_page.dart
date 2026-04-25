@@ -352,12 +352,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ),
               ],
               onTap: () => context.go('/meal-record'),
-              child: Row(
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.restaurant, color: Colors.white, size: 20),
-                  const SizedBox(width: 8),
-                  const Text(
+                  Icon(Icons.restaurant, color: Colors.white, size: 20),
+                  SizedBox(width: 8),
+                  Text(
                     '먹찌 밥 주기',
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
                   ),

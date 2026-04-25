@@ -1,22 +1,29 @@
 import '../../../profile/data/models/user_model.dart';
 
 enum NotificationType {
-  FRIEND_REQUEST,
-  FRIEND_ACCEPTED,
-  NUDGE,
-  GUESTBOOK,
-  LEVEL_UP,
-  BADGE_ACQUIRED,
-  MEAL_TAG,
-  MEAL_TAG_ACCEPTED,
-  UNKNOWN;
+  friendRequest,
+  friendAccepted,
+  nudge,
+  guestbook,
+  levelUp,
+  badgeAcquired,
+  mealTag,
+  mealTagAccepted,
+  unknown;
 
   static NotificationType fromString(String? value) {
-    if (value == null) return NotificationType.UNKNOWN;
-    return NotificationType.values.firstWhere(
-      (e) => e.name == value,
-      orElse: () => NotificationType.UNKNOWN,
-    );
+    if (value == null) return NotificationType.unknown;
+    return switch (value) {
+      'FRIEND_REQUEST' => NotificationType.friendRequest,
+      'FRIEND_ACCEPTED' => NotificationType.friendAccepted,
+      'NUDGE' => NotificationType.nudge,
+      'GUESTBOOK' => NotificationType.guestbook,
+      'LEVEL_UP' => NotificationType.levelUp,
+      'BADGE_ACQUIRED' => NotificationType.badgeAcquired,
+      'MEAL_TAG' => NotificationType.mealTag,
+      'MEAL_TAG_ACCEPTED' => NotificationType.mealTagAccepted,
+      _ => NotificationType.unknown,
+    };
   }
 }
 
@@ -70,16 +77,16 @@ class NotificationModel {
     if (linkUrl != null && linkUrl!.isNotEmpty) return linkUrl!;
 
     switch (type) {
-      case NotificationType.FRIEND_REQUEST:
+      case NotificationType.friendRequest:
         return '/social'; // 요청 탭으로 자동 전환 필요 시 추가 로직 가능
-      case NotificationType.FRIEND_ACCEPTED:
-      case NotificationType.NUDGE:
-      case NotificationType.GUESTBOOK:
+      case NotificationType.friendAccepted:
+      case NotificationType.nudge:
+      case NotificationType.guestbook:
         if (senderId != null) return '/social/profile/$senderId';
         return '/social';
-      case NotificationType.LEVEL_UP:
+      case NotificationType.levelUp:
         return '/character';
-      case NotificationType.BADGE_ACQUIRED:
+      case NotificationType.badgeAcquired:
         return '/profile/badges';
       default:
         return '/home';

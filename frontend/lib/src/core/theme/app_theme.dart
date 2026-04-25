@@ -32,11 +32,11 @@ class AppColors {
     end: Alignment.centerRight,
   );
 
-  static List<BoxShadow> cardShadow = [
+  static const List<BoxShadow> cardShadow = [
     BoxShadow(
-      color: Colors.black.withValues(alpha: 0.3),
+      color: Color(0x4D000000), // black with 0.3 opacity
       blurRadius: 16,
-      offset: const Offset(0, 4),
+      offset: Offset(0, 4),
     ),
   ];
 
@@ -56,6 +56,17 @@ class AppColors {
   static const Color surfaceDark = Color(0xFF1A1A22);
   static const Color iconDisabled = Color(0x66858585);
   static const Color masterGold = Color(0xFFFFD700);
+
+  // Light Mode Colors
+  static const Color lightBackground = Color(0xFFFDF8F2);
+  static const Color lightSurface = Color(0xFFFFFFFF);
+  static const Color lightTextPrimary = Color(0xFF2A1F15);
+  static const Color lightTextSecondary = Color(0xA62A1F15);
+  static const Color lightTextTertiary = Color(0x662A1F15);
+  static const Color lightDivider = Color(0xFFE8DDD4);
+  static const Color lightPrimaryBg = Color(0x1AFF7A3D);
+  static const Color lightHeroBg = Color(0xFFFFE8D1);
+  static const Color lightHeroBgEnd = Color(0xFFFFD1B3);
 }
 
 /// Per-variant design tokens. Access via Theme.of(context).extension<AppColorTokens>()!
@@ -103,78 +114,78 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     this.rItem = 14,
   });
 
-  static final hybrid = AppColorTokens(
-    bg: const Color(0xFF14110E),
-    card: const Color(0xFF201A14),
-    listItemBg: const Color(0x0AFFDCB4),
-    textPrimary: const Color(0xFFFBF4E8),
-    textSub: const Color(0xA6FBF4E8),
-    textMuted: const Color(0x66FBF4E8),
-    primary: const Color(0xFFFF7A3D),
-    primarySoft: const Color(0xFFFFC26B),
-    primaryBg: const Color(0x24FF7A3D),
-    heroText: const Color(0xFF3A2010),
-    heroTextSub: const Color(0xA63A2010),
-    bgGrad: const LinearGradient(
+  static const hybrid = AppColorTokens(
+    bg: Color(0xFF14110E),
+    card: Color(0xFF201A14),
+    listItemBg: Color(0x0AFFDCB4),
+    textPrimary: Color(0xFFFBF4E8),
+    textSub: Color(0xA6FBF4E8),
+    textMuted: Color(0x66FBF4E8),
+    primary: Color(0xFFFF7A3D),
+    primarySoft: Color(0xFFFFC26B),
+    primaryBg: Color(0x24FF7A3D),
+    heroText: Color(0xFF3A2010),
+    heroTextSub: Color(0xA63A2010),
+    bgGrad: LinearGradient(
       colors: [Color(0xFF14110E), Color(0xFF1C1611)],
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
     ),
-    cardHeroGrad: const LinearGradient(
+    cardHeroGrad: LinearGradient(
       colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),
-    charBgNormal: const LinearGradient(
+    charBgNormal: LinearGradient(
       colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),
-    charBgHungry: const LinearGradient(
+    charBgHungry: LinearGradient(
       colors: [Color(0xFFF5DFB8), Color(0xFFD9B272)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),
-    charBgStarving: const LinearGradient(
+    charBgStarving: LinearGradient(
       colors: [Color(0xFFE6BDB0), Color(0xFFC98878)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),
   );
 
-  static final light = AppColorTokens(
-    bg: const Color(0xFFFDF8F2),
-    card: const Color(0xFFFFFFFF),
-    listItemBg: const Color(0x99FFE0C8),
-    textPrimary: const Color(0xFF2A1F15),
-    textSub: const Color(0xA62A1F15),
-    textMuted: const Color(0x662A1F15),
-    primary: const Color(0xFFFF7A3D),
-    primarySoft: const Color(0xFFFFB582),
-    primaryBg: const Color(0x1AFF7A3D),
-    heroText: const Color(0xFF2A1F15),
-    heroTextSub: const Color(0xA62A1F15),
-    bgGrad: const LinearGradient(
-      colors: [Color(0xFFFDF8F2), Color(0xFFF8EFE3)],
+  static const light = AppColorTokens(
+    bg: AppColors.lightBackground,
+    card: AppColors.lightSurface,
+    listItemBg: Color(0x99FFE0C8),
+    textPrimary: AppColors.lightTextPrimary,
+    textSub: AppColors.lightTextSecondary,
+    textMuted: AppColors.lightTextTertiary,
+    primary: AppColors.orange,
+    primarySoft: Color(0xFFFFB582),
+    primaryBg: AppColors.lightPrimaryBg,
+    heroText: AppColors.lightTextPrimary,
+    heroTextSub: AppColors.lightTextSecondary,
+    bgGrad: LinearGradient(
+      colors: [AppColors.lightBackground, Color(0xFFF8EFE3)],
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
     ),
-    cardHeroGrad: const LinearGradient(
-      colors: [Color(0xFFFFE8D1), Color(0xFFFFD1B3)],
+    cardHeroGrad: LinearGradient(
+      colors: [AppColors.lightHeroBg, AppColors.lightHeroBgEnd],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),
-    charBgNormal: const LinearGradient(
-      colors: [Color(0xFFFFE8D1), Color(0xFFFFD1B3)],
+    charBgNormal: LinearGradient(
+      colors: [AppColors.lightHeroBg, AppColors.lightHeroBgEnd],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),
-    charBgHungry: const LinearGradient(
+    charBgHungry: LinearGradient(
       colors: [Color(0xFFFFF0CC), Color(0xFFFFD980)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),
-    charBgStarving: const LinearGradient(
+    charBgStarving: LinearGradient(
       colors: [Color(0xFFFFDDD5), Color(0xFFFFB0A0)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,

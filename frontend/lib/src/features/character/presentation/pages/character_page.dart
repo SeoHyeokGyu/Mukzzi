@@ -74,7 +74,7 @@ class CharacterPage extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  MukzziCharacter(state: _mockState, size: 200, level: _mockLevel),
+                  const MukzziCharacter(state: _mockState, size: 200, level: _mockLevel),
                   const SizedBox(height: 12),
                   Text(
                     'Lv.$_mockLevel까지 ${(_mockXpGoal - _mockXp).toInt()} XP',

@@ -203,7 +203,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             height: 4,
             margin: const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
-              color: isActive ? Colors.white : Colors.white.withOpacity(0.2),
+              color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -236,9 +236,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
       ),
       child: TextField(
         controller: controller,
@@ -277,9 +277,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             width: (MediaQuery.of(context).size.width - 48 - 10) / 2,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isSelected ? Colors.white : Colors.white.withOpacity(0.05),
+              color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isSelected ? Colors.white : Colors.white.withOpacity(0.2), width: 1.5),
+              border: Border.all(color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.2), width: 1.5),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,15 +321,15 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.white.withOpacity(0.05),
+          color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isSelected ? Colors.white : Colors.white.withOpacity(0.2), width: 1.5),
+          border: Border.all(color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.2), width: 1.5),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: isSelected ? Colors.orange.withOpacity(0.1) : Colors.white10, shape: BoxShape.circle),
+              decoration: BoxDecoration(color: isSelected ? Colors.orange.withValues(alpha: 0.1) : Colors.white10, shape: BoxShape.circle),
               child: Icon(icon, color: isSelected ? Colors.orange : Colors.white, size: 24),
             ),
             const SizedBox(width: 16),
@@ -363,7 +363,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             children: [
               Container(
                 width: 120, height: 120,
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle, border: Border.all(color: Colors.white24, width: 2)),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), shape: BoxShape.circle, border: Border.all(color: Colors.white24, width: 2)),
                 child: const Icon(Icons.face_retouching_natural, size: 70, color: Colors.white),
               ),
               const SizedBox(height: 24),
@@ -385,9 +385,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
       ),
       child: TextField(
         controller: _mukzziNameController,
@@ -426,7 +426,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                     height: 32,
                     margin: const EdgeInsets.symmetric(horizontal: 2),
                     decoration: BoxDecoration(
-                      color: isSelected ? Colors.white : Colors.white.withOpacity(0.1),
+                      color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: isSelected ? Colors.white : Colors.white10),
                     ),

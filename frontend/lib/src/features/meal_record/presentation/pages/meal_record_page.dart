@@ -422,7 +422,7 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
                       RichText(
                         text: TextSpan(children: [
                           TextSpan(
-                            text: '${(_selectedMenu!.defaultCalories * _servingSize).toStringAsFixed(0)}',
+                            text: (_selectedMenu!.defaultCalories * _servingSize).toStringAsFixed(0),
                             style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: tokens.textPrimary),
                           ),
                           TextSpan(

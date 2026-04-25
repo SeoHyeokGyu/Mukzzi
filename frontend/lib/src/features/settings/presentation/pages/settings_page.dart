@@ -267,28 +267,51 @@ class _ThemeToggle extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
-    final variant = ref.watch(themeVariantProvider);
-    final notifier = ref.read(themeVariantProvider.notifier);
+    final themeMode = ref.watch(themeModeProvider);
+    final notifier = ref.read(themeModeProvider.notifier);
 
     return BentoCard(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.palette_outlined, size: 20, color: tokens.textSub),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text('테마', style: TextStyle(fontSize: 15, color: tokens.textPrimary)),
-          ),
-          SegmentedButton<AppVariant>(
-            segments: const [
-              ButtonSegment(value: AppVariant.hybrid, label: Text('Hybrid')),
-              ButtonSegment(value: AppVariant.light,  label: Text('Light')),
+          Row(
+            children: [
+              Icon(Icons.palette_outlined, size: 20, color: tokens.textSub),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text('테마 설정', style: TextStyle(fontSize: 15, color: tokens.textPrimary)),
+              ),
             ],
-            selected: {variant},
-            onSelectionChanged: (sel) => notifier.setVariant(sel.first),
-            style: ButtonStyle(
-              textStyle: WidgetStatePropertyAll(
-                TextStyle(fontSize: 12, color: tokens.textPrimary),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<ThemeMode>(
+              segments: const [
+                ButtonSegment(
+                  value: ThemeMode.light,
+                  label: Text('라이트'),
+                  icon: Icon(Icons.light_mode_outlined),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.dark,
+                  label: Text('다크'),
+                  icon: Icon(Icons.dark_mode_outlined),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.system,
+                  label: Text('시스템'),
+                  icon: Icon(Icons.settings_suggest_outlined),
+                ),
+              ],
+              selected: {themeMode},
+              onSelectionChanged: (sel) => notifier.setThemeMode(sel.first),
+              showSelectedIcon: false,
+              style: ButtonStyle(
+                textStyle: WidgetStatePropertyAll(
+                  TextStyle(fontSize: 13, color: tokens.textPrimary),
+                ),
               ),
             ),
           ),

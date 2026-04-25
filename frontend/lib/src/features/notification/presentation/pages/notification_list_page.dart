@@ -144,28 +144,28 @@ class _NotificationItem extends StatelessWidget {
     Color color;
 
     switch (notification.type) {
-      case NotificationType.FRIEND_REQUEST:
-      case NotificationType.FRIEND_ACCEPTED:
+      case NotificationType.friendRequest:
+      case NotificationType.friendAccepted:
         icon = Icons.person_add_outlined;
         color = Colors.blue;
         break;
-      case NotificationType.NUDGE:
+      case NotificationType.nudge:
         icon = Icons.favorite_border;
         color = Colors.pink;
         break;
-      case NotificationType.GUESTBOOK:
+      case NotificationType.guestbook:
         icon = Icons.chat_bubble_outline;
         color = Colors.green;
         break;
-      case NotificationType.LEVEL_UP:
+      case NotificationType.levelUp:
         icon = Icons.auto_awesome;
         color = Colors.amber;
         break;
-      case NotificationType.BADGE_ACQUIRED:
+      case NotificationType.badgeAcquired:
         icon = Icons.military_tech_outlined;
         color = AppColors.orange;
         break;
-      case NotificationType.MEAL_TAG:
+      case NotificationType.mealTag:
         icon = Icons.restaurant_outlined;
         color = Colors.deepPurple;
         break;
