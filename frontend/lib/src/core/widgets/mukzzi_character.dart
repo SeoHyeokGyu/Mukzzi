@@ -126,7 +126,7 @@ class _MukzziPainter extends CustomPainter {
   }
 
   void _drawBody(Canvas canvas, _CharPalette palette) {
-    final bodyRect = Rect.fromLTWH(46, 26, 108, 148);
+    const bodyRect = Rect.fromLTWH(46, 26, 108, 148);
 
     canvas.drawOval(bodyRect, Paint()..color = palette.body);
 

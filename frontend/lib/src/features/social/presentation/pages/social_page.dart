@@ -269,10 +269,10 @@ class _RankingTab extends StatelessWidget {
                       width: 58,
                       height: 58,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
+                        gradient: const LinearGradient(
                           colors: [
-                            const Color(0xFFF5E6D3),
-                            const Color(0xFFE8C89A),
+                            Color(0xFFF5E6D3),
+                            Color(0xFFE8C89A),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -780,11 +780,11 @@ class _UserItemCard extends ConsumerWidget {
                   ),
                 ),
                 if (isFriend)
-                  _StatusChip(label: '친구', color: Colors.green)
+                  const _StatusChip(label: '친구', color: Colors.green)
                 else if (isReceivedRequest)
                   _StatusChip(label: '요청 수신', color: tokens.primary)
                 else if (isSentRequest)
-                  _StatusChip(label: '요청 보냄', color: Colors.grey)
+                  const _StatusChip(label: '요청 보냄', color: Colors.grey)
                 else
                   IconButton(
                     tooltip: '친구 요청 보내기',
