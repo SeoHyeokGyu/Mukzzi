@@ -28,13 +28,13 @@ class MukzziApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
-    final variant = ref.watch(themeVariantProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
       title: 'Mukzzi',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.hybridTheme,
-      themeMode: variant == AppVariant.light ? ThemeMode.light : ThemeMode.dark,
+      themeMode: themeMode,
       routerConfig: router,
       builder: (context, child) {
         final mq = MediaQuery.of(context);
