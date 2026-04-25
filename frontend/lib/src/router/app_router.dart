@@ -86,9 +86,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (!isLoggedIn && !isAuthPath) return '/auth';
       if (isLoggedIn && isAuthPath) return '/home';
 
-      // 로그인되었으나 온보딩을 하지 않은 경우
-      if (isLoggedIn && currentUser != null && !currentUser.isOnboarded && !isOnboardingPath) {
-        return '/onboarding';
+      // 로그인되었을 때 온보딩 상태 체크
+      if (isLoggedIn && currentUser != null) {
+        // 온보딩을 완료했는데 온보딩 페이지에 있으려 하면 홈으로 보냄
+        if (currentUser.isOnboarded && isOnboardingPath) return '/home';
+        // 온보딩을 안 했는데 다른 페이지에 있으려 하면 온보딩으로 보냄
+        if (!currentUser.isOnboarded && !isOnboardingPath) return '/onboarding';
       }
       
       return null;

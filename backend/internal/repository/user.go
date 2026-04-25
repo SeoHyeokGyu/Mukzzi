@@ -59,7 +59,7 @@ func (r *userRepository) GetByID(id int64) (*domain.User, error) {
 
 func (r *userRepository) GetByUsername(username string) (*domain.User, error) {
 	var user domain.User
-	err := r.db.Where("username = ?", username).First(&user).Error
+	err := r.db.Preload("Body").Where("username = ?", username).First(&user).Error
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (r *userRepository) GetByUsername(username string) (*domain.User, error) {
 
 func (r *userRepository) GetByEmail(email string) (*domain.User, error) {
 	var user domain.User
-	err := r.db.Where("email = ?", email).First(&user).Error
+	err := r.db.Preload("Body").Where("email = ?", email).First(&user).Error
 	if err != nil {
 		return nil, err
 	}
