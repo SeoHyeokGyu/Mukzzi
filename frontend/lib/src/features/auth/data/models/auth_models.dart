@@ -1,13 +1,15 @@
 import '../../../profile/data/models/user_model.dart';
 
 class LoginRequest {
-  final String username;
+  final String? username;
+  final String? email;
   final String password;
 
-  LoginRequest({required this.username, required this.password});
+  LoginRequest({this.username, this.email, required this.password});
 
   Map<String, dynamic> toJson() => {
-    'username': username,
+    if (username != null) 'username': username,
+    if (email != null) 'email': email,
     'password': password,
   };
 }

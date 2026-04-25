@@ -69,11 +69,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> login(String username, String password) async {
+  Future<bool> login(String identity, String password) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
+      final isEmail = identity.contains('@');
       final response = await _repository.login(
-        LoginRequest(username: username, password: password),
+        LoginRequest(
+          username: isEmail ? null : identity,
+          email: isEmail ? identity : null,
+          password: password,
+        ),
       );
       
       if (kIsWeb) {

@@ -15,8 +15,9 @@ import (
 // AuthUsecase 는 인증 관련 비즈니스 로직을 정의합니다.
 type AuthUsecase interface {
 	Register(user *domain.User) (*domain.User, error)
-	Login(username, password string) (string, *domain.User, error)
+	Login(username, email, password string) (string, *domain.User, error)
 }
+
 
 type authUsecase struct {
 	userRepo repository.UserRepository
@@ -43,10 +44,18 @@ func (u *authUsecase) Register(user *domain.User) (*domain.User, error) {
 }
 
 // Login 은 사용자 인증을 수행하고 JWT 토큰을 반환합니다.
-func (u *authUsecase) Login(username, password string) (string, *domain.User, error) {
-	user, err := u.userRepo.GetByUsername(username)
-	if err != nil {
-		return "", nil, errors.New("아이디 또는 비밀번호가 일치하지 않습니다.")
+func (u *authUsecase) Login(username, email, password string) (string, *domain.User, error) {
+	var user *domain.User
+	var err error
+
+	if email != "" {
+		user, err = u.userRepo.GetByEmail(email)
+	} else {
+		user, err = u.userRepo.GetByUsername(username)
+	}
+
+	if err != nil || user == nil {
+		return "", nil, errors.New("아이디(이메일) 또는 비밀번호가 일치하지 않습니다.")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {

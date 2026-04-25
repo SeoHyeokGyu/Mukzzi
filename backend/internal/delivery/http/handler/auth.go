@@ -71,7 +71,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, user, err := h.authUsecase.Login(req.Username, req.Password)
+	token, user, err := h.authUsecase.Login(req.Username, req.Email, req.Password)
 	if err != nil {
 		Unauthorized(c, "LOGIN_FAILED", err.Error())
 		return
