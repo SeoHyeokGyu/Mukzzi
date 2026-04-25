@@ -16,6 +16,7 @@ import '../features/character/presentation/pages/mastery_list_page.dart';
 import '../features/character/presentation/pages/title_list_page.dart';
 import '../features/character/presentation/pages/reward_list_page.dart';
 import '../features/character/presentation/pages/character_collection_page.dart';
+import '../features/profile/presentation/pages/onboarding_page.dart';
 import '../features/profile/presentation/pages/profile_page.dart';
 import '../features/profile/presentation/pages/edit_profile_page.dart';
 import '../features/meal_record/presentation/pages/meal_record_page.dart';
@@ -23,13 +24,15 @@ import '../features/social/presentation/pages/social_page.dart';
 import '../features/social/presentation/pages/other_profile_page.dart';
 import '../features/settings/presentation/pages/privacy_policy_page.dart';
 import '../features/settings/presentation/pages/terms_page.dart';
+import '../features/profile/presentation/providers/user_provider.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
 
-// authProvider 상태 변화를 GoRouter에 전달하는 ChangeNotifier.
+// authProvider 및 userProvider 상태 변화를 GoRouter에 전달하는 ChangeNotifier.
 // GoRouter 인스턴스는 재생성하지 않고 redirect만 재실행하게 한다.
 class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(Ref ref) {
     ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
+    ref.listen<UserState>(userProvider, (_, __) => notifyListeners());
   }
 }
 
@@ -65,6 +68,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ),
     redirect: (context, state) async {
       final authState = ref.read(authProvider);
+      final userState = ref.read(userProvider);
       final String? token;
       if (kIsWeb) {
         token = prefs.getString(AppConstants.accessTokenKey);
@@ -72,11 +76,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         token = await secureStorage.read(key: AppConstants.accessTokenKey);
       }
 
-      final isLoggedIn = token != null || authState.user != null;
+      // userProvider에 최신 정보가 있으면 그것을 사용, 없으면 authState 사용
+      final currentUser = userState.user ?? authState.user;
+      final isLoggedIn = token != null || currentUser != null;
       final isAuthPath = state.matchedLocation == '/auth';
+      final isOnboardingPath = state.matchedLocation == '/onboarding';
 
       if (!isLoggedIn && !isAuthPath) return '/auth';
       if (isLoggedIn && isAuthPath) return '/home';
+
+      // 로그인되었으나 온보딩을 하지 않은 경우
+      if (isLoggedIn && currentUser != null && !currentUser.isOnboarded && !isOnboardingPath) {
+        return '/onboarding';
+      }
+      
       return null;
     },
     routes: [
@@ -84,6 +97,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/auth',
         name: 'auth',
         builder: (context, state) => const AuthPage(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        builder: (context, state) => const OnboardingPage(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

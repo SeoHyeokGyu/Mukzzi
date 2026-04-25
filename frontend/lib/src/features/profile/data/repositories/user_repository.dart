@@ -1,6 +1,7 @@
 import '../../../../core/network/api_client.dart';
 import '../models/user_model.dart';
 import '../models/user_stats_model.dart';
+import '../models/onboarding_request.dart';
 
 class UserRepository {
   final ApiClient _apiClient;
@@ -40,5 +41,12 @@ class UserRepository {
 
   Future<void> deleteAccount() async {
     await _apiClient.delete('/users/me');
+  }
+
+  Future<void> onboarding(OnboardingRequest request) async {
+    await _apiClient.post(
+      '/users/onboarding',
+      data: request.toJson(),
+    );
   }
 }

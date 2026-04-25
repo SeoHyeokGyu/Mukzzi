@@ -26,5 +26,6 @@ func UserRoute(rg *gin.RouterGroup, userHandler *handler.UserHandler) {
 		users.GET("/:id/profile", userHandler.GetOtherProfile)
 		users.GET("/search", userHandler.Search)
 		users.GET("/recommendations", userHandler.GetRecommendations)
+		users.POST("/onboarding", userHandler.Onboarding)
 	}
 }

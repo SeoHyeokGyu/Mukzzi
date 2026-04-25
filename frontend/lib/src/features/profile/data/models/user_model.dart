@@ -6,6 +6,7 @@ class UserModel {
   final String? profileImageUrl;
   final String? equippedTitle;
   final Map<String, bool> notificationSettings;
+  final bool isOnboarded;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -16,6 +17,7 @@ class UserModel {
     this.nickname,
     this.profileImageUrl,
     this.equippedTitle,
+    this.isOnboarded = false,
     Map<String, bool>? notificationSettings,
     this.createdAt,
     this.updatedAt,
@@ -47,6 +49,7 @@ class UserModel {
       profileImageUrl: json['profile_image_url'] as String?,
       equippedTitle: titleName,
       notificationSettings: notificationSettings,
+      isOnboarded: json['body'] != null,
       createdAt: json['CreatedAt'] != null
           ? DateTime.tryParse(json['CreatedAt'] as String)
           : null,

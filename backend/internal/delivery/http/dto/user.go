@@ -50,3 +50,16 @@ type UserProfileResponse struct {
 	EquippedTitle   string              `json:"equipped_title,omitempty"`
 	PrivacyLevel    domain.PrivacyLevel `json:"privacy_level"`
 }
+
+// OnboardingRequest 는 온보딩 요청 데이터를 정의합니다.
+type OnboardingRequest struct {
+	MukzziName    string               `json:"mukzzi_name" binding:"required,min=1,max=20"`
+	Height        float64              `json:"height" binding:"required,gt=0"`
+	Weight        float64              `json:"weight" binding:"required,gt=0"`
+	ActivityLevel domain.ActivityLevel `json:"activity_level" binding:"required,oneof=LOW MODERATE HIGH VERY_HIGH"`
+	Goal          DietGoalRequest      `json:"goal" binding:"required,oneof=DIET MAINTAIN BULK"`
+	BodyType      int                  `json:"body_type" binding:"min=0"`
+	Muscle        int                  `json:"muscle" binding:"min=0"`
+	SkinTone      int                  `json:"skin_tone" binding:"min=0"`
+	Expression    int                  `json:"expression" binding:"min=0"`
+}

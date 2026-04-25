@@ -4,6 +4,7 @@ import '../../../../core/providers/common_providers.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/models/user_model.dart';
 import '../../data/models/user_stats_model.dart';
+import '../../data/models/onboarding_request.dart';
 import '../../data/repositories/user_repository.dart';
 
 final userRepositoryProvider = Provider<UserRepository>((ref) {
@@ -107,6 +108,25 @@ class UserNotifier extends StateNotifier<UserState> {
     } catch (e) {
       if (!mounted) return false;
       state = state.copyWith(isLoading: false, error: '탈퇴 중 오류가 발생했습니다.');
+      return false;
+    }
+  }
+
+  Future<bool> onboarding(OnboardingRequest request) async {
+    if (!mounted) return false;
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _repository.onboarding(request);
+      // 온보딩 완료 후 유저 정보 갱신
+      await fetchMe();
+      return true;
+    } on AppException catch (e) {
+      if (!mounted) return false;
+      state = state.copyWith(isLoading: false, error: e.message);
+      return false;
+    } catch (e) {
+      if (!mounted) return false;
+      state = state.copyWith(isLoading: false, error: '온보딩 중 오류가 발생했습니다.');
       return false;
     }
   }
