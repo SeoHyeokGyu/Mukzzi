@@ -19,7 +19,7 @@ type MenuCreateRequest struct {
 	Fiber    float64 `json:"fiber"`
 }
 
-// MenuResponse 는 메뉴 응답 데이터를 정의합니다.
+// MenuResponse 는 메뉴 목록/검색 응답 데이터를 정의합니다.
 type MenuResponse struct {
 	ID                  int64   `json:"id,string"`
 	Name                string  `json:"name"`
@@ -31,4 +31,11 @@ type MenuResponse struct {
 	DefaultFat          float64 `json:"default_fat"`
 	DefaultFiber        float64 `json:"default_fiber"`
 	DefaultVitaminScore float64 `json:"default_vitamin_score"`
+}
+
+// MenuDetailResponse 는 메뉴 단건 상세 조회 응답입니다.
+type MenuDetailResponse struct {
+	MenuResponse
+	IsFavorite bool    `json:"is_favorite"`
+	Preference *string `json:"preference"` // "LIKE" | "DISLIKE" | null
 }

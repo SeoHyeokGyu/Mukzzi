@@ -61,7 +61,22 @@ func (r *favoriteRepositoryImpl) FindByUserID(query domain.GetFavoritesQuery) ([
 }
 
 func (r *favoriteRepositoryImpl) Create(favorite *domain.Favorite) error {
-	return r.db.Create(favorite).Error
+	// soft delete된 레코드 포함해서 먼저 조회
+	var existing domain.Favorite
+	err := r.db.Unscoped().
+		Where("user_id = ? AND menu_id = ?", favorite.UserID, favorite.MenuID).
+		First(&existing).Error
+
+	if err == gorm.ErrRecordNotFound {
+		// 완전히 새 레코드
+		return r.db.Create(favorite).Error
+	}
+	if err != nil {
+		return err
+	}
+
+	// soft delete된 레코드 복구 (deleted_at을 NULL로)
+	return r.db.Unscoped().Model(&existing).Update("deleted_at", nil).Error
 }
 
 func (r *favoriteRepositoryImpl) Delete(userID, menuID int64) error {

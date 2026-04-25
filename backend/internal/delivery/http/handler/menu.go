@@ -21,19 +21,13 @@ func NewMenuHandler(menuUsecase usecase.MenuUsecase) *MenuHandler {
 
 // Search 메뉴 검색
 // @Summary      메뉴 검색
-// @Description  메뉴명으로 검색합니다. USER 소스 포함, 공식 소스 우선 정렬.
 // @Tags         menus
-// @Accept       json
-// @Produce      json
 // @Security     BearerAuth
-// @Param        query     query     string  true   "검색어"
-// @Param        category  query     string  false  "카테고리 (KOREAN, CHINESE, JAPANESE, WESTERN, SNACK, CAFE, OTHER)"
-// @Param        cursor    query     string  false  "다음 페이지 커서"
-// @Param        limit     query     int     false  "페이지당 항목 수 (기본값: 20, 최대: 50)"
-// @Success      200  {object}  Response  "메뉴 검색 성공"
-// @Failure      400  {object}  Response  "잘못된 쿼리 파라미터"
-// @Failure      401  {object}  Response  "인증 토큰 누락 또는 유효하지 않음"
-// @Failure      500  {object}  Response  "서버 내부 에러"
+// @Param        query     query  string  true   "검색어"
+// @Param        category  query  string  false  "카테고리"
+// @Param        cursor    query  string  false  "커서"
+// @Param        limit     query  int     false  "페이지당 항목 수"
+// @Success      200  {object}  Response
 // @Router       /menus/search [get]
 func (h *MenuHandler) Search(c *gin.Context) {
 	var req dto.MenuSearchRequest
@@ -88,16 +82,10 @@ func (h *MenuHandler) Search(c *gin.Context) {
 
 // Create 사용자 정의 메뉴 등록
 // @Summary      사용자 정의 메뉴 등록
-// @Description  DB에 없는 메뉴를 직접 등록합니다. source=USER로 저장됩니다. 영양소 값을 생략하면 카테고리 평균값이 적용됩니다.
 // @Tags         menus
-// @Accept       json
-// @Produce      json
 // @Security     BearerAuth
-// @Param        request  body      dto.MenuCreateRequest  true  "메뉴 등록 정보"
-// @Success      201  {object}  Response  "메뉴 등록 성공"
-// @Failure      400  {object}  Response  "잘못된 요청 또는 중복 메뉴"
-// @Failure      401  {object}  Response  "인증 토큰 누락 또는 유효하지 않음"
-// @Failure      500  {object}  Response  "서버 내부 에러"
+// @Param        request  body  dto.MenuCreateRequest  true  "메뉴 등록 정보"
+// @Success      201  {object}  Response
 // @Router       /menus [post]
 func (h *MenuHandler) Create(c *gin.Context) {
 	var req dto.MenuCreateRequest
@@ -129,37 +117,40 @@ func (h *MenuHandler) Create(c *gin.Context) {
 
 // FindByID 단일 메뉴 상세 조회
 // @Summary      메뉴 상세 조회
-// @Description  메뉴 ID로 단일 메뉴의 상세 정보를 조회합니다.
 // @Tags         menus
-// @Accept       json
-// @Produce      json
 // @Security     BearerAuth
-// @Param        id   path      string  true  "메뉴 ID"
-// @Success      200  {object}  Response  "메뉴 조회 성공"
-// @Failure      400  {object}  Response  "잘못된 ID 형식"
-// @Failure      401  {object}  Response  "인증 토큰 누락 또는 유효하지 않음"
-// @Failure      404  {object}  Response  "메뉴를 찾을 수 없음"
-// @Failure      500  {object}  Response  "서버 내부 에러"
+// @Param        id  path  string  true  "메뉴 ID"
+// @Success      200  {object}  Response
+// @Failure      404  {object}  Response
 // @Router       /menus/{id} [get]
 func (h *MenuHandler) FindByID(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
+	userID, _ := c.Get("userID")
+
+	menuID, err := parseMenuID(c)
 	if err != nil {
-		BadRequest(c, "INVALID_PARAMETER", "id 값이 올바르지 않습니다.")
 		return
 	}
 
-	menu, err := h.menuUsecase.FindByID(c.Request.Context(), id)
+	detail, err := h.menuUsecase.FindByID(c.Request.Context(), menuID, userID.(int64))
 	if err != nil {
 		InternalError(c, "메뉴 조회에 실패했습니다.")
 		return
 	}
-	if menu == nil {
+	if detail == nil {
 		NotFound(c, "MENU_NOT_FOUND", "해당 메뉴를 찾을 수 없습니다.")
 		return
 	}
 
-	Success(c, toMenuResponse(*menu))
+	menuResp := toMenuResponse(detail.Menu)
+	resp := dto.MenuDetailResponse{
+		MenuResponse: menuResp,
+		IsFavorite:   detail.IsFavorite,
+	}
+	if detail.Preference != nil {
+		s := string(*detail.Preference)
+		resp.Preference = &s
+	}
+	Success(c, resp)
 }
 
 // toMenuResponse domain.Menu → dto.MenuResponse 변환

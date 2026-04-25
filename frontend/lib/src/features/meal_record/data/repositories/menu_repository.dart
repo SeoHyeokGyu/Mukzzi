@@ -45,4 +45,14 @@ class MenuRepository {
 
     return MenuModel.fromJson(response['data'] as Map<String, dynamic>);
   }
+
+  /// 메뉴 단건 조회 — GET /menus/{id}
+  Future<MenuModel?> findById(String id) async {
+    try {
+      final response = await _apiClient.get('/menus/$id');
+      return MenuModel.fromJson(response['data'] as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
 }

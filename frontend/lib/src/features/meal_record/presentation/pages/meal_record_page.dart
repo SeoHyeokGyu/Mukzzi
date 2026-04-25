@@ -1,5 +1,3 @@
-// lib/src/features/meal_record/presentation/pages/meal_record_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +10,7 @@ import '../../../../core/widgets/bento_card.dart';
 import '../../data/models/meal_model.dart';
 import '../../data/models/menu_model.dart';
 import '../../data/repositories/meal_repository.dart';
+import '../../data/repositories/preference_repository.dart';
 import '../widgets/menu_search_field.dart';
 
 // ─────────────────────────────────────────
@@ -20,6 +19,10 @@ import '../widgets/menu_search_field.dart';
 
 final mealRepositoryProvider = Provider<MealRepository>((ref) {
   return MealRepository(ref.watch(apiClientProvider));
+});
+
+final preferenceRepositoryProvider = Provider<PreferenceRepository>((ref) {
+  return PreferenceRepository(ref.watch(apiClientProvider));
 });
 
 // --- Create ---
@@ -269,6 +272,8 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
   double _servingSize = 1.0;
   String? _selectedWeather;
   String? _selectedMood;
+  String? _selectedPreference; // 'LIKE' | 'DISLIKE' | null
+  bool _wantFavorite = false; // 즐겨찾기 로컬 토글 (저장 시 API 호출)
   MenuModel? _selectedMenu;
 
   String? _getMealTypeMismatchWarning() {
@@ -337,6 +342,27 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
     if (!mounted) return;
 
     if (success) {
+      // 식사 저장 성공 후 메뉴 ID 기반 후속 처리
+      final savedMenu = _selectedMenu;
+      if (savedMenu != null) {
+        // 1. 즐겨찾기 — 로컬 토글 상태와 실제 상태가 다를 때만 API 호출
+        final isFav = ref.read(favoriteListProvider).isFavorite(savedMenu.id);
+        if (_wantFavorite != isFav) {
+          try {
+            await ref.read(favoriteListProvider.notifier).toggle(savedMenu);
+          } catch (_) {}
+        }
+
+        // 2. 선호도
+        if (_selectedPreference != null) {
+          try {
+            await ref
+                .read(preferenceRepositoryProvider)
+                .set(savedMenu.id, _selectedPreference!);
+          } catch (_) {}
+        }
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('식사 기록이 저장되었습니다')),
       );
@@ -349,6 +375,8 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
         _servingSize = 1.0;
         _selectedWeather = null;
         _selectedMood = null;
+        _selectedPreference = null;
+        _wantFavorite = false;
         _selectedDate = DateTime.now();
         _selectedTime = TimeOfDay.now();
       });
@@ -387,7 +415,13 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
           const SizedBox(height: 10),
           MenuSearchField(
             controller: widget.menuController,
-            onMenuSelected: (menu) => setState(() => _selectedMenu = menu),
+            onMenuSelected: (menu) => setState(() {
+              _selectedMenu = menu;
+              // 메뉴 선택 시 실제 즐겨찾기 상태로 초기화
+              _wantFavorite = menu != null
+                  ? ref.read(favoriteListProvider).isFavorite(menu.id)
+                  : false;
+            }),
           ),
 
           // ── 선택된 음식 아이템 리스트 ──
@@ -396,6 +430,8 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
             _FoodItemRow(
               menu: _selectedMenu!,
               servingSize: _servingSize,
+              isFavorite: _wantFavorite,
+              onFavoriteToggle: () => setState(() => _wantFavorite = !_wantFavorite),
               onDecrement: () => setState(() {
                 _servingSize = (_servingSize - 0.5).clamp(0.5, 3.0);
               }),
@@ -448,7 +484,7 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
           ],
           const SizedBox(height: 20),
 
-          // ── 식사 옵션 (접을 수 있는 보조 설정) ──
+          // ── 식사 옵션 ──
           _MealOptionsSection(
             selectedMealType: widget.selectedMealType,
             onMealTypeChanged: widget.onMealTypeChanged,
@@ -460,6 +496,9 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
             onWeatherChanged: (v) => setState(() => _selectedWeather = v),
             selectedMood: _selectedMood,
             onMoodChanged: (v) => setState(() => _selectedMood = v),
+            selectedPreference: _selectedPreference,
+            onPreferenceChanged: (v) => setState(() => _selectedPreference = v),
+            hasMenu: _selectedMenu != null,
             warning: warning,
             tokens: tokens,
           ),
@@ -479,22 +518,22 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
               child: createState.isLoading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                   : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.favorite, size: 18, color: Colors.white),
-                        const SizedBox(width: 8),
-                        const Text('먹찌에게 주기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(99),
-                          ),
-                          child: const Text('+XP', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
-                        ),
-                      ],
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.favorite, size: 18, color: Colors.white),
+                  const SizedBox(width: 8),
+                  const Text('먹찌에게 주기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(99),
                     ),
+                    child: const Text('+XP', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 32),
@@ -565,9 +604,11 @@ class _PhotoArea extends StatelessWidget {
   }
 }
 
-class _FoodItemRow extends ConsumerWidget {
+class _FoodItemRow extends StatelessWidget {
   final MenuModel menu;
   final double servingSize;
+  final bool isFavorite;
+  final VoidCallback onFavoriteToggle;
   final VoidCallback onDecrement;
   final VoidCallback onIncrement;
   final AppColorTokens tokens;
@@ -575,17 +616,15 @@ class _FoodItemRow extends ConsumerWidget {
   const _FoodItemRow({
     required this.menu,
     required this.servingSize,
+    required this.isFavorite,
+    required this.onFavoriteToggle,
     required this.onDecrement,
     required this.onIncrement,
     required this.tokens,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isFav = ref.watch(
-      favoriteListProvider.select((s) => s.isFavorite(menu.id)),
-    );
-
+  Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: tokens.card,
@@ -595,14 +634,13 @@ class _FoodItemRow extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            // 즐겨찾기 토글
+            // 즐겨찾기 토글 (로컬 상태, 저장 시 API 호출)
             GestureDetector(
-              onTap: () =>
-                  ref.read(favoriteListProvider.notifier).toggle(menu),
+              onTap: onFavoriteToggle,
               child: Icon(
-                isFav ? Icons.star : Icons.star_border,
+                isFavorite ? Icons.star : Icons.star_border,
                 size: 22,
-                color: isFav ? Colors.amber : tokens.textMuted,
+                color: isFavorite ? Colors.amber : tokens.textMuted,
               ),
             ),
             const SizedBox(width: 10),
@@ -713,6 +751,9 @@ class _MealOptionsSection extends StatefulWidget {
   final ValueChanged<String?> onWeatherChanged;
   final String? selectedMood;
   final ValueChanged<String?> onMoodChanged;
+  final String? selectedPreference;
+  final ValueChanged<String?> onPreferenceChanged;
+  final bool hasMenu; // 메뉴가 선택됐을 때만 선호도 노출
   final String? warning;
   final AppColorTokens tokens;
 
@@ -727,6 +768,9 @@ class _MealOptionsSection extends StatefulWidget {
     required this.onWeatherChanged,
     required this.selectedMood,
     required this.onMoodChanged,
+    required this.selectedPreference,
+    required this.onPreferenceChanged,
+    required this.hasMenu,
     required this.warning,
     required this.tokens,
   });
@@ -831,7 +875,7 @@ class _MealOptionsSectionState extends State<_MealOptionsSection> {
               ],
             ),
           ),
-          // 더보기 토글 (날씨/기분)
+          // 더보기 토글 (날씨/기분/선호도)
           GestureDetector(
             onTap: () => setState(() => _expanded = !_expanded),
             child: Padding(
@@ -839,7 +883,7 @@ class _MealOptionsSectionState extends State<_MealOptionsSection> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('날씨 / 기분', style: TextStyle(fontSize: 12, color: t.textMuted, fontWeight: FontWeight.w500)),
+                  Text('날씨 / 기분 / 선호도', style: TextStyle(fontSize: 12, color: t.textMuted, fontWeight: FontWeight.w500)),
                   const SizedBox(width: 4),
                   Icon(_expanded ? Icons.expand_less : Icons.expand_more, size: 16, color: t.textMuted),
                 ],
@@ -850,46 +894,125 @@ class _MealOptionsSectionState extends State<_MealOptionsSection> {
             Divider(height: 1, color: t.primary.withValues(alpha: 0.08)),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-              child: Row(
+              child: Column(
                 children: [
-                  Expanded(
-                    child: DropdownMenu<String>(
-                      label: const Text('날씨'),
-                      initialSelection: widget.selectedWeather,
-                      expandedInsets: EdgeInsets.zero,
-                      onSelected: widget.onWeatherChanged,
-                      dropdownMenuEntries: const [
-                        DropdownMenuEntry(value: 'SUNNY', label: '☀️ 맑음'),
-                        DropdownMenuEntry(value: 'CLOUDY', label: '☁️ 흐림'),
-                        DropdownMenuEntry(value: 'RAINY', label: '🌧️ 비'),
-                        DropdownMenuEntry(value: 'SNOWY', label: '❄️ 눈'),
-                        DropdownMenuEntry(value: 'HOT', label: '🥵 더움'),
-                        DropdownMenuEntry(value: 'COLD', label: '🥶 추움'),
+                  // 날씨 / 기분
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownMenu<String>(
+                          label: const Text('날씨'),
+                          initialSelection: widget.selectedWeather,
+                          expandedInsets: EdgeInsets.zero,
+                          onSelected: widget.onWeatherChanged,
+                          dropdownMenuEntries: const [
+                            DropdownMenuEntry(value: 'SUNNY', label: '☀️ 맑음'),
+                            DropdownMenuEntry(value: 'CLOUDY', label: '☁️ 흐림'),
+                            DropdownMenuEntry(value: 'RAINY', label: '🌧️ 비'),
+                            DropdownMenuEntry(value: 'SNOWY', label: '❄️ 눈'),
+                            DropdownMenuEntry(value: 'HOT', label: '🥵 더움'),
+                            DropdownMenuEntry(value: 'COLD', label: '🥶 추움'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: DropdownMenu<String>(
+                          label: const Text('기분'),
+                          initialSelection: widget.selectedMood,
+                          expandedInsets: EdgeInsets.zero,
+                          onSelected: widget.onMoodChanged,
+                          dropdownMenuEntries: const [
+                            DropdownMenuEntry(value: 'GOOD', label: '😊 좋음'),
+                            DropdownMenuEntry(value: 'TIRED', label: '😴 피곤'),
+                            DropdownMenuEntry(value: 'STRESSED', label: '😤 스트레스'),
+                            DropdownMenuEntry(value: 'HUNGRY', label: '😋 배고픔'),
+                            DropdownMenuEntry(value: 'EXCITED', label: '🤩 설렘'),
+                            DropdownMenuEntry(value: 'NORMAL', label: '😐 보통'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  // 선호도 (메뉴가 선택된 경우만)
+                  if (widget.hasMenu) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _PreferenceButton(
+                            label: '👍 좋아요',
+                            value: 'LIKE',
+                            selected: widget.selectedPreference == 'LIKE',
+                            tokens: t,
+                            onTap: () => widget.onPreferenceChanged(
+                              widget.selectedPreference == 'LIKE' ? null : 'LIKE',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _PreferenceButton(
+                            label: '👎 싫어요',
+                            value: 'DISLIKE',
+                            selected: widget.selectedPreference == 'DISLIKE',
+                            tokens: t,
+                            onTap: () => widget.onPreferenceChanged(
+                              widget.selectedPreference == 'DISLIKE' ? null : 'DISLIKE',
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: DropdownMenu<String>(
-                      label: const Text('기분'),
-                      initialSelection: widget.selectedMood,
-                      expandedInsets: EdgeInsets.zero,
-                      onSelected: widget.onMoodChanged,
-                      dropdownMenuEntries: const [
-                        DropdownMenuEntry(value: 'GOOD', label: '😊 좋음'),
-                        DropdownMenuEntry(value: 'TIRED', label: '😴 피곤'),
-                        DropdownMenuEntry(value: 'STRESSED', label: '😤 스트레스'),
-                        DropdownMenuEntry(value: 'HUNGRY', label: '😋 배고픔'),
-                        DropdownMenuEntry(value: 'EXCITED', label: '🤩 설렘'),
-                        DropdownMenuEntry(value: 'NORMAL', label: '😐 보통'),
-                      ],
-                    ),
-                  ),
+                  ],
                 ],
               ),
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _PreferenceButton extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool selected;
+  final AppColorTokens tokens;
+  final VoidCallback onTap;
+
+  const _PreferenceButton({
+    required this.label,
+    required this.value,
+    required this.selected,
+    required this.tokens,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? tokens.primary : tokens.listItemBg,
+          borderRadius: BorderRadius.circular(tokens.rItem),
+          border: selected
+              ? null
+              : Border.all(color: tokens.primary.withValues(alpha: 0.15)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : tokens.textSub,
+          ),
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }
