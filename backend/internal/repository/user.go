@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"time"
+
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"gorm.io/gorm"
 )
@@ -27,6 +29,9 @@ type UserRepository interface {
 
 	// UpdateEquippedTitle 장착 칭호 갱신 (nil이면 해제)
 	UpdateEquippedTitle(userID int64, titleID *int64) error
+
+	// DeletePhysicallyExpired 기간이 만료된 소프트 삭제된 사용자들을 물리적으로 삭제
+	DeletePhysicallyExpired(days int) error
 }
 
 type userRepository struct {
@@ -66,6 +71,13 @@ func (r *userRepository) Update(user *domain.User) error {
 
 func (r *userRepository) Delete(id int64) error {
 	return r.db.Delete(&domain.User{}, id).Error
+}
+
+func (r *userRepository) DeletePhysicallyExpired(days int) error {
+	expiryDate := time.Now().AddDate(0, 0, -days)
+	return r.db.Unscoped().
+		Where("deleted_at <= ?", expiryDate).
+		Delete(&domain.User{}).Error
 }
 
 // CreateBody 는 새로운 신체 정보를 저장합니다 (이력 관리).

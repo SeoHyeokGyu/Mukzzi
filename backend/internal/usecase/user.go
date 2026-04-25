@@ -27,6 +27,7 @@ type UserUsecase interface {
 	UpdateNutritionGoal(id int64, goal domain.DietGoal) error
 	UpdateSettings(id int64, privacyLevel *domain.PrivacyLevel, notificationSettings any) error
 	DeleteAccount(id int64) error
+	ProcessPhysicalDeletion() error
 	Search(query string) ([]domain.User, error)
 	GetRecommendations(id int64) ([]domain.User, error)
 	Onboarding(id int64, mukzziName string, height, weight float64, activityLevel domain.ActivityLevel, goal domain.DietGoal, bodyType, muscle, skinTone, expression int) error
@@ -169,6 +170,11 @@ func (u *userUsecase) UpdateSettings(id int64, privacyLevel *domain.PrivacyLevel
 
 func (u *userUsecase) DeleteAccount(id int64) error {
 	return u.userRepo.Delete(id)
+}
+
+func (u *userUsecase) ProcessPhysicalDeletion() error {
+	// 30일이 지난 소프트 삭제 데이터를 물리적으로 삭제
+	return u.userRepo.DeletePhysicallyExpired(30)
 }
 
 func (u *userUsecase) Search(query string) ([]domain.User, error) {
