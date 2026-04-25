@@ -12,6 +12,8 @@ import 'package:mukzzi/src/core/widgets/mukzzi_character.dart';
 import 'package:mukzzi/src/core/widgets/shimmer_card.dart';
 import 'package:mukzzi/src/features/auth/presentation/providers/auth_provider.dart';
 import 'package:mukzzi/src/features/notification/presentation/providers/notification_provider.dart';
+import 'package:mukzzi/src/features/character/data/models/character_model.dart';
+import 'package:mukzzi/src/features/character/presentation/providers/character_provider.dart';
 import 'package:mukzzi/src/features/profile/presentation/providers/user_provider.dart';
 
 // Mock 데이터 - 추후 API로 교체
@@ -91,6 +93,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     final notificationState = ref.watch(notificationProvider);
     final userState = ref.watch(userProvider);
+    final characterAsync = ref.watch(characterProvider);
     final unreadCount = notificationState.unreadCount;
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
 
@@ -195,12 +198,18 @@ class _HomePageState extends ConsumerState<HomePage> {
       Future.microtask(() => ref.read(userProvider.notifier).fetchMe());
     }
 
+    final characterAsync = ref.watch(characterProvider);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeroCard(tokens),
+          characterAsync.when(
+            data: (char) => _buildHeroCard(tokens, char),
+            loading: () => const ShimmerCard(height: 320),
+            error: (_, __) => _buildHeroCard(tokens, null),
+          ),
           const SizedBox(height: 12),
           _buildQuickCTAs(tokens),
           const SizedBox(height: 12),
@@ -213,10 +222,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _buildHeroCard(AppColorTokens tokens) {
-    // Hero card always uses a light cream/peach gradient regardless of theme
-    // Text color uses heroText (dark brown) for readability on light bg
-    final heroBg = switch (_mockState) {
+  Widget _buildHeroCard(AppColorTokens tokens, CharacterModel? char) {
+    final state = char?.state ?? CharacterState.normal;
+    final level = char?.level ?? 1;
+    final name = char?.name ?? '먹찌';
+    final xp = char?.exp.toDouble() ?? 0;
+    const xpGoal = 100.0;
+
+    final heroBg = switch (state) {
       CharacterState.hungry   => tokens.charBgHungry,
       CharacterState.starving => tokens.charBgStarving,
       _                       => tokens.charBgNormal,
@@ -228,7 +241,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
       child: Column(
         children: [
-          // Top row: level badge + state pill
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -239,7 +251,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  'Lv.$_mockLevel',
+                  'Lv.$level',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -250,11 +262,11 @@ class _HomePageState extends ConsumerState<HomePage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _stateIndicatorColor(_mockState),
+                  color: _stateIndicatorColor(state),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  _mockState.label,
+                  state.label,
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -265,12 +277,10 @@ class _HomePageState extends ConsumerState<HomePage> {
             ],
           ),
           const SizedBox(height: 8),
-          // Character
-          const MukzziCharacter(state: _mockState, size: 160, level: _mockLevel),
+          MukzziCharacter(state: state, size: 160, level: level),
           const SizedBox(height: 8),
-          // Name
           Text(
-            '먹찌',
+            name,
             style: GoogleFonts.poppins(
               fontSize: 20,
               fontWeight: FontWeight.w800,
@@ -279,12 +289,11 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
           const SizedBox(height: 4),
           Text(
-            _mockState.message,
+            state.message,
             style: TextStyle(fontSize: 12, color: tokens.heroTextSub),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
-          // XP bar
           Column(
             children: [
               Row(
@@ -295,7 +304,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     style: TextStyle(fontSize: 11, color: tokens.heroTextSub),
                   ),
                   Text(
-                    '${_mockXp.toInt()} / ${_mockXpGoal.toInt()}',
+                    '${xp.toInt()} / ${xpGoal.toInt()}',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -308,7 +317,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
-                  value: (_mockXp / _mockXpGoal).clamp(0.0, 1.0),
+                  value: (xp / xpGoal).clamp(0.0, 1.0),
                   minHeight: 7,
                   backgroundColor: Colors.black.withValues(alpha: 0.12),
                   valueColor: AlwaysStoppedAnimation<Color>(tokens.primary),

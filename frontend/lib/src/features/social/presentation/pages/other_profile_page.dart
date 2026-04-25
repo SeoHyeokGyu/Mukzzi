@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mukzzi/src/core/theme/app_theme.dart';
 import 'package:mukzzi/src/core/widgets/gradient_scaffold.dart';
 import 'package:mukzzi/src/core/widgets/bento_card.dart';
 import 'package:mukzzi/src/features/profile/data/models/user_model.dart';
+import '../../../profile/presentation/providers/user_provider.dart';
 import '../providers/social_providers.dart';
 
 class OtherProfilePage extends ConsumerStatefulWidget {
@@ -46,7 +48,6 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
         final user = snapshot.data!;
         final hasImage = user.profileImageUrl != null && user.profileImageUrl!.isNotEmpty;
         
-        // 관계 상태 확인
         final isFriend = ref.watch(friendIdsProvider).contains(user.id);
         final isReceived = ref.watch(receivedRequestIdsProvider).contains(user.id);
         final isSent = ref.watch(sentRequestIdsProvider).contains(user.id);
@@ -57,7 +58,6 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                // 상단 프로필 영역
                 BentoCard(
                   padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
                   child: Column(
@@ -82,11 +82,7 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
                           ),
                           child: Text(
                             user.equippedTitle!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary),
                           ),
                         ),
                       ],
@@ -99,34 +95,24 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
                           ),
-                          child: const Text(
-                            '친구',
-                            style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
+                          child: const Text('친구', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
                         ),
                       ],
                       const SizedBox(height: 4),
-                      Text(
-                        '@${user.username}',
-                        style: const TextStyle(color: AppColors.textSecondary),
-                      ),
+                      Text('@${user.username}', style: const TextStyle(color: AppColors.textSecondary)),
                       const SizedBox(height: 24),
-                      
-                      // 액션 버튼
                       _buildActionButtons(isFriend, isSent, isReceived, user.id),
                     ],
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // 먹찌 정보 (예시 데이터)
-                BentoCard(
+                const BentoCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('먹찌 상태', style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height: 12),
-                      const Row(
+                      Text('먹찌 상태', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 12),
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           _StatItem(label: '진화', value: '부화 단계'),
@@ -137,31 +123,8 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
                     ],
                   ),
                 ),
-                
                 const SizedBox(height: 20),
-                
-                // 방명록 섹션 (추후 고도화 가능)
-                BentoCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('방명록', style: Theme.of(context).textTheme.titleMedium),
-                          TextButton(onPressed: () {}, child: const Text('전체보기')),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Text('아직 작성된 방명록이 없습니다.', style: TextStyle(color: AppColors.textTertiary)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _GuestbookSection(userId: widget.userId, nickname: user.nickname ?? user.username),
               ],
             ),
           ),
@@ -179,13 +142,9 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
               onPressed: () async {
                  try {
                     await ref.read(socialRepositoryProvider).nudgeFriend(userId);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('응원을 보냈어요!')));
-                    }
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('응원을 보냈어요!')));
                   } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('이미 오늘 응원을 보냈습니다.')));
-                    }
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('이미 오늘 응원을 보냈습니다.')));
                   }
               },
               icon: const Icon(Icons.favorite, size: 18),
@@ -195,7 +154,7 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
           const SizedBox(width: 12),
           Expanded(
             child: FilledButton.icon(
-              onPressed: () {}, // 방명록 작성 다이얼로그 연동 가능
+              onPressed: () => _showWriteGuestbookDialog(context, ref, userId),
               icon: const Icon(Icons.edit, size: 18),
               label: const Text('방명록'),
             ),
@@ -205,13 +164,7 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
     }
 
     if (isSent) {
-      return const SizedBox(
-        width: double.infinity,
-        child: FilledButton(
-          onPressed: null,
-          child: Text('친구 요청 보냄'),
-        ),
-      );
+      return const SizedBox(width: double.infinity, child: FilledButton(onPressed: null, child: Text('친구 요청 보냄')));
     }
 
     if (isReceived) {
@@ -240,17 +193,162 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
             await ref.read(socialRepositoryProvider).sendFriendRequest(userId);
             ref.invalidate(sentRequestsProvider);
             setState(() {});
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('친구 요청을 보냈습니다.')));
-            }
+            if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('친구 요청을 보냈습니다.')));
           } catch (e) {
-             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
-            }
+             if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
           }
         },
         icon: const Icon(Icons.person_add),
         label: const Text('친구 신청하기'),
+      ),
+    );
+  }
+
+  void _showWriteGuestbookDialog(BuildContext context, WidgetRef ref, String targetUserId) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('방명록 작성'),
+        content: TextField(
+          controller: controller,
+          maxLines: 3,
+          maxLength: 100,
+          decoration: const InputDecoration(hintText: '따뜻한 한마디를 남겨주세요.', border: OutlineInputBorder()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
+          TextButton(
+            onPressed: () async {
+              final content = controller.text.trim();
+              if (content.isEmpty) return;
+              Navigator.pop(ctx);
+              try {
+                await ref.read(socialRepositoryProvider).writeGuestbook(targetUserId, content, false);
+                ref.invalidate(guestbookProvider(targetUserId));
+                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('방명록이 등록되었습니다.')));
+              } catch (e) {
+                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('등록에 실패했습니다.')));
+              }
+            },
+            child: const Text('등록'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GuestbookSection extends ConsumerWidget {
+  final String userId;
+  final String nickname;
+
+  const _GuestbookSection({required this.userId, required this.nickname});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
+    final guestbooksAsync = ref.watch(guestbookProvider(userId));
+    final myId = ref.watch(userProvider).user?.id;
+
+    return BentoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('방명록', style: Theme.of(context).textTheme.titleMedium),
+              TextButton(
+                onPressed: () => context.push('/social/profile/$userId/guestbook?nickname=$nickname'),
+                child: const Text('전체보기'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          guestbooksAsync.when(
+            loading: () => const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator())),
+            error: (err, _) => Center(child: Text('오류가 발생했습니다.', style: TextStyle(color: tokens.textMuted))),
+            data: (entries) {
+              if (entries.isEmpty) {
+                return const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Text('아직 작성된 방명록이 없습니다.', style: TextStyle(color: AppColors.textTertiary))));
+              }
+
+              return ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: entries.length > 3 ? 3 : entries.length,
+                separatorBuilder: (context, index) => Divider(height: 1, color: tokens.primary.withValues(alpha: 0.1)),
+                itemBuilder: (context, index) {
+                  final entry = entries[index];
+                  final isMyPost = entry.writerId == myId;
+                  final isProfileOwner = userId == myId;
+                  final canDelete = isMyPost || isProfileOwner;
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(entry.writer?.nickname ?? '익명', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            const SizedBox(width: 8),
+                            Text(_formatDate(entry.createdAt), style: TextStyle(fontSize: 11, color: tokens.textMuted)),
+                            const Spacer(),
+                            if (canDelete)
+                              IconButton(
+                                icon: Icon(Icons.delete_outline, size: 18, color: Colors.red.withValues(alpha: 0.6)),
+                                onPressed: () => _confirmDelete(context, ref, entry.id),
+                                constraints: const BoxConstraints(),
+                                padding: EdgeInsets.zero,
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(entry.content, style: TextStyle(fontSize: 14, color: tokens.textPrimary)),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
+    if (diff.inHours < 24) return '${diff.inHours}시간 전';
+    return '${date.month}월 ${date.day}일';
+  }
+
+  void _confirmDelete(BuildContext context, WidgetRef ref, String guestbookId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('방명록 삭제'),
+        content: const Text('이 방명록을 삭제하시겠습니까?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await ref.read(socialRepositoryProvider).deleteGuestbook(userId, guestbookId);
+                ref.invalidate(guestbookProvider(userId));
+                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('삭제되었습니다.')));
+              } catch (e) {
+                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('삭제에 실패했습니다.')));
+              }
+            },
+            child: const Text('삭제', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }

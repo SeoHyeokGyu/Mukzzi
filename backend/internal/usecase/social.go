@@ -21,6 +21,7 @@ type SocialUsecase interface {
 	Nudge(senderID, receiverID int64) error
 	GetGuestbooks(targetUserID int64, page, limit int) ([]domain.Guestbook, error)
 	WriteGuestbook(entry *domain.Guestbook) error
+	DeleteGuestbook(userID, guestbookID int64) error
 	BlockUser(blockerID, blockedID int64) error
 	UnblockUser(blockerID, blockedID int64) error
 	ReportUser(report *domain.Report) error
@@ -211,6 +212,25 @@ func (u *socialUsecase) WriteGuestbook(entry *domain.Guestbook) error {
 	}
 
 	return nil
+}
+
+func (u *socialUsecase) DeleteGuestbook(userID, guestbookID int64) error {
+	// 1. 방명록 조회
+	entry, err := u.socialRepo.GetGuestbookByID(guestbookID)
+	if err != nil {
+		return err
+	}
+	if entry == nil {
+		return errors.New("존재하지 않는 방명록 항목입니다.")
+	}
+
+	// 2. 권한 확인: 작성자거나 방명록 주인이어야 함
+	if entry.WriterID != userID && entry.TargetUserID != userID {
+		return errors.New("삭제 권한이 없습니다.")
+	}
+
+	// 3. 삭제 수행
+	return u.socialRepo.DeleteGuestbook(guestbookID)
 }
 
 func (u *socialUsecase) BlockUser(blockerID, blockedID int64) error {

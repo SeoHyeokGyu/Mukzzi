@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../data/models/onboarding_request.dart';
@@ -17,15 +18,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   int _currentStep = 0;
   final PageController _pageController = PageController();
   
-  // 신체 정보
   final _heightController = TextEditingController();
   final _weightController = TextEditingController();
   String _activityLevel = 'MODERATE';
-  
-  // 목표
   String _goal = 'MAINTAIN';
-  
-  // 먹찌 설정
   final _mukzziNameController = TextEditingController();
   int _bodyType = 0;
   int _muscle = 0;
@@ -65,14 +61,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
   void _nextStep() {
     if (!_isCurrentStepValid) return;
-
     if (_currentStep < 2) {
       setState(() => _currentStep++);
-      _pageController.animateToPage(
-        _currentStep,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
+      _pageController.animateToPage(_currentStep, duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
     } else {
       _submit();
     }
@@ -81,11 +72,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   void _prevStep() {
     if (_currentStep > 0) {
       setState(() => _currentStep--);
-      _pageController.animateToPage(
-        _currentStep,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
+      _pageController.animateToPage(_currentStep, duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
     }
   }
 
@@ -101,65 +88,52 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       skinTone: _skinTone,
       expression: _expression,
     );
-
     final success = await ref.read(userProvider.notifier).onboarding(request);
-    if (success && mounted) {
-      context.go('/home');
-    }
+    if (success && mounted) context.go('/home');
   }
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
     final isLoading = ref.watch(userProvider).isLoading;
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
     return GradientScaffold(
       appBar: AppBar(
-        title: Text('${_currentStep + 1} / 3', 
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        title: Text('${_currentStep + 1} / 3', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: tokens.textPrimary)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
       ),
       body: Padding(
-        padding: EdgeInsets.only(
-          left: 24.0, 
-          right: 24.0, 
-          top: 8.0, 
-          bottom: bottomPadding > 0 ? 8.0 : 24.0
-        ),
+        padding: EdgeInsets.only(left: 24.0, right: 24.0, top: 8.0, bottom: bottomPadding > 0 ? 8.0 : 24.0),
         child: Column(
           children: [
-            _buildProgressIndicator(),
+            _buildProgressIndicator(tokens),
             const SizedBox(height: 24),
             Expanded(
               child: PageView(
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
-                  _buildScrollableStep(_buildPhysicalStep()),
-                  _buildScrollableStep(_buildGoalStep()),
-                  _buildScrollableStep(_buildCharacterStep()),
+                  _buildScrollableStep(_buildPhysicalStep(tokens)),
+                  _buildScrollableStep(_buildGoalStep(tokens)),
+                  _buildScrollableStep(_buildCharacterStep(tokens)),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            _buildNavigationButtons(isLoading),
+            _buildNavigationButtons(isLoading, tokens),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildScrollableStep(Widget child) {
-    return ScrollConfiguration(
-      behavior: const ScrollBehavior().copyWith(overscroll: false),
-      child: SingleChildScrollView(child: child),
-    );
-  }
+  Widget _buildScrollableStep(Widget child) => ScrollConfiguration(behavior: const ScrollBehavior().copyWith(overscroll: false), child: SingleChildScrollView(child: child));
 
-  Widget _buildNavigationButtons(bool isLoading) {
+  Widget _buildNavigationButtons(bool isLoading, AppColorTokens tokens) {
     return Row(
       children: [
         if (_currentStep > 0) ...[
@@ -170,9 +144,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               child: OutlinedButton(
                 onPressed: isLoading ? null : _prevStep,
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.white30),
+                  side: BorderSide(color: tokens.textMuted.withValues(alpha: 0.3)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  foregroundColor: Colors.white,
+                  foregroundColor: tokens.textPrimary,
                 ),
                 child: const Text('이전', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
@@ -193,7 +167,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     );
   }
 
-  Widget _buildProgressIndicator() {
+  Widget _buildProgressIndicator(AppColorTokens tokens) {
     return Row(
       children: List.generate(3, (index) {
         final isActive = index <= _currentStep;
@@ -203,7 +177,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             height: 4,
             margin: const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
-              color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.2),
+              color: isActive ? tokens.primary : tokens.textMuted.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -212,44 +186,44 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     );
   }
 
-  Widget _buildPhysicalStep() {
+  Widget _buildPhysicalStep(AppColorTokens tokens) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('기본 신체 정보', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+        Text('기본 신체 정보', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: tokens.textPrimary)),
         const SizedBox(height: 8),
-        const Text('권장 섭취량 계산을 위해 필요합니다.', style: TextStyle(fontSize: 14, color: Colors.white70)),
+        Text('권장 섭취량 계산을 위해 필요합니다.', style: TextStyle(fontSize: 14, color: tokens.textSub)),
         const SizedBox(height: 32),
-        _buildTextField(controller: _heightController, label: '키', suffix: 'cm', icon: Icons.height),
+        _buildTextField(tokens, controller: _heightController, label: '키', suffix: 'cm', icon: Icons.height),
         const SizedBox(height: 20),
-        _buildTextField(controller: _weightController, label: '몸무게', suffix: 'kg', icon: Icons.monitor_weight_outlined),
+        _buildTextField(tokens, controller: _weightController, label: '몸무게', suffix: 'kg', icon: Icons.monitor_weight_outlined),
         const SizedBox(height: 32),
-        const Text('평소 활동량', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16)),
+        Text('평소 활동량', style: TextStyle(color: tokens.textPrimary, fontWeight: FontWeight.w600, fontSize: 16)),
         const SizedBox(height: 16),
-        _buildActivityLevelSelector(),
+        _buildActivityLevelSelector(tokens),
         const SizedBox(height: 20),
       ],
     );
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String label, required String suffix, required IconData icon}) {
+  Widget _buildTextField(AppColorTokens tokens, {required TextEditingController controller, required String label, required String suffix, required IconData icon}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
+        color: tokens.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+        border: Border.all(color: tokens.textMuted.withValues(alpha: 0.1)),
       ),
       child: TextField(
         controller: controller,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        style: const TextStyle(color: Colors.white, fontSize: 16),
+        style: TextStyle(color: tokens.textPrimary, fontSize: 16),
         decoration: InputDecoration(
-          icon: Icon(icon, color: Colors.white70, size: 22),
+          icon: Icon(icon, color: tokens.textSub, size: 22),
           labelText: label,
-          labelStyle: const TextStyle(color: Colors.white70),
+          labelStyle: TextStyle(color: tokens.textSub),
           suffixText: suffix,
-          suffixStyle: const TextStyle(color: Colors.white70),
+          suffixStyle: TextStyle(color: tokens.textSub),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 8),
         ),
@@ -257,14 +231,13 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     );
   }
 
-  Widget _buildActivityLevelSelector() {
+  Widget _buildActivityLevelSelector(AppColorTokens tokens) {
     final levels = [
       {'id': 'LOW', 'label': '거의 없음', 'desc': '주로 앉아서 생활'},
       {'id': 'MODERATE', 'label': '보통', 'desc': '주 1~3회 가벼운 운동'},
       {'id': 'HIGH', 'label': '활동적', 'desc': '주 3~5회 강한 운동'},
       {'id': 'VERY_HIGH', 'label': '매우 활동적', 'desc': '선수급 활동량'},
     ];
-
     return Wrap(
       spacing: 10,
       runSpacing: 10,
@@ -277,16 +250,16 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             width: (MediaQuery.of(context).size.width - 48 - 10) / 2,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.05),
+              color: isSelected ? tokens.primaryBg : tokens.card,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.2), width: 1.5),
+              border: Border.all(color: isSelected ? tokens.primary : tokens.textMuted.withValues(alpha: 0.1), width: 1.5),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(level['label']!, style: TextStyle(color: isSelected ? Colors.black : Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                Text(level['label']!, style: TextStyle(color: isSelected ? tokens.primary : tokens.textPrimary, fontWeight: FontWeight.bold, fontSize: 15)),
                 const SizedBox(height: 4),
-                Text(level['desc']!, style: TextStyle(color: isSelected ? Colors.black54 : Colors.white60, fontSize: 12)),
+                Text(level['desc']!, style: TextStyle(color: isSelected ? tokens.primary.withValues(alpha: 0.7) : tokens.textSub, fontSize: 12)),
               ],
             ),
           ),
@@ -295,25 +268,25 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     );
   }
 
-  Widget _buildGoalStep() {
+  Widget _buildGoalStep(AppColorTokens tokens) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('나의 목표 선택', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+        Text('나의 목표 선택', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: tokens.textPrimary)),
         const SizedBox(height: 8),
-        const Text('목표에 따라 영양 목표가 설정됩니다.', style: TextStyle(fontSize: 14, color: Colors.white70)),
+        Text('목표에 따라 영양 목표가 설정됩니다.', style: TextStyle(fontSize: 14, color: tokens.textSub)),
         const SizedBox(height: 32),
-        _buildGoalCard('DIET', '다이어트', '체중 감량을 위한 식단', Icons.spa_outlined),
+        _buildGoalCard(tokens, 'DIET', '다이어트', '체중 감량을 위한 식단', Icons.spa_outlined),
         const SizedBox(height: 12),
-        _buildGoalCard('MAINTAIN', '유지', '현재 건강 상태 유지', Icons.balance),
+        _buildGoalCard(tokens, 'MAINTAIN', '유지', '현재 건강 상태 유지', Icons.balance),
         const SizedBox(height: 12),
-        _buildGoalCard('BULK', '벌크업', '근육량 및 체격 증가', Icons.fitness_center),
+        _buildGoalCard(tokens, 'BULK', '벌크업', '근육량 및 체격 증가', Icons.fitness_center),
         const SizedBox(height: 20),
       ],
     );
   }
 
-  Widget _buildGoalCard(String value, String title, String subtitle, IconData icon) {
+  Widget _buildGoalCard(AppColorTokens tokens, String value, String title, String subtitle, IconData icon) {
     final isSelected = _goal == value;
     return GestureDetector(
       onTap: () => setState(() => _goal = value),
@@ -321,88 +294,88 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.05),
+          color: isSelected ? tokens.primaryBg : tokens.card,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.2), width: 1.5),
+          border: Border.all(color: isSelected ? tokens.primary : tokens.textMuted.withValues(alpha: 0.1), width: 1.5),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: isSelected ? Colors.orange.withValues(alpha: 0.1) : Colors.white10, shape: BoxShape.circle),
-              child: Icon(icon, color: isSelected ? Colors.orange : Colors.white, size: 24),
+              decoration: BoxDecoration(color: isSelected ? tokens.primary.withValues(alpha: 0.1) : tokens.textMuted.withValues(alpha: 0.05), shape: BoxShape.circle),
+              child: Icon(icon, color: isSelected ? tokens.primary : tokens.textSub, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isSelected ? Colors.black : Colors.white)),
+                  Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isSelected ? tokens.primary : tokens.textPrimary)),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontSize: 13, color: isSelected ? Colors.black54 : Colors.white70)),
+                  Text(subtitle, style: TextStyle(fontSize: 13, color: isSelected ? tokens.primary.withValues(alpha: 0.7) : tokens.textSub)),
                 ],
               ),
             ),
-            if (isSelected) const Icon(Icons.check_circle, color: Colors.orange, size: 24),
+            if (isSelected) Icon(Icons.check_circle, color: tokens.primary, size: 24),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCharacterStep() {
+  Widget _buildCharacterStep(AppColorTokens tokens) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('내 먹찌 탄생', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+        Text('내 먹찌 탄생', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: tokens.textPrimary)),
         const SizedBox(height: 8),
-        const Text('함께할 먹찌의 이름과 초기 모습을 정해주세요.', style: TextStyle(fontSize: 14, color: Colors.white70)),
+        Text('함께할 먹찌의 이름과 초기 모습을 정해주세요.', style: TextStyle(fontSize: 14, color: tokens.textSub)),
         const SizedBox(height: 24),
         Center(
           child: Column(
             children: [
               Container(
                 width: 120, height: 120,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), shape: BoxShape.circle, border: Border.all(color: Colors.white24, width: 2)),
-                child: const Icon(Icons.face_retouching_natural, size: 70, color: Colors.white),
+                decoration: BoxDecoration(color: tokens.primaryBg, shape: BoxShape.circle, border: Border.all(color: tokens.primary.withValues(alpha: 0.2), width: 2)),
+                child: Icon(Icons.face_retouching_natural, size: 70, color: tokens.primary),
               ),
               const SizedBox(height: 24),
-              _buildNameField(),
+              _buildNameField(tokens),
             ],
           ),
         ),
         const SizedBox(height: 32),
-        _buildCustomizer('체형', _bodyType, (v) => setState(() => _bodyType = v)),
-        _buildCustomizer('근육량', _muscle, (v) => setState(() => _muscle = v)),
-        _buildCustomizer('피부색', _skinTone, (v) => setState(() => _skinTone = v)),
-        _buildCustomizer('표정', _expression, (v) => setState(() => _expression = v)),
+        _buildCustomizer(tokens, '체형', _bodyType, (v) => setState(() => _bodyType = v)),
+        _buildCustomizer(tokens, '근육량', _muscle, (v) => setState(() => _muscle = v)),
+        _buildCustomizer(tokens, '피부색', _skinTone, (v) => setState(() => _skinTone = v)),
+        _buildCustomizer(tokens, '표정', _expression, (v) => setState(() => _expression = v)),
         const SizedBox(height: 20),
       ],
     );
   }
 
-  Widget _buildNameField() {
+  Widget _buildNameField(AppColorTokens tokens) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
+        color: tokens.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+        border: Border.all(color: tokens.textMuted.withValues(alpha: 0.1)),
       ),
       child: TextField(
         controller: _mukzziNameController,
-        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+        style: TextStyle(color: tokens.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
         textAlign: TextAlign.center,
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           hintText: '먹찌 이름 입력',
-          hintStyle: TextStyle(color: Colors.white38),
+          hintStyle: TextStyle(color: tokens.textMuted),
           border: InputBorder.none,
         ),
       ),
     );
   }
 
-  Widget _buildCustomizer(String label, int value, ValueChanged<int> onChanged) {
+  Widget _buildCustomizer(AppColorTokens tokens, String label, int value, ValueChanged<int> onChanged) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
@@ -411,8 +384,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-              Text('Lv.$value', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              Text(label, style: TextStyle(color: tokens.textPrimary, fontWeight: FontWeight.w500)),
+              Text('Lv.$value', style: TextStyle(color: tokens.textSub, fontSize: 12)),
             ],
           ),
           const SizedBox(height: 8),
@@ -426,12 +399,12 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                     height: 32,
                     margin: const EdgeInsets.symmetric(horizontal: 2),
                     decoration: BoxDecoration(
-                      color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.1),
+                      color: isSelected ? tokens.primary : tokens.card,
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: isSelected ? Colors.white : Colors.white10),
+                      border: Border.all(color: isSelected ? tokens.primary : tokens.textMuted.withValues(alpha: 0.1)),
                     ),
                     child: Center(
-                      child: Text('$index', style: TextStyle(color: isSelected ? Colors.black : Colors.white38, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, fontSize: 12)),
+                      child: Text('$index', style: TextStyle(color: isSelected ? Colors.white : tokens.textSub, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, fontSize: 12)),
                     ),
                   ),
                 ),

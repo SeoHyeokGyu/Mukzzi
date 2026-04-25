@@ -54,8 +54,11 @@ class SocialRepository {
   }
 
   // 방명록 조회
-  Future<List<GuestbookModel>> getGuestbooks(String userId) async {
-    final response = await _apiClient.get('/users/$userId/guestbook');
+  Future<List<GuestbookModel>> getGuestbooks(String userId, {int page = 1, int limit = 20}) async {
+    final response = await _apiClient.get(
+      '/users/$userId/guestbook',
+      queryParameters: {'page': page, 'limit': limit},
+    );
     final List<dynamic> data = response['data'] as List<dynamic>? ?? [];
     return data.map((e) => GuestbookModel.fromJson(e as Map<String, dynamic>)).toList();
   }
@@ -66,6 +69,11 @@ class SocialRepository {
       '/users/$userId/guestbook',
       data: {'content': content, 'is_secret': isSecret},
     );
+  }
+
+  // 방명록 삭제
+  Future<void> deleteGuestbook(String userId, String guestbookId) async {
+    await _apiClient.delete('/users/$userId/guestbook/$guestbookId');
   }
 
   // 사용자 검색

@@ -196,12 +196,12 @@ class _AuthPageState extends ConsumerState<AuthPage> {
               // 폼
               TextField(
                 controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
+                keyboardType: _isLogin ? TextInputType.text : TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: '이메일',
-                  hintText: 'example@email.com',
-                  prefixIcon: Icon(Icons.email_outlined),
+                decoration: InputDecoration(
+                  labelText: _isLogin ? '이메일 또는 아이디' : '이메일',
+                  hintText: _isLogin ? 'example@email.com 또는 아이디' : 'example@email.com',
+                  prefixIcon: const Icon(Icons.email_outlined),
                 ),
               )
                   .animate()

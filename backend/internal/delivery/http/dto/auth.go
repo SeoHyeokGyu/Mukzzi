@@ -4,7 +4,8 @@ import "github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 
 // LoginRequest 는 로그인 요청 데이터를 정의합니다.
 type LoginRequest struct {
-	Username string `json:"username" binding:"required"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
 	Password string `json:"password" binding:"required"`
 }
 

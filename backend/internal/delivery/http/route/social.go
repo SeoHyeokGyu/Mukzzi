@@ -27,6 +27,7 @@ func SocialRoute(rg *gin.RouterGroup, socialHandler *handler.SocialHandler) {
 		interaction.POST("/nudge", socialHandler.Nudge)
 		interaction.GET("/guestbook", socialHandler.GetGuestbooks)
 		interaction.POST("/guestbook", socialHandler.WriteGuestbook)
+		interaction.DELETE("/guestbook/:guestbookId", socialHandler.DeleteGuestbook)
 		interaction.POST("/block", socialHandler.BlockUser)
 		interaction.DELETE("/block", socialHandler.UnblockUser)
 		interaction.POST("/report", socialHandler.ReportUser)
