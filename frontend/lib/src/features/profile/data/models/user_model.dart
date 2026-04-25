@@ -3,7 +3,6 @@ class UserModel {
   final String username;
   final String email;
   final String? nickname;
-  final String? mukzziName;
   final String? profileImageUrl;
   final String? equippedTitle;
   final Map<String, bool> notificationSettings;
@@ -16,7 +15,6 @@ class UserModel {
     required this.username,
     required this.email,
     this.nickname,
-    this.mukzziName,
     this.profileImageUrl,
     this.equippedTitle,
     this.isOnboarded = false,
@@ -48,7 +46,6 @@ class UserModel {
       username: json['username'] as String? ?? '',
       email: json['email'] as String? ?? '',
       nickname: json['nickname'] as String?,
-      mukzziName: json['mukzzi_name'] as String?,
       profileImageUrl: json['profile_image_url'] as String?,
       equippedTitle: titleName,
       notificationSettings: notificationSettings,

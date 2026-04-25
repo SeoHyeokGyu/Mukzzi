@@ -182,11 +182,6 @@ func (u *userUsecase) GetRecommendations(id int64) ([]domain.User, error) {
 
 func (u *userUsecase) Onboarding(id int64, mukzziName string, height, weight float64, activityLevel domain.ActivityLevel, goal domain.DietGoal, bodyType, muscle, skinTone, expression int) error {
 	return u.db.Transaction(func(tx *gorm.DB) error {
-		// 0. 유저의 먹찌 이름 업데이트
-		if err := tx.Model(&domain.User{}).Where("id = ?", id).Update("mukzzi_name", mukzziName).Error; err != nil {
-			return err
-		}
-
 		// 1. 신체 정보 생성 또는 업데이트
 		body := &domain.UserBody{UserID: id}
 		if err := tx.Where(domain.UserBody{UserID: id}).
@@ -214,8 +209,28 @@ func (u *userUsecase) Onboarding(id int64, mukzziName string, height, weight flo
 			return err
 		}
 
-		// 3. 캐릭터 생성 (이미 존재할 경우 기존 데이터를 사용하거나 무시)
-		char := &domain.CharacterCollection{
+		// 3. 캐릭터 생성
+		character := &domain.Character{
+			UserID:         id,
+			Name:           mukzziName,
+			Level:          1,
+			Exp:            0,
+			EvolutionStage: domain.EvolutionEgg,
+			BodyType:       bodyType,
+			Muscle:         muscle,
+			SkinTone:       skinTone,
+			Expression:     expression,
+			PenaltyStatus:  domain.PenaltyNormal,
+		}
+
+		if err := tx.Where(domain.Character{UserID: id}).
+			Assign(character).
+			FirstOrCreate(character).Error; err != nil {
+			return err
+		}
+
+		// 4. 캐릭터 도감 등록
+		charCol := &domain.CharacterCollection{
 			UserID:     id,
 			BodyType:   bodyType,
 			Muscle:     muscle,
@@ -230,7 +245,7 @@ func (u *userUsecase) Onboarding(id int64, mukzziName string, height, weight flo
 			Muscle:     muscle,
 			SkinTone:   skinTone,
 			Expression: expression,
-		}).FirstOrCreate(char).Error; err != nil {
+		}).FirstOrCreate(charCol).Error; err != nil {
 			return err
 		}
 
