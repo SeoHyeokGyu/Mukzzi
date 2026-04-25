@@ -65,6 +65,9 @@ func main() {
 	userUsecase := usecase.NewUserUsecase(userRepo, mealRepo, dailyIntakeRepo, badgeRepo, charCollectionRepo, db)
 	userHandler := handler.NewUserHandler(userUsecase)
 
+	// 스케줄러 시작 (30일 경과 탈퇴 회원 물리 삭제 등)
+	config.StartScheduler(userUsecase)
+
 	// Collection 도메인
 	badgeGranter := usecase.NewBadgeGranter(badgeRepo, mealRepo, dailyIntakeRepo, charCollectionRepo)
 	badgeUsecase := usecase.NewBadgeUsecase(badgeRepo)
