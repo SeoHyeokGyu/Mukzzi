@@ -9,6 +9,8 @@ class MenuModel {
   final double defaultFat;
   final double defaultFiber;
   final double defaultVitaminScore;
+  final bool isFavorite;
+  final String? preference; // 'LIKE' | 'DISLIKE' | null
 
   const MenuModel({
     required this.id,
@@ -21,6 +23,8 @@ class MenuModel {
     required this.defaultFat,
     required this.defaultFiber,
     required this.defaultVitaminScore,
+    this.isFavorite = false,
+    this.preference,
   });
 
   factory MenuModel.fromJson(Map<String, dynamic> json) {
@@ -35,6 +39,8 @@ class MenuModel {
       defaultFat: (json['default_fat'] as num).toDouble(),
       defaultFiber: (json['default_fiber'] as num).toDouble(),
       defaultVitaminScore: (json['default_vitamin_score'] as num).toDouble(),
+      isFavorite: json['is_favorite'] as bool? ?? false,
+      preference: json['preference'] as String?,
     );
   }
 }

@@ -9,8 +9,6 @@ final favoriteRepositoryProvider = Provider<FavoriteRepository>((ref) {
   return FavoriteRepository(ref.watch(apiClientProvider));
 });
 
-// ── 즐겨찾기 목록 상태 ──
-
 class FavoriteListState {
   final List<FavoriteModel> favorites;
   final bool isLoading;
@@ -34,7 +32,6 @@ class FavoriteListState {
         error: clearError ? null : error ?? this.error,
       );
 
-  /// 즐겨찾기 여부 확인
   bool isFavorite(String menuId) =>
       favorites.any((f) => f.menu.id == menuId);
 }
@@ -49,24 +46,22 @@ class FavoriteListNotifier extends StateNotifier<FavoriteListState> {
   Future<void> load() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final favorites = await _repository.getList();
+      // 즐겨찾기는 전체를 한 번에 가져옴 (칩 + 바텀시트 공용)
+      final favorites = await _repository.getList(limit: 50);
       state = state.copyWith(favorites: favorites, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
-  /// 즐겨찾기 토글 — 낙관적 업데이트 후 API 호출
   Future<void> toggle(MenuModel menu) async {
     final isFav = state.isFavorite(menu.id);
 
-    // 낙관적 업데이트
     if (isFav) {
       state = state.copyWith(
         favorites: state.favorites.where((f) => f.menu.id != menu.id).toList(),
       );
     } else {
-      // 임시 FavoriteModel 추가 (id는 서버에서 부여되지만 목록 표시엔 불필요)
       state = state.copyWith(
         favorites: [
           FavoriteModel(id: 'temp_${menu.id}', menu: menu),
@@ -82,7 +77,6 @@ class FavoriteListNotifier extends StateNotifier<FavoriteListState> {
         await _repository.add(menu.id);
       }
     } catch (_) {
-      // 실패 시 롤백
       await load();
     }
   }

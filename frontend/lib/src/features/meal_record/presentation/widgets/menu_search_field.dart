@@ -81,6 +81,23 @@ class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
     setState(() => _showDropdown = false);
   }
 
+  void _showFavoriteBottomSheet(List<MenuModel> favorites) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _FavoriteBottomSheet(
+        favorites: favorites,
+        onSelected: (menu) {
+          Navigator.pop(ctx);
+          _onSelected(menu);
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final searchState = ref.watch(menuSearchProvider);
@@ -92,6 +109,8 @@ class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
     }
 
     final surfaceColor = Theme.of(context).colorScheme.surfaceContainerHigh;
+    final favorites = favoriteState.favorites.map((f) => f.menu).toList();
+    final previewFavorites = favorites.take(5).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,12 +138,49 @@ class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
           onTapOutside: (_) => setState(() => _showDropdown = false),
         ),
 
-        // ── 즐겨찾기 칩 (검색어 없을 때만) ──
-        if (isEmpty && favoriteState.favorites.isNotEmpty) ...[
+        // ── 즐겨찾기 칩 + 전체보기 (검색어 없을 때만) ──
+        if (isEmpty && favorites.isNotEmpty) ...[
           const SizedBox(height: 10),
-          _FavoriteChips(
-            favorites: favoriteState.favorites.map((f) => f.menu).toList(),
-            onSelected: _onSelected,
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 36,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: previewFavorites.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final menu = previewFavorites[index];
+                      return ActionChip(
+                        avatar: const Icon(Icons.star, size: 14),
+                        label: Text(menu.name),
+                        labelStyle: const TextStyle(fontSize: 12),
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => _onSelected(menu),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              if (favorites.length > 1) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => _showFavoriteBottomSheet(favorites),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      '전체보기',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ],
 
@@ -190,36 +246,95 @@ class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
   }
 }
 
-// ── 즐겨찾기 가로 스크롤 칩 ──
+// ── 즐겨찾기 전체보기 바텀시트 ──
 
-class _FavoriteChips extends StatelessWidget {
+class _FavoriteBottomSheet extends StatelessWidget {
   final List<MenuModel> favorites;
   final void Function(MenuModel) onSelected;
 
-  const _FavoriteChips({
+  const _FavoriteBottomSheet({
     required this.favorites,
     required this.onSelected,
   });
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 36,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: favorites.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final menu = favorites[index];
-          return ActionChip(
-            avatar: const Icon(Icons.star, size: 14),
-            label: Text(menu.name),
-            labelStyle: const TextStyle(fontSize: 12),
-            visualDensity: VisualDensity.compact,
-            onPressed: () => onSelected(menu),
-          );
-        },
-      ),
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.4,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (context, scrollController) {
+        return Column(
+          children: [
+            // 핸들
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  const Icon(Icons.star, size: 18, color: Colors.amber),
+                  const SizedBox(width: 8),
+                  Text(
+                    '즐겨찾기 (${favorites.length})',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView.separated(
+                controller: scrollController,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: favorites.length,
+                separatorBuilder: (_, __) => const Divider(height: 1, indent: 16),
+                itemBuilder: (context, index) {
+                  final menu = favorites[index];
+                  return ListTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.restaurant,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    title: Text(
+                      menu.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      '${menu.category} · ${menu.defaultCalories.toStringAsFixed(0)}kcal',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => onSelected(menu),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

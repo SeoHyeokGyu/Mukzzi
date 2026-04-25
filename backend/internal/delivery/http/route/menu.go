@@ -11,6 +11,7 @@ func MenuRoute(
 	rg *gin.RouterGroup,
 	menuHandler *handler.MenuHandler,
 	favoriteHandler *handler.FavoriteHandler,
+	preferenceHandler *handler.PreferenceHandler,
 ) {
 	menus := rg.Group("/menus")
 	menus.Use(middleware.AuthMiddleware())
@@ -24,5 +25,9 @@ func MenuRoute(
 		// 즐겨찾기
 		menus.POST("/:id/favorites", favoriteHandler.Add)
 		menus.DELETE("/:id/favorites", favoriteHandler.Remove)
+
+		// 선호도
+		menus.POST("/:id/preferences", preferenceHandler.Set)
+		menus.DELETE("/:id/preferences", preferenceHandler.Remove)
 	}
 }

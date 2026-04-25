@@ -57,6 +57,7 @@ func main() {
 	rewardRepo := repository.NewRewardRepository(db)
 	notificationRepo := repository.NewNotificationRepository(db)
 	favoriteRepo := repository.NewFavoriteRepository(db)
+	preferenceRepo := repository.NewPreferenceRepository(db)
 
 	// Auth 도메인
 	authUsecase := usecase.NewAuthUsecase(userRepo)
@@ -79,10 +80,12 @@ func main() {
 	collectionHandler := handler.NewCollectionHandler(badgeUsecase, charCollectionUsecase, masteryUsecase, titleUsecase, rewardUsecase)
 
 	// Menu 도메인
-	menuUsecase := usecase.NewMenuUsecase(menuRepo)
+	menuUsecase := usecase.NewMenuUsecase(menuRepo, favoriteRepo, preferenceRepo)
 	menuHandler := handler.NewMenuHandler(menuUsecase)
 	favoriteUsecase := usecase.NewFavoriteUsecase(favoriteRepo, menuRepo)
 	favoriteHandler := handler.NewFavoriteHandler(favoriteUsecase)
+	preferenceUsecase := usecase.NewPreferenceUsecase(preferenceRepo, menuRepo)
+	preferenceHandler := handler.NewPreferenceHandler(preferenceUsecase)
 
 	// Notification 도메인
 	notificationUsecase := usecase.NewNotificationUsecase(notificationRepo)
@@ -108,6 +111,7 @@ func main() {
 		notificationHandler,
 		mealHandler,
 		favoriteHandler,
+		preferenceHandler,
 	)
 
 	// 서버 실행

@@ -13,18 +13,33 @@ import (
 type MenuUsecase interface {
 	Search(ctx context.Context, query domain.SearchMenuQuery) (*domain.SearchMenuResult, error)
 	Create(ctx context.Context, input domain.CreateMenuInput) (*domain.Menu, bool, error)
-	FindByID(ctx context.Context, id int64) (*domain.Menu, error)
+	FindByID(ctx context.Context, id int64, userID int64) (*MenuDetail, error) // domain. 제거
+}
+
+// MenuDetail 메뉴 상세 (즐겨찾기/선호도 포함)
+type MenuDetail struct {
+	Menu       domain.Menu
+	IsFavorite bool
+	Preference *domain.PreferenceType
 }
 
 // menuUsecaseImpl 메뉴 유즈케이스 구현체
 type menuUsecaseImpl struct {
-	menuRepository repository.MenuRepository
+	menuRepository       repository.MenuRepository
+	favoriteRepository   repository.FavoriteRepository
+	preferenceRepository repository.PreferenceRepository
 }
 
 // NewMenuUsecase 메뉴 유즈케이스 생성
-func NewMenuUsecase(menuRepository repository.MenuRepository) MenuUsecase {
+func NewMenuUsecase(
+	menuRepository repository.MenuRepository,
+	favoriteRepository repository.FavoriteRepository,
+	preferenceRepository repository.PreferenceRepository,
+) MenuUsecase {
 	return &menuUsecaseImpl{
-		menuRepository: menuRepository,
+		menuRepository:       menuRepository,
+		favoriteRepository:   favoriteRepository,
+		preferenceRepository: preferenceRepository,
 	}
 }
 
@@ -83,8 +98,6 @@ func (u *menuUsecaseImpl) Search(ctx context.Context, query domain.SearchMenuQue
 }
 
 // Create 사용자 정의 메뉴 등록
-// - 영양소 값이 0이면 카테고리 평균값으로 채움
-// - created=false이면 동일 name+category 메뉴가 이미 존재함
 func (u *menuUsecaseImpl) Create(ctx context.Context, input domain.CreateMenuInput) (*domain.Menu, bool, error) {
 	defaults := nutritionDefaultsByCategory(input.Category)
 
@@ -121,7 +134,35 @@ func (u *menuUsecaseImpl) Create(ctx context.Context, input domain.CreateMenuInp
 	return u.menuRepository.FindOrCreate(input.Name, input.Category, nutritionDefaults)
 }
 
-// FindByID 단일 메뉴 상세 조회 (없으면 nil 반환)
-func (u *menuUsecaseImpl) FindByID(ctx context.Context, id int64) (*domain.Menu, error) {
-	return u.menuRepository.FindByID(id)
+// FindByID 단일 메뉴 상세 조회 (즐겨찾기/선호도 포함)
+func (u *menuUsecaseImpl) FindByID(ctx context.Context, id int64, userID int64) (*MenuDetail, error) {
+	menu, err := u.menuRepository.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if menu == nil {
+		return nil, nil
+	}
+
+	// 즐겨찾기 여부
+	fav, err := u.favoriteRepository.FindByUserIDAndMenuID(userID, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// 선호도
+	pref, err := u.preferenceRepository.FindByUserIDAndMenuID(userID, id)
+	if err != nil {
+		return nil, err
+	}
+
+	detail := &MenuDetail{
+		Menu:       *menu,
+		IsFavorite: fav != nil,
+	}
+	if pref != nil {
+		detail.Preference = &pref.Preference
+	}
+
+	return detail, nil
 }

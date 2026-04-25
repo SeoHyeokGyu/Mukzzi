@@ -1,5 +1,3 @@
-// lib/src/features/meal_record/data/models/meal_model.dart
-
 import 'package:flutter/material.dart';
 
 // ─────────────────────────────────────────
