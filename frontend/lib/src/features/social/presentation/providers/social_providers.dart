@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mukzzi/src/core/providers/common_providers.dart';
 import '../../../profile/data/models/user_model.dart';
+import '../../data/models/social_models.dart';
 import '../../data/repositories/social_repository.dart';
 
 final socialRepositoryProvider = Provider<SocialRepository>((ref) {
@@ -44,6 +45,85 @@ final recommendedUsersProvider = FutureProvider.autoDispose<List<UserModel>>((re
   final response = await apiClient.get('/users/recommendations');
   final List<dynamic> data = response['data'] as List<dynamic>? ?? [];
   return data.map((e) => UserModel.fromJson(e as Map<String, dynamic>)).toList();
+});
+
+// 방명록 목록 (단순 조회용 - 프로필 요약 등)
+final guestbookProvider = FutureProvider.autoDispose.family<List<GuestbookModel>, String>((ref, userId) async {
+  return ref.watch(socialRepositoryProvider).getGuestbooks(userId, limit: 5);
+});
+
+// 방명록 페이징 상태 클래스
+class GuestbookPageState {
+  final List<GuestbookModel> items;
+  final bool isLoading;
+  final bool hasMore;
+  final int currentPage;
+
+  GuestbookPageState({
+    this.items = const [],
+    this.isLoading = false,
+    this.hasMore = true,
+    this.currentPage = 1,
+  });
+
+  GuestbookPageState copyWith({
+    List<GuestbookModel>? items,
+    bool? isLoading,
+    bool? hasMore,
+    int? currentPage,
+  }) {
+    return GuestbookPageState(
+      items: items ?? this.items,
+      isLoading: isLoading ?? this.isLoading,
+      hasMore: hasMore ?? this.hasMore,
+      currentPage: currentPage ?? this.currentPage,
+    );
+  }
+}
+
+// 방명록 페이징 Notifier
+class GuestbookPagingNotifier extends StateNotifier<GuestbookPageState> {
+  final SocialRepository _repository;
+  final String _userId;
+  static const int _limit = 20;
+
+  GuestbookPagingNotifier(this._repository, this._userId) : super(GuestbookPageState()) {
+    fetchNextPage();
+  }
+
+  Future<void> fetchNextPage() async {
+    if (state.isLoading || !state.hasMore) return;
+
+    state = state.copyWith(isLoading: true);
+
+    try {
+      final newItems = await _repository.getGuestbooks(_userId, page: state.currentPage, limit: _limit);
+      
+      state = state.copyWith(
+        items: [...state.items, ...newItems],
+        isLoading: false,
+        hasMore: newItems.length == _limit,
+        currentPage: state.currentPage + 1,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  Future<void> refresh() async {
+    state = GuestbookPageState();
+    await fetchNextPage();
+  }
+  
+  void removeItem(String id) {
+    state = state.copyWith(
+      items: state.items.where((item) => item.id != id).toList(),
+    );
+  }
+}
+
+final guestbookPagingProvider = StateNotifierProvider.autoDispose.family<GuestbookPagingNotifier, GuestbookPageState, String>((ref, userId) {
+  return GuestbookPagingNotifier(ref.watch(socialRepositoryProvider), userId);
 });
 
 // 사용자 검색 상태 클래스

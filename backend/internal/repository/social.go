@@ -24,6 +24,8 @@ type SocialRepository interface {
 	// Guestbook
 	CreateGuestbook(entry *domain.Guestbook) error
 	GetGuestbooks(targetUserID int64, limit, offset int) ([]domain.Guestbook, error)
+	GetGuestbookByID(id int64) (*domain.Guestbook, error)
+	DeleteGuestbook(id int64) error
 
 	// Report
 	CreateReport(report *domain.Report) error
@@ -124,6 +126,22 @@ func (r *socialRepository) GetGuestbooks(targetUserID int64, limit, offset int) 
 		Limit(limit).Offset(offset).
 		Find(&entries).Error
 	return entries, err
+}
+
+func (r *socialRepository) GetGuestbookByID(id int64) (*domain.Guestbook, error) {
+	var entry domain.Guestbook
+	err := r.db.First(&entry, id).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &entry, nil
+}
+
+func (r *socialRepository) DeleteGuestbook(id int64) error {
+	return r.db.Delete(&domain.Guestbook{}, id).Error
 }
 
 // Report 구현

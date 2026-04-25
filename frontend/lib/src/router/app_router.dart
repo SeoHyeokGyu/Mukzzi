@@ -22,6 +22,7 @@ import '../features/profile/presentation/pages/edit_profile_page.dart';
 import '../features/meal_record/presentation/pages/meal_record_page.dart';
 import '../features/social/presentation/pages/social_page.dart';
 import '../features/social/presentation/pages/other_profile_page.dart';
+import '../features/social/presentation/pages/guestbook_list_page.dart';
 import '../features/settings/presentation/pages/privacy_policy_page.dart';
 import '../features/settings/presentation/pages/terms_page.dart';
 import '../features/profile/presentation/providers/user_provider.dart';
@@ -173,6 +174,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   builder: (context, state) => OtherProfilePage(
                     userId: state.pathParameters['userId']!,
                   ),
+                  routes: [
+                    GoRoute(
+                      path: 'guestbook',
+                      name: 'guestbook-list',
+                      builder: (context, state) {
+                        final userId = state.pathParameters['userId']!;
+                        final nickname = state.uri.queryParameters['nickname'] ?? '사용자';
+                        return GuestbookListPage(userId: userId, nickname: nickname);
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),

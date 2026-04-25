@@ -268,6 +268,38 @@ func (h *SocialHandler) WriteGuestbook(c *gin.Context) {
 	Success(c, nil)
 }
 
+// DeleteGuestbook 방명록 삭제
+// @Summary      방명록 삭제
+// @Description  방명록 항목을 삭제합니다. (작성자 또는 방명록 주인만 가능)
+// @Tags         social-interaction
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id           path      int64  true  "대상 사용자 ID"
+// @Param        guestbookId  path      int64  true  "방명록 항목 ID"
+// @Success      200          {object}  Response
+// @Failure      400          {object}  Response
+// @Failure      403          {object}  Response
+// @Router       /api/users/{id}/guestbook/{guestbookId} [delete]
+func (h *SocialHandler) DeleteGuestbook(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	guestbookID, err := strconv.ParseInt(c.Param("guestbookId"), 10, 64)
+	if err != nil {
+		BadRequest(c, "INVALID_ID", "잘못된 방명록 ID입니다.")
+		return
+	}
+
+	if err := h.socialUsecase.DeleteGuestbook(userID.(int64), guestbookID); err != nil {
+		if err.Error() == "삭제 권한이 없습니다." {
+			Forbidden(c, "PERMISSION_DENIED", err.Error())
+			return
+		}
+		InternalError(c, "방명록 삭제에 실패했습니다.", err.Error())
+		return
+	}
+	Success(c, nil)
+}
+
 // BlockUser 사용자 차단
 // @Summary      사용자 차단
 // @Description  특정 사용자를 차단합니다. 차단 시 친구 관계가 삭제됩니다.
