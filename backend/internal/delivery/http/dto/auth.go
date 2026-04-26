@@ -11,8 +11,9 @@ type LoginRequest struct {
 
 // LoginResponse 는 로그인 성공 시 응답 데이터를 정의합니다.
 type LoginResponse struct {
-	Token string       `json:"token"`
-	User  *domain.User `json:"user"`
+	AccessToken  string       `json:"accessToken"`
+	RefreshToken string       `json:"refreshToken"`
+	User         *domain.User `json:"user"`
 }
 
 // RegisterRequest 는 회원가입 요청 데이터를 정의합니다.

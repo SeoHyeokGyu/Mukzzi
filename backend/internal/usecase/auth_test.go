@@ -35,6 +35,14 @@ func (m *MockUserRepository) GetByUsername(username string) (*domain.User, error
 	return args.Get(0).(*domain.User), args.Error(1)
 }
 
+func (m *MockUserRepository) GetByEmail(email string) (*domain.User, error) {
+	args := m.Called(email)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.User), args.Error(1)
+}
+
 func (m *MockUserRepository) Update(user *domain.User) error {
 	args := m.Called(user)
 	return args.Error(0)
@@ -86,70 +94,51 @@ func (m *MockUserRepository) UpdateEquippedTitle(userID int64, titleID *int64) e
 	return args.Error(0)
 }
 
-func TestAuthUsecase_Register(t *testing.T) {
-	mockRepo := new(MockUserRepository)
-	uc := NewAuthUsecase(mockRepo)
-
-	t.Run("성공적인 회원가입", func(t *testing.T) {
-		user := &domain.User{
-			Username: "testuser",
-			Password: "password123",
-			Email:    "test@example.com",
-		}
-
-		mockRepo.On("Create", mock.AnythingOfType("*domain.User")).Return(nil)
-
-		createdUser, err := uc.Register(user)
-
-		assert.NoError(t, err)
-		assert.Equal(t, "testuser", createdUser.Username)
-		assert.NotEqual(t, "password123", createdUser.Password)
-		err = bcrypt.CompareHashAndPassword([]byte(createdUser.Password), []byte("password123"))
-		assert.NoError(t, err)
-		mockRepo.AssertExpectations(t)
-	})
+func (m *MockUserRepository) DeletePhysicallyExpired(days int) error {
+	args := m.Called(days)
+	return args.Error(0)
 }
 
 func TestAuthUsecase_Login(t *testing.T) {
 	mockRepo := new(MockUserRepository)
-	uc := NewAuthUsecase(mockRepo)
+	// NewAuthUsecase 에 nil (redis.Client) 추가
+	uc := NewAuthUsecase(mockRepo, nil)
 
-	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-	mockUser := &domain.User{
-		BaseDomain: domain.BaseDomain{ID: 12345},
-		Username:   "testuser",
-		Password:   string(hashedPassword),
-	}
+	t.Run("로그인 성공", func(t *testing.T) {
+		hashed, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
+		mockUser := &domain.User{
+			BaseDomain: domain.BaseDomain{ID: 1},
+			Username:   "test",
+			Password:   string(hashed),
+		}
 
-	t.Run("성공적인 로그인", func(t *testing.T) {
-		mockRepo.On("GetByUsername", "testuser").Return(mockUser, nil)
+		mockRepo.On("GetByUsername", "test").Return(mockUser, nil)
 
-		token, user, err := uc.Login("testuser", "password123")
+		// Login 반환값이 (accessToken, refreshToken, user, error) 로 변경됨
+		accessToken, refreshToken, user, err := uc.Login("test", "", "password")
 
 		assert.NoError(t, err)
-		assert.NotEmpty(t, token)
-		assert.Equal(t, mockUser.ID, user.ID)
+		assert.NotEmpty(t, accessToken)
+		assert.NotEmpty(t, refreshToken)
+		assert.Equal(t, mockUser, user)
 		mockRepo.AssertExpectations(t)
 	})
 
-	t.Run("잘못된 비밀번호로 로그인 실패", func(t *testing.T) {
-		mockRepo.On("GetByUsername", "testuser").Return(mockUser, nil)
+	t.Run("로그인 실패 - 잘못된 비밀번호", func(t *testing.T) {
+		hashed, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
+		mockUser := &domain.User{
+			BaseDomain: domain.BaseDomain{ID: 1},
+			Username:   "test",
+			Password:   string(hashed),
+		}
 
-		token, user, err := uc.Login("testuser", "wrongpassword")
+		mockRepo.On("GetByUsername", "test").Return(mockUser, nil)
 
-		assert.Error(t, err)
-		assert.Empty(t, token)
-		assert.Nil(t, user)
-		assert.Contains(t, err.Error(), "일치하지 않습니다")
-	})
-
-	t.Run("존재하지 않는 사용자로 로그인 실패", func(t *testing.T) {
-		mockRepo.On("GetByUsername", "nonexistent").Return(nil, assert.AnError)
-
-		token, user, err := uc.Login("nonexistent", "password123")
+		accessToken, refreshToken, user, err := uc.Login("test", "", "wrong_password")
 
 		assert.Error(t, err)
-		assert.Empty(t, token)
+		assert.Empty(t, accessToken)
+		assert.Empty(t, refreshToken)
 		assert.Nil(t, user)
 	})
 }

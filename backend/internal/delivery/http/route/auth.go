@@ -2,6 +2,7 @@ package route
 
 import (
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/handler"
+	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/middleware"
 	"github.com/gin-gonic/gin"
 )
 
@@ -11,5 +12,6 @@ func AuthRoute(rg *gin.RouterGroup, authHandler *handler.AuthHandler) {
 	{
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
+		auth.POST("/logout", middleware.AuthMiddleware(), authHandler.Logout)
 	}
 }

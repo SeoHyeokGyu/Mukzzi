@@ -15,14 +15,24 @@ class LoginRequest {
 }
 
 class LoginResponse {
-  final String token;
+  final String accessToken;
+  final String refreshToken;
   final UserModel user;
 
-  LoginResponse({required this.token, required this.user});
+  LoginResponse({
+    required this.accessToken,
+    required this.refreshToken,
+    required this.user,
+  });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
+    // 백엔드 DTO(accessToken)와 일반적인 관례(access_token) 모두 대응
+    final accessToken = (json['accessToken'] ?? json['access_token'] ?? json['token']) as String? ?? '';
+    final refreshToken = (json['refreshToken'] ?? json['refresh_token']) as String? ?? '';
+    
     return LoginResponse(
-      token: json['token'] as String,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
       user: UserModel.fromJson(json['user'] as Map<String, dynamic>),
     );
   }

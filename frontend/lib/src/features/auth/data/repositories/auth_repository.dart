@@ -23,6 +23,10 @@ class AuthRepository {
     );
   }
 
+  Future<void> logout() async {
+    await _apiClient.post('/auth/logout', data: {});
+  }
+
   Future<UserModel> fetchMe() async {
     final response = await _apiClient.get('/users/me');
     return UserModel.fromJson(response['data'] as Map<String, dynamic>);
