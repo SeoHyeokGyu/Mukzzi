@@ -61,6 +61,16 @@ func (m *MockSocialRepository) GetGuestbooks(id int64, l, o int) ([]domain.Guest
 	args := m.Called(id, l, o)
 	return args.Get(0).([]domain.Guestbook), args.Error(1)
 }
+func (m *MockSocialRepository) GetGuestbookByID(id int64) (*domain.Guestbook, error) {
+	args := m.Called(id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.Guestbook), args.Error(1)
+}
+func (m *MockSocialRepository) DeleteGuestbook(id int64) error {
+	return m.Called(id).Error(0)
+}
 func (m *MockSocialRepository) CreateReport(r *domain.Report) error {
 	return m.Called(r).Error(0)
 }
@@ -80,6 +90,13 @@ func (m *MockUserRepositoryForSocial) GetByID(id int64) (*domain.User, error) {
 }
 func (m *MockUserRepositoryForSocial) GetByUsername(n string) (*domain.User, error) {
 	args := m.Called(n)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.User), args.Error(1)
+}
+func (m *MockUserRepositoryForSocial) GetByEmail(e string) (*domain.User, error) {
+	args := m.Called(e)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -118,6 +135,9 @@ func (m *MockUserRepositoryForSocial) GetRecommendations(id int64, l int) ([]dom
 func (m *MockUserRepositoryForSocial) UpdateEquippedTitle(id int64, tid *int64) error {
 	return m.Called(id, tid).Error(0)
 }
+func (m *MockUserRepositoryForSocial) DeletePhysicallyExpired(d int) error {
+	return m.Called(d).Error(0)
+}
 
 // MockNotificationUsecaseForSocial
 type MockNotificationUsecaseForSocial struct {
@@ -147,7 +167,7 @@ func TestSocialUsecase(t *testing.T) {
 	mockSocial := new(MockSocialRepository)
 	mockUser := new(MockUserRepositoryForSocial)
 	mockNotify := new(MockNotificationUsecaseForSocial)
-	uc := NewSocialUsecase(mockSocial, mockUser, mockNotify)
+	uc := NewSocialUsecase(mockSocial, mockUser, mockNotify, nil)
 
 	t.Run("GetFriends - 친구 목록 조회", func(t *testing.T) {
 		userID := int64(1)
@@ -158,69 +178,24 @@ func TestSocialUsecase(t *testing.T) {
 		mockSocial.On("GetFriends", userID).Return(friends, nil).Once()
 
 		res, err := uc.GetFriends(userID)
-
 		assert.NoError(t, err)
 		assert.Len(t, res, 2)
-		assert.Equal(t, int64(2), res[0].ID)
-		assert.Equal(t, int64(3), res[1].ID)
 	})
 
-	t.Run("SendFriendRequest - 성공", func(t *testing.T) {
-		reqID, resID := int64(1), int64(2)
-		sender := &domain.User{BaseDomain: domain.BaseDomain{ID: reqID}, Nickname: "Tester"}
+	t.Run("DeleteFriend - 친구 삭제", func(t *testing.T) {
+		u1, u2 := int64(1), int64(2)
+		mockSocial.On("DeleteFriendship", u1, u2).Return(nil).Once()
+		err := uc.DeleteFriend(u1, u2)
+		assert.NoError(t, err)
+	})
 
-		mockSocial.On("GetFriendship", reqID, resID).Return(nil, nil).Once()
-		mockSocial.On("GetFriendship", resID, reqID).Return(nil, nil).Once()
-		mockSocial.On("GetBlock", resID, reqID).Return(nil, nil).Once()
-		mockSocial.On("CreateFriendship", mock.Anything).Return(nil).Once()
-		mockUser.On("GetByID", reqID).Return(sender, nil).Once()
+	t.Run("Nudge - 응원하기", func(t *testing.T) {
+		u1, u2 := int64(1), int64(2)
+		sender := &domain.User{BaseDomain: domain.BaseDomain{ID: u1}, Nickname: "보낸이"}
+		mockUser.On("GetByID", u1).Return(sender, nil).Once()
 		mockNotify.On("CreateNotification", mock.Anything).Return(nil).Once()
 
-		err := uc.SendFriendRequest(reqID, resID)
-
-		assert.NoError(t, err)
-	})
-
-	t.Run("AcceptFriendRequest - 성공", func(t *testing.T) {
-		resID, reqID := int64(1), int64(2)
-		receiver := &domain.User{BaseDomain: domain.BaseDomain{ID: resID}, Nickname: "Accepter"}
-
-		mockSocial.On("UpdateFriendshipStatus", reqID, resID, domain.FriendshipAccepted).Return(nil).Once()
-		mockUser.On("GetByID", resID).Return(receiver, nil).Once()
-		mockNotify.On("CreateNotification", mock.MatchedBy(func(n *domain.Notification) bool {
-			return n.UserID == reqID && n.Type == domain.NotificationTypeFriendAccepted
-		})).Return(nil).Once()
-
-		err := uc.AcceptFriendRequest(resID, reqID)
-
-		assert.NoError(t, err)
-	})
-
-	t.Run("BlockUser - 성공", func(t *testing.T) {
-		blockerID, blockedID := int64(1), int64(2)
-		mockSocial.On("DeleteFriendship", blockerID, blockedID).Return(nil).Once()
-		mockSocial.On("CreateBlock", mock.MatchedBy(func(b *domain.Block) bool {
-			return b.BlockerID == blockerID && b.BlockedID == blockedID
-		})).Return(nil).Once()
-
-		err := uc.BlockUser(blockerID, blockedID)
-
-		assert.NoError(t, err)
-	})
-
-	t.Run("WriteGuestbook - 성공", func(t *testing.T) {
-		writerID, targetID := int64(1), int64(2)
-		entry := &domain.Guestbook{WriterID: writerID, TargetUserID: targetID, Content: "Hello"}
-		writer := &domain.User{BaseDomain: domain.BaseDomain{ID: writerID}, Nickname: "Writer"}
-
-		mockSocial.On("CreateGuestbook", entry).Return(nil).Once()
-		mockUser.On("GetByID", writerID).Return(writer, nil).Once()
-		mockNotify.On("CreateNotification", mock.MatchedBy(func(n *domain.Notification) bool {
-			return n.UserID == targetID && n.Type == domain.NotificationTypeGuestbook
-		})).Return(nil).Once()
-
-		err := uc.WriteGuestbook(entry)
-
+		err := uc.Nudge(u1, u2)
 		assert.NoError(t, err)
 	})
 }

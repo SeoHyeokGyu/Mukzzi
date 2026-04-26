@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"os"
 
@@ -35,6 +36,9 @@ func main() {
 	config.SeedTitles(db)
 	config.SeedBadges(db)
 
+	// Redis 초기화
+	rdb := config.InitRedis()
+
 	// 포트 설정
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
@@ -60,11 +64,11 @@ func main() {
 	preferenceRepo := repository.NewPreferenceRepository(db)
 
 	// Auth 도메인
-	authUsecase := usecase.NewAuthUsecase(userRepo)
+	authUsecase := usecase.NewAuthUsecase(userRepo, rdb)
 	authHandler := handler.NewAuthHandler(authUsecase)
 
 	// User 도메인
-	userUsecase := usecase.NewUserUsecase(userRepo, mealRepo, dailyIntakeRepo, badgeRepo, charCollectionRepo, characterRepo, db)
+	userUsecase := usecase.NewUserUsecase(userRepo, mealRepo, dailyIntakeRepo, badgeRepo, charCollectionRepo, characterRepo, rdb, db)
 	userHandler := handler.NewUserHandler(userUsecase)
 
 	// 스케줄러 시작 (30일 경과 탈퇴 회원 물리 삭제 등)
@@ -80,25 +84,30 @@ func main() {
 	collectionHandler := handler.NewCollectionHandler(badgeUsecase, charCollectionUsecase, masteryUsecase, titleUsecase, rewardUsecase)
 
 	// Menu 도메인
-	menuUsecase := usecase.NewMenuUsecase(menuRepo, favoriteRepo, preferenceRepo)
+	menuUsecase := usecase.NewMenuUsecase(menuRepo, favoriteRepo, preferenceRepo, rdb)
 	menuHandler := handler.NewMenuHandler(menuUsecase)
 	favoriteUsecase := usecase.NewFavoriteUsecase(favoriteRepo, menuRepo)
 	favoriteHandler := handler.NewFavoriteHandler(favoriteUsecase)
 	preferenceUsecase := usecase.NewPreferenceUsecase(preferenceRepo, menuRepo)
 	preferenceHandler := handler.NewPreferenceHandler(preferenceUsecase)
 
+	// 메뉴 Redis 동기화
+	if err := menuUsecase.SyncMenusToRedis(context.Background()); err != nil {
+		slog.Error("메뉴 Redis 동기화 실패", slog.Any("error", err))
+	}
+
 	// Notification 도메인
 	notificationUsecase := usecase.NewNotificationUsecase(notificationRepo)
 	notificationHandler := handler.NewNotificationHandler(notificationUsecase)
 
 	// Social 도메인
-	socialUsecase := usecase.NewSocialUsecase(socialRepo, userRepo, notificationUsecase)
+	socialUsecase := usecase.NewSocialUsecase(socialRepo, userRepo, mealRepo, characterRepo, notificationUsecase, rdb)
 	socialHandler := handler.NewSocialHandler(socialUsecase)
 
 	// Meal 도메인
 	masteryTracker := usecase.NewMasteryTracker(masteryRepo)
 	titleGranter := usecase.NewTitleGranter(titleRepo)
-	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, badgeGranter, masteryTracker, titleGranter, notificationUsecase, db)
+	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, userUsecase, badgeGranter, masteryTracker, titleGranter, notificationUsecase, db)
 	mealHandler := handler.NewMealHandler(mealUsecase)
 
 	// 라우터 초기화

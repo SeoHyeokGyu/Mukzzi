@@ -1,12 +1,15 @@
 package usecase
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -32,6 +35,7 @@ type UserUsecase interface {
 	Search(query string) ([]domain.User, error)
 	GetRecommendations(id int64) ([]domain.User, error)
 	Onboarding(id int64, mukzziName string, height, weight float64, activityLevel domain.ActivityLevel, goal domain.DietGoal, bodyType, muscle, skinTone, expression int) error
+	AddExp(userID int64, amount int) error
 }
 
 type userUsecase struct {
@@ -41,6 +45,7 @@ type userUsecase struct {
 	badgeRepo       repository.BadgeRepository
 	charRepo        repository.CharacterCollectionRepository
 	characterRepo   repository.CharacterRepository
+	rdb             *redis.Client
 	db              *gorm.DB
 }
 
@@ -52,6 +57,7 @@ func NewUserUsecase(
 	badgeRepo repository.BadgeRepository,
 	charRepo repository.CharacterCollectionRepository,
 	characterRepo repository.CharacterRepository,
+	rdb *redis.Client,
 	db *gorm.DB,
 ) UserUsecase {
 	return &userUsecase{
@@ -61,16 +67,35 @@ func NewUserUsecase(
 		badgeRepo:       badgeRepo,
 		charRepo:        charRepo,
 		characterRepo:   characterRepo,
+		rdb:             rdb,
 		db:              db,
 	}
 }
 
 func (u *userUsecase) GetProfile(id int64) (*domain.User, error) {
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("user:profile:%d", id)
+
+	// 1. 캐시 확인
+	if val, err := u.rdb.Get(ctx, cacheKey).Result(); err == nil {
+		var user domain.User
+		if err := json.Unmarshal([]byte(val), &user); err == nil {
+			return &user, nil
+		}
+	}
+
+	// 2. DB 조회
 	user, err := u.userRepo.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
 	user.Password = ""
+
+	// 3. Redis 저장 (TTL 5분)
+	if data, err := json.Marshal(user); err == nil {
+		u.rdb.Set(ctx, cacheKey, data, 5*time.Minute)
+	}
+
 	return user, nil
 }
 
@@ -107,11 +132,16 @@ func (u *userUsecase) UpdateProfile(id int64, nickname, profileImageURL string) 
 		user.ProfileImageURL = profileImageURL
 	}
 
-	return u.userRepo.Update(user)
+	if err := u.userRepo.Update(user); err != nil {
+		return err
+	}
+
+	// 캐시 삭제
+	u.rdb.Del(context.Background(), fmt.Sprintf("user:profile:%d", id))
+	return nil
 }
 
 func (u *userUsecase) UpdateBody(id int64, height, weight float64, activityLevel domain.ActivityLevel) error {
-	// 1. 새로운 신체 정보 생성 (이력 관리)
 	newBody := &domain.UserBody{
 		UserID:        id,
 		Height:        height,
@@ -123,24 +153,23 @@ func (u *userUsecase) UpdateBody(id int64, height, weight float64, activityLevel
 		return err
 	}
 
-	// 2. 영양 목표가 이미 있다면 재계산하여 업데이트
 	nutritionGoal, err := u.userRepo.GetNutritionGoal(id)
 	if err == nil && nutritionGoal != nil {
 		u.calculateNutritionTargets(newBody, nutritionGoal)
 		return u.userRepo.CreateOrUpdateNutritionGoal(nutritionGoal)
 	}
 
+	// 정보 변경 시 프로필 캐시 삭제 (isOnboarded 등 상태 변경 가능성)
+	u.rdb.Del(context.Background(), fmt.Sprintf("user:profile:%d", id))
 	return nil
 }
 
 func (u *userUsecase) UpdateNutritionGoal(id int64, goal domain.DietGoal) error {
-	// 1. 최신 신체 정보 조회
 	body, err := u.userRepo.GetLatestBody(id)
 	if err != nil || body == nil {
 		return errors.New("신체 정보를 먼저 등록해주세요.")
 	}
 
-	// 2. 영양 목표 생성 또는 업데이트
 	nutritionGoal := &domain.UserNutritionGoal{
 		UserID: id,
 		Goal:   goal,
@@ -169,7 +198,12 @@ func (u *userUsecase) UpdateSettings(id int64, privacyLevel *domain.PrivacyLevel
 		user.NotificationSettings = datatypes.JSON(b)
 	}
 
-	return u.userRepo.Update(user)
+	if err := u.userRepo.Update(user); err != nil {
+		return err
+	}
+
+	u.rdb.Del(context.Background(), fmt.Sprintf("user:profile:%d", id))
+	return nil
 }
 
 func (u *userUsecase) DeleteAccount(id int64) error {
@@ -177,12 +211,35 @@ func (u *userUsecase) DeleteAccount(id int64) error {
 }
 
 func (u *userUsecase) ProcessPhysicalDeletion() error {
-	// 30일이 지난 소프트 삭제 데이터를 물리적으로 삭제
 	return u.userRepo.DeletePhysicallyExpired(30)
 }
 
 func (u *userUsecase) GetCharacter(id int64) (*domain.Character, error) {
-	return u.characterRepo.GetByUserID(id)
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("user:char:%d", id)
+
+	// 1. 캐시 확인
+	if val, err := u.rdb.Get(ctx, cacheKey).Result(); err == nil {
+		var char domain.Character
+		if err := json.Unmarshal([]byte(val), &char); err == nil {
+			return &char, nil
+		}
+	}
+
+	// 2. DB 조회
+	char, err := u.characterRepo.GetByUserID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Redis 저장 (TTL 5분)
+	if char != nil {
+		if data, err := json.Marshal(char); err == nil {
+			u.rdb.Set(ctx, cacheKey, data, 5*time.Minute)
+		}
+	}
+
+	return char, nil
 }
 
 func (u *userUsecase) Search(query string) ([]domain.User, error) {
@@ -190,7 +247,6 @@ func (u *userUsecase) Search(query string) ([]domain.User, error) {
 }
 
 func (u *userUsecase) GetRecommendations(id int64) ([]domain.User, error) {
-	// 상위 10명의 추천 사용자 조회
 	return u.userRepo.GetRecommendations(id, 10)
 }
 
@@ -257,8 +313,51 @@ func (u *userUsecase) Onboarding(id int64, mukzziName string, height, weight flo
 			return err
 		}
 
+		// 온보딩 완료 시 관련 캐시 무효화
+		u.rdb.Del(context.Background(), fmt.Sprintf("user:char:%d", id))
+		u.rdb.Del(context.Background(), fmt.Sprintf("user:profile:%d", id))
+
 		return nil
 	})
+}
+
+const RankingWeeklyKey = "ranking:exp:weekly"
+
+func (u *userUsecase) AddExp(userID int64, amount int) error {
+	ctx := context.Background()
+
+	// 1. DB 업데이트
+	err := u.db.Transaction(func(tx *gorm.DB) error {
+		var char domain.Character
+		if err := tx.Where("user_id = ?", userID).First(&char).Error; err != nil {
+			return err
+		}
+
+		char.Exp += amount
+		// 간단한 레벨업 로직 (예: 100 EXP당 1 레벨)
+		if char.Exp >= 100 {
+			char.Level += char.Exp / 100
+			char.Exp = char.Exp % 100
+		}
+
+		if err := tx.Save(&char).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// 2. Redis 랭킹 업데이트 (ZSET)
+	// 주간 랭킹 키에 유저의 점수를 누적
+	_ = u.rdb.ZIncrBy(ctx, RankingWeeklyKey, float64(amount), fmt.Sprintf("%d", userID)).Err()
+
+	// 캐시 삭제
+	u.rdb.Del(ctx, fmt.Sprintf("user:char:%d", userID))
+
+	return nil
 }
 
 // calculateNutritionTargets 는 신체 정보와 목표를 기반으로 영양 목표를 계산합니다.
@@ -267,7 +366,6 @@ func (u *userUsecase) calculateNutritionTargets(body *domain.UserBody, goal *dom
 		return
 	}
 
-	// 단순화된 계산식 (Mifflin-St Jeor 기반 가상 로직)
 	bmr := 10*(body.Weight) + 6.25*(body.Height) - 120
 
 	var activityFactor float64

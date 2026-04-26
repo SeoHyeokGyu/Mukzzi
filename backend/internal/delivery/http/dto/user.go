@@ -1,9 +1,35 @@
 package dto
 
 import (
+	"strconv"
+
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"gorm.io/datatypes"
 )
+
+// UserResponse 는 공통 사용자 응답 데이터를 정의합니다.
+type UserResponse struct {
+	ID              string `json:"id"`
+	Username        string `json:"username"`
+	Email           string `json:"email"`
+	Nickname        string `json:"nickname"`
+	ProfileImageURL string `json:"profile_image_url"`
+	EquippedTitle   string `json:"equipped_title,omitempty"`
+}
+
+func ToUserResponse(u *domain.User) UserResponse {
+	resp := UserResponse{
+		ID:              strconv.FormatInt(u.ID, 10),
+		Username:        u.Username,
+		Email:           u.Email,
+		Nickname:        u.Nickname,
+		ProfileImageURL: u.ProfileImageURL,
+	}
+	if u.EquippedTitle != nil {
+		resp.EquippedTitle = u.EquippedTitle.Name
+	}
+	return resp
+}
 
 // UserUpdateRequest 는 사용자 프로필 수정 요청 데이터를 정의합니다.
 type UserUpdateRequest struct {

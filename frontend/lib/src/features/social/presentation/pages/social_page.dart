@@ -1,41 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:mukzzi/src/core/theme/app_theme.dart';
 import 'package:mukzzi/src/core/widgets/gradient_scaffold.dart';
 import 'package:mukzzi/src/core/widgets/bento_card.dart';
 import 'package:mukzzi/src/core/widgets/collection_states.dart';
 import 'package:mukzzi/src/core/widgets/mukzzi_character.dart';
 import '../providers/social_providers.dart';
+import '../../data/models/feed_model.dart';
+import '../../data/models/social_models.dart';
+import '../../../meal_record/data/models/meal_model.dart';
+import '../../../meal_record/presentation/widgets/menu_detail_sheet.dart';
 import '../../../profile/data/models/user_model.dart';
+import '../../../profile/presentation/providers/user_provider.dart';
 
-CharacterState _stateFromString(String s) {
-  switch (s) {
-    case '행복':   return CharacterState.happy;
-    case '배고픔': return CharacterState.hungry;
-    case '굶주림': return CharacterState.starving;
-    case '기력저하': return CharacterState.weak;
-    default:       return CharacterState.normal;
-  }
+CharacterState _stateFromLevel(int level) {
+  if (level >= 10) return CharacterState.happy;
+  return CharacterState.normal;
 }
-
-// TODO: (cjkang) 랭킹·피드 데이터를 API로 교체
-typedef _RankEntry = ({String name, int rank, int level, String state, bool isMe});
-typedef _FeedEntry  = ({String name, int level, String ago, String msg, int likes, bool streak});
-
-const List<_RankEntry> _mockRanking = [
-  (name: '지원', rank: 1, level: 12, state: '행복',    isMe: false),
-  (name: '현수', rank: 2, level: 9,  state: '평온',    isMe: false),
-  (name: '민재', rank: 3, level: 7,  state: '배고픔',  isMe: true),
-  (name: '서연', rank: 4, level: 6,  state: '평온',    isMe: false),
-  (name: '도윤', rank: 5, level: 4,  state: '기력저하', isMe: false),
-];
-
-const List<_FeedEntry> _mockFeed = [
-  (name: '지원', level: 12, ago: '15분 전',  msg: '오늘 저녁은 된장찌개!', likes: 12, streak: false),
-  (name: '현수', level: 9,  ago: '1시간 전', msg: '7일 연속 기록 달성!',   likes: 24, streak: true),
-  (name: '서연', level: 6,  ago: '3시간 전', msg: '단백질 목표 100% 달성', likes: 8,  streak: false),
-];
 
 class SocialPage extends ConsumerStatefulWidget {
   const SocialPage({super.key});
@@ -102,44 +85,74 @@ class _FeedTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final friendsAsync = ref.watch(friendsListProvider);
+    final feedState = ref.watch(socialFeedProvider);
 
-    return friendsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => CollectionErrorState(onRetry: () => ref.invalidate(friendsListProvider)),
-      data: (friends) {
-        if (friends.isEmpty) {
-          return CollectionEmptyState(
-            icon: Icons.newspaper_outlined,
-            title: '아직 친구가 없어요',
-            subtitle: '친구를 추가하면 피드를 볼 수 있어요',
-            actionLabel: '친구 찾기',
-            onAction: () => context.push('/social/friends'),
-          );
-        }
+    if (feedState.isLoading && feedState.posts.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        return ListView(
+    if (feedState.posts.isEmpty) {
+      return CollectionEmptyState(
+        icon: Icons.newspaper_outlined,
+        title: '아직 소식이 없어요',
+        subtitle: '친구를 추가하면 친구들의 식사 소식을 볼 수 있어요',
+        actionLabel: '친구 찾기',
+        onAction: () => context.push('/social/friends'),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => ref.read(socialFeedProvider.notifier).refresh(),
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (scrollInfo) {
+          if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
+            ref.read(socialFeedProvider.notifier).fetchNextPage();
+          }
+          return false;
+        },
+        child: ListView.builder(
           padding: const EdgeInsets.symmetric(vertical: 12),
-          children: [
-            ..._mockFeed.map((post) => Padding(
+          itemCount: feedState.posts.length + (feedState.hasMore ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index == feedState.posts.length) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            final post = feedState.posts[index];
+            return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
               child: _FeedCard(post: post, tokens: tokens),
-            )),
-          ],
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
 }
 
 class _FeedCard extends StatelessWidget {
-  final _FeedEntry post;
+  final FeedPost post;
   final AppColorTokens tokens;
 
   const _FeedCard({required this.post, required this.tokens});
 
+  String _formatTime(DateTime time) {
+    final diff = DateTime.now().difference(time);
+    if (diff.inMinutes < 1) return '방금 전';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
+    if (diff.inHours < 24) return '${diff.inHours}시간 전';
+    if (diff.inDays < 7) return '${diff.inDays}일 전';
+    return DateFormat('M월 d일').format(time);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hasImage = post.user.profileImageUrl != null && post.user.profileImageUrl!.isNotEmpty;
+    
     return BentoCard(
       borderRadius: BorderRadius.circular(tokens.rCard),
       padding: const EdgeInsets.all(14),
@@ -154,13 +167,21 @@ class _FeedCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: tokens.primaryBg,
                   borderRadius: BorderRadius.circular(10),
+                  image: hasImage 
+                    ? DecorationImage(
+                        image: NetworkImage(post.user.profileImageUrl!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
                 ),
-                child: Center(
-                  child: Text(
-                    post.name[0],
-                    style: TextStyle(fontWeight: FontWeight.w700, color: tokens.primary, fontSize: 16),
-                  ),
-                ),
+                child: !hasImage 
+                  ? Center(
+                      child: Text(
+                        (post.user.nickname ?? post.user.username)[0],
+                        style: TextStyle(fontWeight: FontWeight.w700, color: tokens.primary, fontSize: 16),
+                      ),
+                    )
+                  : null,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -170,47 +191,131 @@ class _FeedCard extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          post.name,
+                          post.user.nickname ?? post.user.username,
                           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: tokens.textPrimary),
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '· Lv.${post.level}',
+                          '· Lv.1', 
                           style: TextStyle(fontSize: 11, color: tokens.textMuted),
                         ),
                       ],
                     ),
-                    Text(post.ago, style: TextStyle(fontSize: 11, color: tokens.textMuted)),
+                    Text(_formatTime(post.meal.recordedAt), style: TextStyle(fontSize: 11, color: tokens.textMuted)),
                   ],
                 ),
               ),
-              if (post.streak)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: tokens.primaryBg,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: Text(
-                    'STREAK',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: tokens.primary),
-                  ),
-                ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(post.msg, style: TextStyle(fontSize: 14, color: tokens.textPrimary)),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.favorite_outline, size: 14, color: tokens.textSub),
-              const SizedBox(width: 4),
-              Text('${post.likes}', style: TextStyle(fontSize: 12, color: tokens.textSub)),
-              const SizedBox(width: 16),
+              _MealTypeBadge(
+                type: MealTypeHelper.fromString(post.meal.mealType),
+                tokens: tokens,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: InkWell(
+                  onTap: post.meal.menuId != null 
+                    ? () => MenuDetailSheet.show(context, post.meal.menuId!)
+                    : null,
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: post.meal.menuName,
+                          style: TextStyle(
+                            fontSize: 15, 
+                            fontWeight: FontWeight.bold,
+                            color: tokens.primary,
+                            decoration: TextDecoration.underline,
+                            decorationColor: tokens.primary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        TextSpan(
+                          text: '을(를) 먹었어요!',
+                          style: TextStyle(
+                            fontSize: 15, 
+                            fontWeight: FontWeight.w500,
+                            color: tokens.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (post.meal.review != null && post.meal.review!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              post.meal.review!,
+              style: TextStyle(fontSize: 13, color: tokens.textSub),
+            ),
+          ],
+          if (post.meal.imageUrl != null && post.meal.imageUrl!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                post.meal.imageUrl!,
+                width: double.infinity,
+                height: 180,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
               Icon(Icons.star_outline, size: 14, color: tokens.textSub),
               const SizedBox(width: 4),
-              Text('응원', style: TextStyle(fontSize: 12, color: tokens.textSub)),
+              Text('응원하기', style: TextStyle(fontSize: 12, color: tokens.textSub)),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MealTypeBadge extends StatelessWidget {
+  final MealType type;
+  final AppColorTokens tokens;
+
+  const _MealTypeBadge({required this.type, required this.tokens});
+
+  @override
+  Widget build(BuildContext context) {
+    Color color;
+    switch (type) {
+      case MealType.breakfast: color = Colors.orange; break;
+      case MealType.lunch:     color = Colors.green; break;
+      case MealType.dinner:    color = Colors.indigo; break;
+      case MealType.snack:     color = Colors.purple; break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(type.icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            type.label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
         ],
       ),
@@ -222,168 +327,183 @@ class _FeedCard extends StatelessWidget {
 // 랭킹 탭
 // ─────────────────────────────────────────
 
-class _RankingTab extends StatelessWidget {
+class _RankingTab extends ConsumerWidget {
   final AppColorTokens tokens;
   const _RankingTab({required this.tokens});
 
   @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Text(
-          '이번 주 랭킹',
-          style: TextStyle(fontSize: 13, color: tokens.textMuted, fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 140,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: _mockRanking.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (context, i) {
-              final r = _mockRanking[i];
-              final isMe = r.isMe;
-              return Container(
-                width: 96,
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isMe ? tokens.primaryBg : tokens.card,
-                  borderRadius: BorderRadius.circular(tokens.rCard),
-                  border: isMe ? Border.all(color: tokens.primary, width: 1) : null,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '#${r.rank}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: r.rank <= 3 ? tokens.primary : tokens.textMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      width: 58,
-                      height: 58,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rankingAsync = ref.watch(socialRankingProvider);
+    final myUserId = ref.watch(userProvider).user?.id;
+
+    return rankingAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => CollectionErrorState(onRetry: () => ref.invalidate(socialRankingProvider)),
+      data: (ranking) {
+        if (ranking.isEmpty) {
+          return const Center(child: Text('아직 랭킹 정보가 없습니다.'));
+        }
+
+        return RefreshIndicator(
+          onRefresh: () => ref.refresh(socialRankingProvider.future),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Text(
+                '이번 주 랭킹 (경험치 기준)',
+                style: TextStyle(fontSize: 13, color: tokens.textMuted, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 140,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: ranking.take(5).length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                  itemBuilder: (context, i) {
+                    final r = ranking[i];
+                    final isMe = r.userId == myUserId;
+                    return Container(
+                      width: 96,
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFFF5E6D3),
-                            Color(0xFFE8C89A),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(14),
+                        color: isMe ? tokens.primaryBg : tokens.card,
+                        borderRadius: BorderRadius.circular(tokens.rCard),
+                        border: isMe ? Border.all(color: tokens.primary, width: 1) : null,
                       ),
-                      child: Center(
-                        child: MukzziCharacter(
-                          state: _stateFromString(r.state),
-                          size: 48,
-                          level: r.level,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      r.name,
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: tokens.textPrimary),
-                    ),
-                    Text(
-                      'Lv.${r.level}',
-                      style: TextStyle(fontSize: 10, color: tokens.textMuted),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 20),
-        Text(
-          '전체 순위',
-          style: TextStyle(fontSize: 13, color: tokens.textMuted, fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 10),
-        BentoCard(
-          borderRadius: BorderRadius.circular(tokens.rCard),
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(
-            children: _mockRanking.indexed.map((entry) {
-              final (i, r) = entry;
-              final isMe = r.isMe;
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: isMe ? tokens.primaryBg : Colors.transparent,
-                  border: i < _mockRanking.length - 1
-                      ? Border(bottom: BorderSide(color: tokens.primary.withValues(alpha: 0.08)))
-                      : null,
-                ),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 28,
-                      child: Text(
-                        '#${r.rank}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: r.rank <= 3 ? tokens.primary : tokens.textMuted,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Center(
-                        child: MukzziCharacter(
-                          state: _stateFromString(r.state),
-                          size: 34,
-                          level: r.level,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            '${r.name}${isMe ? ' (나)' : ''}',
+                            '#${r.rank}',
                             style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: isMe ? FontWeight.w700 : FontWeight.w500,
-                              color: tokens.textPrimary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: r.rank <= 3 ? tokens.primary : tokens.textMuted,
                             ),
                           ),
-                          Text(r.state, style: TextStyle(fontSize: 11, color: tokens.textMuted)),
+                          const SizedBox(height: 6),
+                          Container(
+                            width: 58,
+                            height: 58,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Center(
+                              child: MukzziCharacter(
+                                state: _stateFromLevel(r.level),
+                                size: 48,
+                                level: r.level,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            r.nickname,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: tokens.textPrimary),
+                          ),
+                          Text(
+                            'Lv.${r.level}',
+                            style: TextStyle(fontSize: 10, color: tokens.textMuted),
+                          ),
                         ],
                       ),
-                    ),
-                    Text(
-                      'Lv.${r.level}',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: tokens.textSub),
-                    ),
-                  ],
+                    );
+                  },
                 ),
-              );
-            }).toList(),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                '상위 10위 명단',
+                style: TextStyle(fontSize: 13, color: tokens.textMuted, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 10),
+              BentoCard(
+                borderRadius: BorderRadius.circular(tokens.rCard),
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Column(
+                  children: ranking.indexed.map((entry) {
+                    final (i, r) = entry;
+                    final isMe = r.userId == myUserId;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isMe ? tokens.primaryBg : Colors.transparent,
+                        border: i < ranking.length - 1
+                            ? Border(bottom: BorderSide(color: tokens.primary.withValues(alpha: 0.08)))
+                            : null,
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 28,
+                            child: Text(
+                              '#${r.rank}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: r.rank <= 3 ? tokens.primary : tokens.textMuted,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Center(
+                              child: MukzziCharacter(
+                                state: _stateFromLevel(r.level),
+                                size: 34,
+                                level: r.level,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${r.nickname}${isMe ? ' (나)' : ''}',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: isMe ? FontWeight.w700 : FontWeight.w500,
+                                    color: tokens.textPrimary,
+                                  ),
+                                ),
+                                Text('주간 ${r.score.toInt()} EXP', style: TextStyle(fontSize: 11, color: tokens.textMuted)),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            'Lv.${r.level}',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: tokens.textSub),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 }

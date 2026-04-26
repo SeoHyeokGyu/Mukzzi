@@ -44,6 +44,7 @@ class MealTypeHelper {
 
 class MealRecord {
   final String id;
+  final String? menuId;
   final String menuName;
   final String category;
   final String mealType;
@@ -61,6 +62,7 @@ class MealRecord {
 
   const MealRecord({
     required this.id,
+    this.menuId,
     required this.menuName,
     required this.category,
     required this.mealType,
@@ -81,6 +83,7 @@ class MealRecord {
     final nutrition = json['nutrition'] as Map<String, dynamic>?;
     return MealRecord(
       id: json['id'].toString(),
+      menuId: json['menu_id']?.toString(),
       menuName: json['menu_name'] as String? ?? '',
       category: json['category'] as String? ?? '',
       mealType: json['meal_type'] as String? ?? '',

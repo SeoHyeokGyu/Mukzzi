@@ -3,10 +3,12 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
+	"github.com/redis/go-redis/v9"
 )
 
 // MenuUsecase 메뉴 유즈케이스 인터페이스
@@ -14,6 +16,7 @@ type MenuUsecase interface {
 	Search(ctx context.Context, query domain.SearchMenuQuery) (*domain.SearchMenuResult, error)
 	Create(ctx context.Context, input domain.CreateMenuInput) (*domain.Menu, bool, error)
 	FindByID(ctx context.Context, id int64, userID int64) (*MenuDetail, error) // domain. 제거
+	SyncMenusToRedis(ctx context.Context) error
 }
 
 // MenuDetail 메뉴 상세 (즐겨찾기/선호도 포함)
@@ -28,6 +31,7 @@ type menuUsecaseImpl struct {
 	menuRepository       repository.MenuRepository
 	favoriteRepository   repository.FavoriteRepository
 	preferenceRepository repository.PreferenceRepository
+	rdb                  *redis.Client
 }
 
 // NewMenuUsecase 메뉴 유즈케이스 생성
@@ -35,11 +39,13 @@ func NewMenuUsecase(
 	menuRepository repository.MenuRepository,
 	favoriteRepository repository.FavoriteRepository,
 	preferenceRepository repository.PreferenceRepository,
+	rdb *redis.Client,
 ) MenuUsecase {
 	return &menuUsecaseImpl{
 		menuRepository:       menuRepository,
 		favoriteRepository:   favoriteRepository,
 		preferenceRepository: preferenceRepository,
+		rdb:                  rdb,
 	}
 }
 
@@ -61,7 +67,9 @@ func nutritionDefaultsByCategory(category domain.MenuCategory) domain.MenuNutrit
 	return categoryNutritionDefaults[domain.CategoryOther]
 }
 
-// Search 메뉴 검색
+const menuAutocompleteKey = "menus:autocomplete"
+
+// Search 메뉴 검색 (ZSET 자동완성 우선 적용)
 func (u *menuUsecaseImpl) Search(ctx context.Context, query domain.SearchMenuQuery) (*domain.SearchMenuResult, error) {
 	if query.Query == "" {
 		return nil, errors.New("query is required")
@@ -69,11 +77,31 @@ func (u *menuUsecaseImpl) Search(ctx context.Context, query domain.SearchMenuQue
 	if query.Limit <= 0 {
 		query.Limit = 20
 	}
-	if query.Limit > 50 {
-		query.Limit = 50
+
+	var menus []domain.Menu
+	var err error
+
+	// 1. Redis ZSET에서 접두사 검색 시도 (자동완성용)
+	// 카테고리 필터나 커서가 없는 단순 검색인 경우에만 ZSET 사용
+	if query.Category == nil && query.Cursor == nil {
+		op := redis.ZRangeBy{
+			Min:    "[" + query.Query,
+			Max:    "[" + query.Query + "\xff",
+			Offset: 0,
+			Count:  int64(query.Limit + 1),
+		}
+		names, zErr := u.rdb.ZRangeByLex(ctx, menuAutocompleteKey, &op).Result()
+		if zErr == nil && len(names) > 0 {
+			menus, err = u.menuRepository.FindByNames(names)
+		} else {
+			// ZSET에 결과가 없으면 DB LIKE 검색으로 Fallback
+			menus, err = u.menuRepository.Search(query.Query, query.Category, query.Cursor, query.Limit+1)
+		}
+	} else {
+		// 복합 필터 조건이 있으면 DB에서 검색
+		menus, err = u.menuRepository.Search(query.Query, query.Category, query.Cursor, query.Limit+1)
 	}
 
-	menus, err := u.menuRepository.Search(query.Query, query.Category, query.Cursor, query.Limit+1)
 	if err != nil {
 		return nil, err
 	}
@@ -101,37 +129,26 @@ func (u *menuUsecaseImpl) Search(ctx context.Context, query domain.SearchMenuQue
 func (u *menuUsecaseImpl) Create(ctx context.Context, input domain.CreateMenuInput) (*domain.Menu, bool, error) {
 	defaults := nutritionDefaultsByCategory(input.Category)
 
-	calories := input.Calories
-	if calories == 0 {
-		calories = defaults.Calories
-	}
-	carbs := input.Carbs
-	if carbs == 0 {
-		carbs = defaults.Carbs
-	}
-	protein := input.Protein
-	if protein == 0 {
-		protein = defaults.Protein
-	}
-	fat := input.Fat
-	if fat == 0 {
-		fat = defaults.Fat
-	}
-	fiber := input.Fiber
-	if fiber == 0 {
-		fiber = defaults.Fiber
-	}
-
 	nutritionDefaults := &domain.MenuNutritionDefaults{
-		Calories:     calories,
-		Carbs:        carbs,
-		Protein:      protein,
-		Fat:          fat,
-		Fiber:        fiber,
+		Calories:     input.Calories,
+		Carbs:        input.Carbs,
+		Protein:      input.Protein,
+		Fat:          input.Fat,
+		Fiber:        input.Fiber,
 		VitaminScore: defaults.VitaminScore,
 	}
+	if nutritionDefaults.Calories == 0 { nutritionDefaults.Calories = defaults.Calories }
+	if nutritionDefaults.Carbs == 0 { nutritionDefaults.Carbs = defaults.Carbs }
+	if nutritionDefaults.Protein == 0 { nutritionDefaults.Protein = defaults.Protein }
+	if nutritionDefaults.Fat == 0 { nutritionDefaults.Fat = defaults.Fat }
+	if nutritionDefaults.Fiber == 0 { nutritionDefaults.Fiber = defaults.Fiber }
 
-	return u.menuRepository.FindOrCreate(input.Name, input.Category, nutritionDefaults)
+	menu, created, err := u.menuRepository.FindOrCreate(input.Name, input.Category, nutritionDefaults)
+	if err == nil && created {
+		// 새로 생성된 메뉴는 Redis ZSET에 추가
+		_ = u.rdb.ZAdd(ctx, menuAutocompleteKey, redis.Z{Score: 0, Member: menu.Name}).Err()
+	}
+	return menu, created, err
 }
 
 // FindByID 단일 메뉴 상세 조회 (즐겨찾기/선호도 포함)
@@ -144,17 +161,8 @@ func (u *menuUsecaseImpl) FindByID(ctx context.Context, id int64, userID int64) 
 		return nil, nil
 	}
 
-	// 즐겨찾기 여부
-	fav, err := u.favoriteRepository.FindByUserIDAndMenuID(userID, id)
-	if err != nil {
-		return nil, err
-	}
-
-	// 선호도
-	pref, err := u.preferenceRepository.FindByUserIDAndMenuID(userID, id)
-	if err != nil {
-		return nil, err
-	}
+	fav, _ := u.favoriteRepository.FindByUserIDAndMenuID(userID, id)
+	pref, _ := u.preferenceRepository.FindByUserIDAndMenuID(userID, id)
 
 	detail := &MenuDetail{
 		Menu:       *menu,
@@ -165,4 +173,22 @@ func (u *menuUsecaseImpl) FindByID(ctx context.Context, id int64, userID int64) 
 	}
 
 	return detail, nil
+}
+
+func (u *menuUsecaseImpl) SyncMenusToRedis(ctx context.Context) error {
+	menus, err := u.menuRepository.FindAll()
+	if err != nil {
+		return err
+	}
+
+	// 기존 ZSET 삭제 후 재구성 (또는 파이프라인 사용)
+	u.rdb.Del(ctx, menuAutocompleteKey)
+
+	for _, m := range menus {
+		err = u.rdb.ZAdd(ctx, menuAutocompleteKey, redis.Z{Score: 0, Member: m.Name}).Err()
+		if err != nil {
+			fmt.Printf("Redis ZAdd Error: %v\n", err)
+		}
+	}
+	return nil
 }

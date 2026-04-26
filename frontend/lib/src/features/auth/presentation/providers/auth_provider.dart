@@ -82,10 +82,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       
       if (kIsWeb) {
-        // 웹에서는 HTTPS가 아닐 경우 SecureStorage가 작동하지 않으므로 SharedPreferences 사용
-        await _prefs.setString(AppConstants.accessTokenKey, response.token);
+        await _prefs.setString(AppConstants.accessTokenKey, response.accessToken);
+        await _prefs.setString(AppConstants.refreshTokenKey, response.refreshToken);
       } else {
-        await _secureStorage.write(key: AppConstants.accessTokenKey, value: response.token);
+        await _secureStorage.write(key: AppConstants.accessTokenKey, value: response.accessToken);
+        await _secureStorage.write(key: AppConstants.refreshTokenKey, value: response.refreshToken);
       }
       await _prefs.setString(AppConstants.userIdKey, response.user.id);
       
@@ -117,10 +118,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    try {
+      await _repository.logout();
+    } catch (_) {}
+
     if (kIsWeb) {
       await _prefs.remove(AppConstants.accessTokenKey);
+      await _prefs.remove(AppConstants.refreshTokenKey);
     } else {
       await _secureStorage.delete(key: AppConstants.accessTokenKey);
+      await _secureStorage.delete(key: AppConstants.refreshTokenKey);
     }
     await _prefs.remove(AppConstants.userIdKey);
     state = AuthState();

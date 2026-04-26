@@ -22,6 +22,7 @@ type MealRepository interface {
 	Create(meal *domain.MealRecord) error
 	FindByID(id int64) (*domain.MealRecord, error)
 	FindByUserID(userID int64, filter domain.MealListFilter) ([]domain.MealRecord, int64, error)
+	FindFriendMeals(friendIDs []int64, filter domain.MealListFilter) ([]domain.MealRecord, int64, error)
 	Update(meal *domain.MealRecord) error
 	Delete(id int64, userID int64) error
 }
@@ -107,6 +108,48 @@ func (r *mealRepository) FindByUserID(userID int64, filter domain.MealListFilter
 	var meals []domain.MealRecord
 	err := query.
 		Preload("Nutrition").
+		Order("recorded_at DESC, id DESC").
+		Limit(limit).
+		Find(&meals).Error
+
+	return meals, total, err
+}
+
+func (r *mealRepository) FindFriendMeals(friendIDs []int64, filter domain.MealListFilter) ([]domain.MealRecord, int64, error) {
+	if len(friendIDs) == 0 {
+		return []domain.MealRecord{}, 0, nil
+	}
+
+	query := r.db.Model(&domain.MealRecord{}).
+		Where("user_id IN ? AND deleted_at IS NULL", friendIDs)
+
+	if filter.StartDate != "" {
+		query = query.Where("recorded_at >= ?", filter.StartDate)
+	}
+	if filter.EndDate != "" {
+		query = query.Where("recorded_at < ?", filter.EndDate+" 23:59:59")
+	}
+	if filter.MealType != "" {
+		query = query.Where("meal_type = ?", filter.MealType)
+	}
+	if filter.Cursor > 0 {
+		query = query.Where("id < ?", filter.Cursor)
+	}
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	limit := filter.Limit
+	if limit <= 0 {
+		limit = 20
+	}
+
+	var meals []domain.MealRecord
+	err := query.
+		Preload("Nutrition").
+		Preload("User").
 		Order("recorded_at DESC, id DESC").
 		Limit(limit).
 		Find(&meals).Error

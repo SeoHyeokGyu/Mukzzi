@@ -35,7 +35,13 @@ func (h *SocialHandler) GetFriends(c *gin.Context) {
 		InternalError(c, "친구 목록 조회에 실패했습니다.", err.Error())
 		return
 	}
-	Success(c, friends)
+
+	resps := make([]dto.UserResponse, len(friends))
+	for i, f := range friends {
+		resps[i] = dto.ToUserResponse(&f)
+	}
+
+	Success(c, resps)
 }
 
 // DeleteFriend 친구 삭제
@@ -82,7 +88,13 @@ func (h *SocialHandler) GetPendingRequests(c *gin.Context) {
 		InternalError(c, "친구 요청 목록 조회에 실패했습니다.", err.Error())
 		return
 	}
-	Success(c, requests)
+
+	resps := make([]dto.UserResponse, len(requests))
+	for i, r := range requests {
+		resps[i] = dto.ToUserResponse(&r)
+	}
+
+	Success(c, resps)
 }
 
 // GetSentRequests 내가 보낸 친구 요청 목록
@@ -93,7 +105,13 @@ func (h *SocialHandler) GetSentRequests(c *gin.Context) {
 		InternalError(c, "보낸 요청 목록 조회에 실패했습니다.", err.Error())
 		return
 	}
-	Success(c, requests)
+
+	resps := make([]dto.UserResponse, len(requests))
+	for i, r := range requests {
+		resps[i] = dto.ToUserResponse(&r)
+	}
+
+	Success(c, resps)
 }
 
 // SendFriendRequest 친구 요청 전송
@@ -387,4 +405,68 @@ func (h *SocialHandler) ReportUser(c *gin.Context) {
 		return
 	}
 	Success(c, nil)
+}
+
+// GetSocialFeed 소셜 피드 조회
+// @Summary      소셜 피드 조회
+// @Description  친구들의 최근 식사 기록(피드)을 조회합니다.
+// @Tags         social
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        cursor  query     int64  false  "커서 (마지막 항목 ID)"
+// @Param        limit   query     int    false  "페이지당 항목 수"
+// @Success      200     {object}  Response
+// @Router       /api/social/feed [get]
+func (h *SocialHandler) GetSocialFeed(c *gin.Context) {
+	userID, _ := c.Get("userID")
+
+	cursor, _ := strconv.ParseInt(c.Query("cursor"), 10, 64)
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	filter := domain.MealListFilter{
+		Cursor: cursor,
+		Limit:  limit,
+	}
+
+	meals, total, err := h.socialUsecase.GetSocialFeed(userID.(int64), filter)
+	if err != nil {
+		InternalError(c, "피드 조회에 실패했습니다.", err.Error())
+		return
+	}
+
+	var nextCursor string
+	if len(meals) > 0 && len(meals) >= limit {
+		nextCursor = strconv.FormatInt(meals[len(meals)-1].ID, 10)
+	}
+
+	mealResps := make([]dto.MealResponse, len(meals))
+	for i, m := range meals {
+		mealResps[i] = dto.ToMealResponse(&m)
+	}
+
+	Success(c, dto.SocialFeedResponse{
+		Meals:      mealResps,
+		Total:      total,
+		NextCursor: nextCursor,
+		HasNext:    nextCursor != "",
+	})
+}
+
+// GetSocialRanking 소셜 랭킹 조회
+// @Summary      소셜 랭킹 조회
+// @Description  주간 경험치 획득 상위 10명을 조회합니다.
+// @Tags         social
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200     {object}  Response
+// @Router       /api/social/ranking [get]
+func (h *SocialHandler) GetSocialRanking(c *gin.Context) {
+	ranking, err := h.socialUsecase.GetSocialRanking(c.Request.Context())
+	if err != nil {
+		InternalError(c, "랭킹 조회에 실패했습니다.", err.Error())
+		return
+	}
+	Success(c, dto.ToRankingResponses(ranking))
 }

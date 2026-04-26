@@ -69,6 +69,7 @@ type MealRecord struct {
 	Nutrition  *Nutrition      `gorm:"foreignKey:MealID"`
 	FriendTags []MealFriendTag `gorm:"foreignKey:MealID"`
 	Menu       *Menu           `gorm:"foreignKey:ID;references:MenuID"`
+	User       *User           `gorm:"foreignKey:UserID"`
 }
 
 func (MealRecord) TableName() string { return "meal_records" }

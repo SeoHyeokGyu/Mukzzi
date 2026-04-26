@@ -71,14 +71,41 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, user, err := h.authUsecase.Login(req.Username, req.Email, req.Password)
+	accessToken, refreshToken, user, err := h.authUsecase.Login(req.Username, req.Email, req.Password)
 	if err != nil {
 		Unauthorized(c, "LOGIN_FAILED", err.Error())
 		return
 	}
 
 	Success(c, dto.LoginResponse{
-		Token: token,
-		User:  user,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		User:         user,
 	})
+}
+
+// Logout 사용자 로그아웃
+// @Summary      사용자 로그아웃
+// @Description  로그아웃하여 Refresh Token을 무효화합니다.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  Response
+// @Failure      401  {object}  Response
+// @Failure      500  {object}  Response
+// @Router       /api/auth/logout [post]
+func (h *AuthHandler) Logout(c *gin.Context) {
+	userIDStr, exists := c.Get("userIDStr")
+	if !exists {
+		Unauthorized(c, "UNAUTHORIZED", "로그인이 필요합니다.")
+		return
+	}
+
+	if err := h.authUsecase.Logout(userIDStr.(string)); err != nil {
+		InternalError(c, "로그아웃에 실패했습니다.", err.Error())
+		return
+	}
+
+	Success(c, nil)
 }
