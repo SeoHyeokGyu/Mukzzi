@@ -9,28 +9,16 @@ import 'package:mukzzi/src/core/widgets/collection_states.dart';
 import 'package:mukzzi/src/core/widgets/mukzzi_character.dart';
 import '../providers/social_providers.dart';
 import '../../data/models/feed_model.dart';
+import '../../data/models/social_models.dart';
+import '../../../meal_record/data/models/meal_model.dart';
+import '../../../meal_record/presentation/widgets/menu_detail_sheet.dart';
 import '../../../profile/data/models/user_model.dart';
+import '../../../profile/presentation/providers/user_provider.dart';
 
-CharacterState _stateFromString(String s) {
-  switch (s) {
-    case '행복':   return CharacterState.happy;
-    case '배고픔': return CharacterState.hungry;
-    case '굶주림': return CharacterState.starving;
-    case '기력저하': return CharacterState.weak;
-    default:       return CharacterState.normal;
-  }
+CharacterState _stateFromLevel(int level) {
+  if (level >= 10) return CharacterState.happy;
+  return CharacterState.normal;
 }
-
-// TODO: (cjkang) 랭킹 데이터를 API로 교체
-typedef _RankEntry = ({String name, int rank, int level, String state, bool isMe});
-
-const List<_RankEntry> _mockRanking = [
-  (name: '지원', rank: 1, level: 12, state: '행복',    isMe: false),
-  (name: '현수', rank: 2, level: 9,  state: '평온',    isMe: false),
-  (name: '민재', rank: 3, level: 7,  state: '배고픔',  isMe: true),
-  (name: '서연', rank: 4, level: 6,  state: '평온',    isMe: false),
-  (name: '도윤', rank: 5, level: 4,  state: '기력저하', isMe: false),
-];
 
 class SocialPage extends ConsumerStatefulWidget {
   const SocialPage({super.key});
@@ -219,13 +207,49 @@ class _FeedCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            '${post.meal.mealType}으로 ${post.meal.menuName}을(를) 먹었어요!',
-            style: TextStyle(fontSize: 14, color: tokens.textPrimary),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _MealTypeBadge(
+                type: MealTypeHelper.fromString(post.meal.mealType),
+                tokens: tokens,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: InkWell(
+                  onTap: post.meal.menuId != null 
+                    ? () => MenuDetailSheet.show(context, post.meal.menuId!)
+                    : null,
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: post.meal.menuName,
+                          style: TextStyle(
+                            fontSize: 15, 
+                            fontWeight: FontWeight.bold,
+                            color: tokens.primary,
+                            decoration: TextDecoration.underline,
+                            decorationColor: tokens.primary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        TextSpan(
+                          text: '을(를) 먹었어요!',
+                          style: TextStyle(
+                            fontSize: 15, 
+                            fontWeight: FontWeight.w500,
+                            color: tokens.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           if (post.meal.review != null && post.meal.review!.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               post.meal.review!,
               style: TextStyle(fontSize: 13, color: tokens.textSub),
@@ -257,172 +281,229 @@ class _FeedCard extends StatelessWidget {
   }
 }
 
+class _MealTypeBadge extends StatelessWidget {
+  final MealType type;
+  final AppColorTokens tokens;
+
+  const _MealTypeBadge({required this.type, required this.tokens});
+
+  @override
+  Widget build(BuildContext context) {
+    Color color;
+    switch (type) {
+      case MealType.breakfast: color = Colors.orange; break;
+      case MealType.lunch:     color = Colors.green; break;
+      case MealType.dinner:    color = Colors.indigo; break;
+      case MealType.snack:     color = Colors.purple; break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(type.icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            type.label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ─────────────────────────────────────────
 // 랭킹 탭
 // ─────────────────────────────────────────
 
-class _RankingTab extends StatelessWidget {
+class _RankingTab extends ConsumerWidget {
   final AppColorTokens tokens;
   const _RankingTab({required this.tokens});
 
   @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Text(
-          '이번 주 랭킹',
-          style: TextStyle(fontSize: 13, color: tokens.textMuted, fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 140,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: _mockRanking.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (context, i) {
-              final r = _mockRanking[i];
-              final isMe = r.isMe;
-              return Container(
-                width: 96,
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isMe ? tokens.primaryBg : tokens.card,
-                  borderRadius: BorderRadius.circular(tokens.rCard),
-                  border: isMe ? Border.all(color: tokens.primary, width: 1) : null,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '#${r.rank}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: r.rank <= 3 ? tokens.primary : tokens.textMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      width: 58,
-                      height: 58,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rankingAsync = ref.watch(socialRankingProvider);
+    final myUserId = ref.watch(userProvider).user?.id;
+
+    return rankingAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => CollectionErrorState(onRetry: () => ref.invalidate(socialRankingProvider)),
+      data: (ranking) {
+        if (ranking.isEmpty) {
+          return const Center(child: Text('아직 랭킹 정보가 없습니다.'));
+        }
+
+        return RefreshIndicator(
+          onRefresh: () => ref.refresh(socialRankingProvider.future),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Text(
+                '이번 주 랭킹 (경험치 기준)',
+                style: TextStyle(fontSize: 13, color: tokens.textMuted, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 140,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: ranking.take(5).length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                  itemBuilder: (context, i) {
+                    final r = ranking[i];
+                    final isMe = r.userId == myUserId;
+                    return Container(
+                      width: 96,
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFFF5E6D3),
-                            Color(0xFFE8C89A),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(14),
+                        color: isMe ? tokens.primaryBg : tokens.card,
+                        borderRadius: BorderRadius.circular(tokens.rCard),
+                        border: isMe ? Border.all(color: tokens.primary, width: 1) : null,
                       ),
-                      child: Center(
-                        child: MukzziCharacter(
-                          state: _stateFromString(r.state),
-                          size: 48,
-                          level: r.level,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      r.name,
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: tokens.textPrimary),
-                    ),
-                    Text(
-                      'Lv.${r.level}',
-                      style: TextStyle(fontSize: 10, color: tokens.textMuted),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 20),
-        Text(
-          '전체 순위',
-          style: TextStyle(fontSize: 13, color: tokens.textMuted, fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 10),
-        BentoCard(
-          borderRadius: BorderRadius.circular(tokens.rCard),
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(
-            children: _mockRanking.indexed.map((entry) {
-              final (i, r) = entry;
-              final isMe = r.isMe;
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: isMe ? tokens.primaryBg : Colors.transparent,
-                  border: i < _mockRanking.length - 1
-                      ? Border(bottom: BorderSide(color: tokens.primary.withValues(alpha: 0.08)))
-                      : null,
-                ),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 28,
-                      child: Text(
-                        '#${r.rank}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: r.rank <= 3 ? tokens.primary : tokens.textMuted,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Center(
-                        child: MukzziCharacter(
-                          state: _stateFromString(r.state),
-                          size: 34,
-                          level: r.level,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            '${r.name}${isMe ? ' (나)' : ''}',
+                            '#${r.rank}',
                             style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: isMe ? FontWeight.w700 : FontWeight.w500,
-                              color: tokens.textPrimary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: r.rank <= 3 ? tokens.primary : tokens.textMuted,
                             ),
                           ),
-                          Text(r.state, style: TextStyle(fontSize: 11, color: tokens.textMuted)),
+                          const SizedBox(height: 6),
+                          Container(
+                            width: 58,
+                            height: 58,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Center(
+                              child: MukzziCharacter(
+                                state: _stateFromLevel(r.level),
+                                size: 48,
+                                level: r.level,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            r.nickname,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: tokens.textPrimary),
+                          ),
+                          Text(
+                            'Lv.${r.level}',
+                            style: TextStyle(fontSize: 10, color: tokens.textMuted),
+                          ),
                         ],
                       ),
-                    ),
-                    Text(
-                      'Lv.${r.level}',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: tokens.textSub),
-                    ),
-                  ],
+                    );
+                  },
                 ),
-              );
-            }).toList(),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                '상위 10위 명단',
+                style: TextStyle(fontSize: 13, color: tokens.textMuted, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 10),
+              BentoCard(
+                borderRadius: BorderRadius.circular(tokens.rCard),
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Column(
+                  children: ranking.indexed.map((entry) {
+                    final (i, r) = entry;
+                    final isMe = r.userId == myUserId;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isMe ? tokens.primaryBg : Colors.transparent,
+                        border: i < ranking.length - 1
+                            ? Border(bottom: BorderSide(color: tokens.primary.withValues(alpha: 0.08)))
+                            : null,
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 28,
+                            child: Text(
+                              '#${r.rank}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: r.rank <= 3 ? tokens.primary : tokens.textMuted,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Center(
+                              child: MukzziCharacter(
+                                state: _stateFromLevel(r.level),
+                                size: 34,
+                                level: r.level,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${r.nickname}${isMe ? ' (나)' : ''}',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: isMe ? FontWeight.w700 : FontWeight.w500,
+                                    color: tokens.textPrimary,
+                                  ),
+                                ),
+                                Text('주간 ${r.score.toInt()} EXP', style: TextStyle(fontSize: 11, color: tokens.textMuted)),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            'Lv.${r.level}',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: tokens.textSub),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
