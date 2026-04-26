@@ -2,14 +2,28 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
 	"github.com/redis/go-redis/v9"
 )
+
+type RankingEntry struct {
+	UserID   int64   `json:"user_id,string"`
+	Nickname string  `json:"nickname"`
+	Level    int     `json:"level"`
+	Score    float64 `json:"score"`
+	Rank     int     `json:"rank"`
+}
+
+func (e RankingEntry) UserIDString() string {
+	return strconv.FormatInt(e.UserID, 10)
+}
 
 type SocialUsecase interface {
 	// Friends
@@ -32,29 +46,35 @@ type SocialUsecase interface {
 
 	// Feed
 	GetSocialFeed(userID int64, filter domain.MealListFilter) ([]domain.MealRecord, int64, error)
+
+	// Ranking
+	GetSocialRanking(ctx context.Context) ([]RankingEntry, error)
 }
 
 type socialUsecase struct {
-	socialRepo     repository.SocialRepository
-	userRepo       repository.UserRepository
-	mealRepo       repository.MealRepository
+	socialRepo    repository.SocialRepository
+	userRepo      repository.UserRepository
+	mealRepo      repository.MealRepository
+	characterRepo repository.CharacterRepository
 	notificationUc NotificationUsecase
-	rdb            *redis.Client
+	rdb           *redis.Client
 }
 
 func NewSocialUsecase(
 	socialRepo repository.SocialRepository,
 	userRepo repository.UserRepository,
 	mealRepo repository.MealRepository,
+	characterRepo repository.CharacterRepository,
 	notificationUc NotificationUsecase,
 	rdb *redis.Client,
 ) SocialUsecase {
 	return &socialUsecase{
-		socialRepo:     socialRepo,
-		userRepo:       userRepo,
-		mealRepo:       mealRepo,
+		socialRepo:    socialRepo,
+		userRepo:      userRepo,
+		mealRepo:      mealRepo,
+		characterRepo: characterRepo,
 		notificationUc: notificationUc,
-		rdb:            rdb,
+		rdb:           rdb,
 	}
 }
 
@@ -298,14 +318,28 @@ func (u *socialUsecase) ReportUser(report *domain.Report) error {
 }
 
 func (u *socialUsecase) GetSocialFeed(userID int64, filter domain.MealListFilter) ([]domain.MealRecord, int64, error) {
-	// 1. 친구 목록 조회
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("feed:%d:%d:%d", userID, filter.Cursor, filter.Limit)
+
+	// 1. 캐시 확인
+	if val, err := u.rdb.Get(ctx, cacheKey).Result(); err == nil {
+		var cachedResult struct {
+			Meals []domain.MealRecord `json:"meals"`
+			Total int64               `json:"total"`
+		}
+		if err := json.Unmarshal([]byte(val), &cachedResult); err == nil {
+			return cachedResult.Meals, cachedResult.Total, nil
+		}
+	}
+
+	// 2. 친구 목록 조회
 	friendships, err := u.socialRepo.GetFriends(userID)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// 2. 친구 ID 목록 추출
-	friendIDs := make([]int64, 0, len(friendships))
+	// 3. 친구 ID 목록 추출
+	friendIDs := make([]int64, 0, len(friendships)+1)
 	for _, f := range friendships {
 		if f.RequesterID == userID {
 			friendIDs = append(friendIDs, f.ReceiverID)
@@ -313,11 +347,62 @@ func (u *socialUsecase) GetSocialFeed(userID int64, filter domain.MealListFilter
 			friendIDs = append(friendIDs, f.RequesterID)
 		}
 	}
+	friendIDs = append(friendIDs, userID) // 본인 소식 포함
 
-	// 3. 친구들의 식사 기록 조회 (본인 기록은 제외하거나 포함할지 결정 - 보통 피드에는 본인 기록도 포함되기도 함)
-	// 여기서는 요청하신 대로 '친구들의 피드'에 집중하여 친구 ID들만 넘깁니다.
-	// 만약 본인 기록도 포함하고 싶다면 friendIDs = append(friendIDs, userID) 를 추가하면 됩니다.
-	friendIDs = append(friendIDs, userID) // 본인 소식도 피드에 포함
+	// 4. 식사 기록 조회
+	meals, total, err := u.mealRepo.FindFriendMeals(friendIDs, filter)
+	if err != nil {
+		return nil, 0, err
+	}
 
-	return u.mealRepo.FindFriendMeals(friendIDs, filter)
+	// 5. 캐시 저장 (1분)
+	cacheData := struct {
+		Meals []domain.MealRecord `json:"meals"`
+		Total int64               `json:"total"`
+	}{
+		Meals: meals,
+		Total: total,
+	}
+	if b, err := json.Marshal(cacheData); err == nil {
+		_ = u.rdb.Set(ctx, cacheKey, b, time.Minute).Err()
+	}
+
+	return meals, total, nil
+}
+
+func (u *socialUsecase) GetSocialRanking(ctx context.Context) ([]RankingEntry, error) {
+	// 1. 상위 10명 조회
+	zItems, err := u.rdb.ZRevRangeWithScores(ctx, RankingWeeklyKey, 0, 9).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	ranking := make([]RankingEntry, 0, len(zItems))
+	for i, item := range zItems {
+		userID, _ := strconv.ParseInt(item.Member.(string), 10, 64)
+		
+		// 유저 정보 조회
+		user, err := u.userRepo.GetByID(userID)
+		if err != nil {
+			continue
+		}
+
+		// 캐릭터 레벨 조회
+		char, _ := u.characterRepo.GetByUserID(userID)
+
+		entry := RankingEntry{
+			UserID:   userID,
+			Nickname: user.Nickname,
+			Score:    item.Score,
+			Rank:     i + 1,
+		}
+		if char != nil {
+			entry.Level = char.Level
+		} else {
+			entry.Level = 1
+		}
+		ranking = append(ranking, entry)
+	}
+
+	return ranking, nil
 }

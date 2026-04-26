@@ -16,6 +16,11 @@ type MenuRepository interface {
 
 	// FindOrCreate 없으면 자동 생성, created=false이면 이미 존재
 	FindOrCreate(name string, category domain.MenuCategory, defaults *domain.MenuNutritionDefaults) (*domain.Menu, bool, error)
+
+	// Redis 동기화를 위한 전체 조회
+	FindAll() ([]domain.Menu, error)
+	// Redis 검색 결과 기반 상세 조회
+	FindByNames(names []string) ([]domain.Menu, error)
 }
 
 // menuRepositoryImpl 메뉴 저장소 구현체
@@ -86,4 +91,21 @@ func (r *menuRepositoryImpl) FindOrCreate(name string, category domain.MenuCateg
 
 	created := result.RowsAffected == 1
 	return &menu, created, nil
+}
+
+func (r *menuRepositoryImpl) FindAll() ([]domain.Menu, error) {
+	var menus []domain.Menu
+	err := r.db.Find(&menus).Error
+	return menus, err
+}
+
+func (r *menuRepositoryImpl) FindByNames(names []string) ([]domain.Menu, error) {
+	if len(names) == 0 {
+		return []domain.Menu{}, nil
+	}
+	var menus []domain.Menu
+	err := r.db.Where("name IN ?", names).
+		Order("CASE WHEN source != 'USER' THEN 0 ELSE 1 END, name").
+		Find(&menus).Error
+	return menus, err
 }

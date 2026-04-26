@@ -90,15 +90,16 @@ type MealUsecase interface {
 // ─────────────────────────────────────────
 
 type mealUsecase struct {
-	mealRepo             repository.MealRepository
-	nutritionRepo        repository.NutritionRepository
-	tagRepo              repository.MealFriendTagRepository
-	menuRepo             repository.MenuRepository
-	badgeGranter         BadgeGranter
-	masteryTracker       MasteryTracker
-	titleGranter         TitleGranter
-	notificationUsecase  NotificationUsecase
-	db                   *gorm.DB
+	mealRepo            repository.MealRepository
+	nutritionRepo       repository.NutritionRepository
+	tagRepo             repository.MealFriendTagRepository
+	menuRepo            repository.MenuRepository
+	userUc              UserUsecase
+	badgeGranter        BadgeGranter
+	masteryTracker      MasteryTracker
+	titleGranter        TitleGranter
+	notificationUsecase NotificationUsecase
+	db                  *gorm.DB
 }
 
 func NewMealUsecase(
@@ -106,6 +107,7 @@ func NewMealUsecase(
 	nutritionRepo repository.NutritionRepository,
 	tagRepo repository.MealFriendTagRepository,
 	menuRepo repository.MenuRepository,
+	userUc UserUsecase,
 	badgeGranter BadgeGranter,
 	masteryTracker MasteryTracker,
 	titleGranter TitleGranter,
@@ -117,6 +119,7 @@ func NewMealUsecase(
 		nutritionRepo:       nutritionRepo,
 		tagRepo:             tagRepo,
 		menuRepo:            menuRepo,
+		userUc:              userUc,
 		badgeGranter:        badgeGranter,
 		masteryTracker:      masteryTracker,
 		titleGranter:        titleGranter,
@@ -226,12 +229,18 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 		}
 	}
 
+	// 경험치 부여 및 랭킹 업데이트
+	expAmount := 10
+	if err := u.userUc.AddExp(input.UserID, expAmount); err != nil {
+		slog.Error("경험치 부여 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
+	}
+
 	output.SideEffects = &domain.MealSideEffects{
 		QuestsProgressed: []domain.QuestProgress{},
 		MasteryUpdated:   masteryUpdate,
 		GrantedBadges:    grantedBadges,
 		GrantedTitle:     grantedTitle,
-		ExpGained:        10,
+		ExpGained:        expAmount,
 		LevelUp:          nil,
 	}
 

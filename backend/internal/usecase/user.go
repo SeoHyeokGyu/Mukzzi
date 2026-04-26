@@ -35,6 +35,7 @@ type UserUsecase interface {
 	Search(query string) ([]domain.User, error)
 	GetRecommendations(id int64) ([]domain.User, error)
 	Onboarding(id int64, mukzziName string, height, weight float64, activityLevel domain.ActivityLevel, goal domain.DietGoal, bodyType, muscle, skinTone, expression int) error
+	AddExp(userID int64, amount int) error
 }
 
 type userUsecase struct {
@@ -318,6 +319,45 @@ func (u *userUsecase) Onboarding(id int64, mukzziName string, height, weight flo
 
 		return nil
 	})
+}
+
+const RankingWeeklyKey = "ranking:exp:weekly"
+
+func (u *userUsecase) AddExp(userID int64, amount int) error {
+	ctx := context.Background()
+
+	// 1. DB 업데이트
+	err := u.db.Transaction(func(tx *gorm.DB) error {
+		var char domain.Character
+		if err := tx.Where("user_id = ?", userID).First(&char).Error; err != nil {
+			return err
+		}
+
+		char.Exp += amount
+		// 간단한 레벨업 로직 (예: 100 EXP당 1 레벨)
+		if char.Exp >= 100 {
+			char.Level += char.Exp / 100
+			char.Exp = char.Exp % 100
+		}
+
+		if err := tx.Save(&char).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// 2. Redis 랭킹 업데이트 (ZSET)
+	// 주간 랭킹 키에 유저의 점수를 누적
+	_ = u.rdb.ZIncrBy(ctx, RankingWeeklyKey, float64(amount), fmt.Sprintf("%d", userID)).Err()
+
+	// 캐시 삭제
+	u.rdb.Del(ctx, fmt.Sprintf("user:char:%d", userID))
+
+	return nil
 }
 
 // calculateNutritionTargets 는 신체 정보와 목표를 기반으로 영양 목표를 계산합니다.
