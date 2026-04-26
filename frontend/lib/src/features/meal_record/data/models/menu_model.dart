@@ -28,17 +28,21 @@ class MenuModel {
   });
 
   factory MenuModel.fromJson(Map<String, dynamic> json) {
+    // 백엔드 dto.MenuResponse 및 dto.MenuDetailResponse 필드 대응
+    // 중첩된 구조(menu)일 수도 있고, 평탄화된 구조일 수도 있음
+    final Map<String, dynamic> data = json.containsKey('id') ? json : (json['menu'] ?? json);
+
     return MenuModel(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      category: json['category'] as String,
-      source: json['source'] as String,
-      defaultCalories: (json['default_calories'] as num).toDouble(),
-      defaultCarbs: (json['default_carbs'] as num).toDouble(),
-      defaultProtein: (json['default_protein'] as num).toDouble(),
-      defaultFat: (json['default_fat'] as num).toDouble(),
-      defaultFiber: (json['default_fiber'] as num).toDouble(),
-      defaultVitaminScore: (json['default_vitamin_score'] as num).toDouble(),
+      id: data['id']?.toString() ?? '',
+      name: data['name'] as String? ?? '',
+      category: data['category'] as String? ?? '',
+      source: data['source'] as String? ?? '',
+      defaultCalories: (data['default_calories'] ?? data['DefaultCalories'] ?? 0).toDouble(),
+      defaultCarbs: (data['default_carbs'] ?? data['DefaultCarbs'] ?? 0).toDouble(),
+      defaultProtein: (data['default_protein'] ?? data['DefaultProtein'] ?? 0).toDouble(),
+      defaultFat: (data['default_fat'] ?? data['DefaultFat'] ?? 0).toDouble(),
+      defaultFiber: (data['default_fiber'] ?? data['DefaultFiber'] ?? 0).toDouble(),
+      defaultVitaminScore: (data['default_vitamin_score'] ?? data['DefaultVitaminScore'] ?? 0).toDouble(),
       isFavorite: json['is_favorite'] as bool? ?? false,
       preference: json['preference'] as String?,
     );

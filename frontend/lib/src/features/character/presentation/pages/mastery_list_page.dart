@@ -9,7 +9,6 @@ import '../../domain/models/mastery_model.dart';
 import '../providers/mastery_provider.dart';
 import '../../../meal_record/data/models/menu_model.dart';
 import '../../../meal_record/data/repositories/menu_repository.dart';
-import '../../../meal_record/data/repositories/favorite_repository.dart';
 import '../../../meal_record/data/repositories/preference_repository.dart';
 import '../../../meal_record/presentation/providers/favorite_provider.dart';
 

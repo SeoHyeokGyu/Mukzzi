@@ -26,12 +26,6 @@ const double _carbsGoal = 300;
 const double _fatConsumed = 30;
 const double _fatGoal = 60;
 
-// TODO: (cjkang) 캐릭터 상태/레벨을 API 응답에서 가져오도록 교체
-const _mockState = CharacterState.normal;
-const int _mockLevel = 1;
-const double _mockXp = 0;
-const double _mockXpGoal = 100;
-
 const _mockMeals = [
   (emoji: '🍚', time: '오전 8:30', name: '아침밥', kcal: 350),
   (emoji: '🍜', time: '오후 12:00', name: '점심 국수', kcal: 520),
@@ -93,7 +87,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     final notificationState = ref.watch(notificationProvider);
     final userState = ref.watch(userProvider);
-    final characterAsync = ref.watch(characterProvider);
     final unreadCount = notificationState.unreadCount;
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
 

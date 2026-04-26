@@ -363,9 +363,11 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
         }
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('식사 기록이 저장되었습니다')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('식사 기록이 저장되었습니다')),
+        );
+      }
       final grantedTitle = ref.read(mealCreateProvider).grantedTitle;
       if (grantedTitle != null && mounted) {
         _showTitleAcquiredSnackBar(grantedTitle);

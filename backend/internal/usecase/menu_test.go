@@ -10,9 +10,7 @@ import (
 
 // mockMenuRepository 테스트용 mock 저장소
 type mockMenuRepository struct {
-	menus       []domain.Menu
-	favorites   map[int64][]int64                // userID -> []menuID
-	preferences map[string]domain.PreferenceType // "userID:menuID" -> preference
+	menus []domain.Menu
 }
 
 func NewMockMenuRepository() *mockMenuRepository {
@@ -59,8 +57,6 @@ func NewMockMenuRepository() *mockMenuRepository {
 				DefaultFat:      18,
 			},
 		},
-		favorites:   make(map[int64][]int64),
-		preferences: make(map[string]domain.PreferenceType),
 	}
 }
 
@@ -114,6 +110,25 @@ func (m *mockMenuRepository) FindOrCreate(name string, category domain.MenuCateg
 	return &menu, true, nil
 }
 
+type mockFavoriteRepository struct{}
+
+func (m *mockFavoriteRepository) FindByUserIDAndMenuID(userID, menuID int64) (*domain.Favorite, error) {
+	return nil, nil
+}
+func (m *mockFavoriteRepository) FindByUserID(query domain.GetFavoritesQuery) ([]domain.Favorite, error) {
+	return nil, nil
+}
+func (m *mockFavoriteRepository) Create(favorite *domain.Favorite) error { return nil }
+func (m *mockFavoriteRepository) Delete(userID, menuID int64) error      { return nil }
+
+type mockPreferenceRepository struct{}
+
+func (m *mockPreferenceRepository) FindByUserIDAndMenuID(userID, menuID int64) (*domain.MenuPreference, error) {
+	return nil, nil
+}
+func (m *mockPreferenceRepository) Upsert(pref *domain.MenuPreference) error { return nil }
+func (m *mockPreferenceRepository) Delete(userID, menuID int64) error      { return nil }
+
 // 헬퍼
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
@@ -131,7 +146,9 @@ func contains(s, substr string) bool {
 
 func TestMenuSearch_Basic(t *testing.T) {
 	mockRepo := NewMockMenuRepository()
-	uc := NewMenuUsecase(mockRepo)
+	favRepo := &mockFavoriteRepository{}
+	prefRepo := &mockPreferenceRepository{}
+	uc := NewMenuUsecase(mockRepo, favRepo, prefRepo)
 
 	t.Run("검색어로 메뉴 조회", func(t *testing.T) {
 		result, err := uc.Search(context.Background(), domain.SearchMenuQuery{
@@ -176,7 +193,9 @@ func TestMenuSearch_Basic(t *testing.T) {
 
 func TestMenuSearch_Pagination(t *testing.T) {
 	mockRepo := NewMockMenuRepository()
-	uc := NewMenuUsecase(mockRepo)
+	favRepo := &mockFavoriteRepository{}
+	prefRepo := &mockPreferenceRepository{}
+	uc := NewMenuUsecase(mockRepo, favRepo, prefRepo)
 
 	t.Run("limit 초과 시 has_next true", func(t *testing.T) {
 		result, err := uc.Search(context.Background(), domain.SearchMenuQuery{
