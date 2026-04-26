@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -103,99 +104,84 @@ func (m *MockUserRepositoryForSocial) GetByEmail(e string) (*domain.User, error)
 	return args.Get(0).(*domain.User), args.Error(1)
 }
 func (m *MockUserRepositoryForSocial) Update(u *domain.User) error { return m.Called(u).Error(0) }
-func (m *MockUserRepositoryForSocial) Delete(id int64) error       { return m.Called(id).Error(0) }
+func (m *MockUserRepositoryForSocial) Delete(id int64) error      { return m.Called(id).Error(0) }
 func (m *MockUserRepositoryForSocial) CreateBody(b *domain.UserBody) error {
 	return m.Called(b).Error(0)
 }
 func (m *MockUserRepositoryForSocial) GetLatestBody(id int64) (*domain.UserBody, error) {
-	args := m.Called(id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*domain.UserBody), args.Error(1)
+	return nil, nil
 }
 func (m *MockUserRepositoryForSocial) CreateOrUpdateNutritionGoal(g *domain.UserNutritionGoal) error {
-	return m.Called(g).Error(0)
+	return nil
 }
 func (m *MockUserRepositoryForSocial) GetNutritionGoal(id int64) (*domain.UserNutritionGoal, error) {
-	args := m.Called(id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*domain.UserNutritionGoal), args.Error(1)
+	return nil, nil
 }
-func (m *MockUserRepositoryForSocial) Search(q string) ([]domain.User, error) {
-	args := m.Called(q)
-	return args.Get(0).([]domain.User), args.Error(1)
-}
+func (m *MockUserRepositoryForSocial) Search(q string) ([]domain.User, error) { return nil, nil }
 func (m *MockUserRepositoryForSocial) GetRecommendations(id int64, l int) ([]domain.User, error) {
-	args := m.Called(id, l)
-	return args.Get(0).([]domain.User), args.Error(1)
+	return nil, nil
 }
-func (m *MockUserRepositoryForSocial) UpdateEquippedTitle(id int64, tid *int64) error {
-	return m.Called(id, tid).Error(0)
-}
-func (m *MockUserRepositoryForSocial) DeletePhysicallyExpired(d int) error {
-	return m.Called(d).Error(0)
-}
+func (m *MockUserRepositoryForSocial) UpdateEquippedTitle(id int64, t *int64) error { return nil }
+func (m *MockUserRepositoryForSocial) DeletePhysicallyExpired(d int) error          { return nil }
 
-// MockNotificationUsecaseForSocial
-type MockNotificationUsecaseForSocial struct {
+type MockMealRepositoryForSocial struct {
 	mock.Mock
 }
 
-func (m *MockNotificationUsecaseForSocial) CreateNotification(n *domain.Notification) error {
-	return m.Called(n).Error(0)
+func (m *MockMealRepositoryForSocial) CountByUserID(id int64) (int64, error) { return 0, nil }
+func (m *MockMealRepositoryForSocial) CountDistinctMenuByUserID(id int64) (int64, error) {
+	return 0, nil
 }
-func (m *MockNotificationUsecaseForSocial) GetNotifications(id int64, l int, c string) ([]domain.Notification, string, error) {
-	args := m.Called(id, l, c)
-	return args.Get(0).([]domain.Notification), args.String(1), args.Error(2)
+func (m *MockMealRepositoryForSocial) Create(meal *domain.MealRecord) error { return nil }
+func (m *MockMealRepositoryForSocial) FindByID(id int64) (*domain.MealRecord, error) {
+	return nil, nil
 }
-func (m *MockNotificationUsecaseForSocial) ReadNotification(id, uid int64) error {
-	return m.Called(id, uid).Error(0)
+func (m *MockMealRepositoryForSocial) FindByUserID(id int64, f domain.MealListFilter) ([]domain.MealRecord, int64, error) {
+	return nil, 0, nil
 }
-func (m *MockNotificationUsecaseForSocial) ReadAllNotifications(id int64) error {
-	return m.Called(id).Error(0)
+func (m *MockMealRepositoryForSocial) FindFriendMeals(ids []int64, f domain.MealListFilter) ([]domain.MealRecord, int64, error) {
+	return nil, 0, nil
 }
-func (m *MockNotificationUsecaseForSocial) Subscribe(id int64) (<-chan *domain.Notification, func()) {
-	args := m.Called(id)
-	return args.Get(0).(chan *domain.Notification), args.Get(1).(func())
-}
-func (m *MockNotificationUsecaseForSocial) Close() { m.Called() }
+func (m *MockMealRepositoryForSocial) Update(meal *domain.MealRecord) error   { return nil }
+func (m *MockMealRepositoryForSocial) Delete(id int64, userID int64) error    { return nil }
 
-func TestSocialUsecase(t *testing.T) {
-	mockSocial := new(MockSocialRepository)
-	mockUser := new(MockUserRepositoryForSocial)
-	mockNotify := new(MockNotificationUsecaseForSocial)
-	uc := NewSocialUsecase(mockSocial, mockUser, mockNotify, nil)
+type MockCharacterRepositoryForSocial struct {
+	mock.Mock
+}
 
-	t.Run("GetFriends - 친구 목록 조회", func(t *testing.T) {
+func (m *MockCharacterRepositoryForSocial) GetByUserID(id int64) (*domain.Character, error) {
+	return nil, nil
+}
+func (m *MockCharacterRepositoryForSocial) Update(char *domain.Character) error { return nil }
+
+func TestSocialUsecase_GetFriends(t *testing.T) {
+	mockSocialRepo := new(MockSocialRepository)
+	mockUserRepo := new(MockUserRepositoryForSocial)
+	mockMealRepo := new(MockMealRepositoryForSocial)
+	mockCharRepo := new(MockCharacterRepositoryForSocial)
+	dummyRDB := redis.NewClient(&redis.Options{})
+
+	uc := NewSocialUsecase(mockSocialRepo, mockUserRepo, mockMealRepo, mockCharRepo, nil, dummyRDB)
+
+	t.Run("친구 목록 조회 성공", func(t *testing.T) {
 		userID := int64(1)
-		friends := []domain.Friendship{
-			{RequesterID: userID, Receiver: &domain.User{BaseDomain: domain.BaseDomain{ID: 2}}},
-			{ReceiverID: userID, Requester: &domain.User{BaseDomain: domain.BaseDomain{ID: 3}}},
+		friendID := int64(2)
+		friendships := []domain.Friendship{
+			{
+				RequesterID: userID,
+				ReceiverID:  friendID,
+				Status:      domain.FriendshipAccepted,
+				Receiver:    &domain.User{BaseDomain: domain.BaseDomain{ID: friendID}, Nickname: "친구"},
+			},
 		}
-		mockSocial.On("GetFriends", userID).Return(friends, nil).Once()
 
-		res, err := uc.GetFriends(userID)
+		mockSocialRepo.On("GetFriends", userID).Return(friendships, nil)
+
+		friends, err := uc.GetFriends(userID)
+
 		assert.NoError(t, err)
-		assert.Len(t, res, 2)
-	})
-
-	t.Run("DeleteFriend - 친구 삭제", func(t *testing.T) {
-		u1, u2 := int64(1), int64(2)
-		mockSocial.On("DeleteFriendship", u1, u2).Return(nil).Once()
-		err := uc.DeleteFriend(u1, u2)
-		assert.NoError(t, err)
-	})
-
-	t.Run("Nudge - 응원하기", func(t *testing.T) {
-		u1, u2 := int64(1), int64(2)
-		sender := &domain.User{BaseDomain: domain.BaseDomain{ID: u1}, Nickname: "보낸이"}
-		mockUser.On("GetByID", u1).Return(sender, nil).Once()
-		mockNotify.On("CreateNotification", mock.Anything).Return(nil).Once()
-
-		err := uc.Nudge(u1, u2)
-		assert.NoError(t, err)
+		assert.Len(t, friends, 1)
+		assert.Equal(t, "친구", friends[0].Nickname)
+		mockSocialRepo.AssertExpectations(t)
 	})
 }

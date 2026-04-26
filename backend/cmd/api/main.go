@@ -96,6 +96,11 @@ func main() {
 		slog.Error("메뉴 Redis 동기화 실패", slog.Any("error", err))
 	}
 
+	// 랭킹 Redis 동기화
+	if err := userUsecase.SyncRankingToRedis(context.Background()); err != nil {
+		slog.Error("랭킹 Redis 동기화 실패", slog.Any("error", err))
+	}
+
 	// Notification 도메인
 	notificationUsecase := usecase.NewNotificationUsecase(notificationRepo)
 	notificationHandler := handler.NewNotificationHandler(notificationUsecase)
