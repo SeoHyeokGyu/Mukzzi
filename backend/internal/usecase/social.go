@@ -14,11 +14,12 @@ import (
 )
 
 type RankingEntry struct {
-	UserID   int64   `json:"user_id,string"`
-	Nickname string  `json:"nickname"`
-	Level    int     `json:"level"`
-	Score    float64 `json:"score"`
-	Rank     int     `json:"rank"`
+	UserID        int64   `json:"user_id,string"`
+	Nickname      string  `json:"nickname"`
+	Level         int     `json:"level"`
+	Score         float64 `json:"score"`
+	Rank          int     `json:"rank"`
+	PenaltyStatus string  `json:"penalty_status"`
 }
 
 func (e RankingEntry) UserIDString() string {
@@ -387,7 +388,7 @@ func (u *socialUsecase) GetSocialRanking(ctx context.Context) ([]RankingEntry, e
 			continue
 		}
 
-		// 캐릭터 레벨 조회
+		// 캐릭터 레벨 및 상태 조회
 		char, _ := u.characterRepo.GetByUserID(userID)
 
 		entry := RankingEntry{
@@ -398,8 +399,10 @@ func (u *socialUsecase) GetSocialRanking(ctx context.Context) ([]RankingEntry, e
 		}
 		if char != nil {
 			entry.Level = char.Level
+			entry.PenaltyStatus = string(char.PenaltyStatus)
 		} else {
 			entry.Level = 1
+			entry.PenaltyStatus = "NORMAL"
 		}
 		ranking = append(ranking, entry)
 	}

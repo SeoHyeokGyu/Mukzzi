@@ -70,6 +70,7 @@ class RankingModel {
   final int level;
   final double score;
   final int rank;
+  final String penaltyStatus;
 
   RankingModel({
     required this.userId,
@@ -77,6 +78,7 @@ class RankingModel {
     required this.level,
     required this.score,
     required this.rank,
+    required this.penaltyStatus,
   });
 
   factory RankingModel.fromJson(Map<String, dynamic> json) {
@@ -86,6 +88,7 @@ class RankingModel {
       level: json['level'] as int? ?? 1,
       score: (json['score'] as num?)?.toDouble() ?? 0.0,
       rank: json['rank'] as int? ?? 0,
+      penaltyStatus: json['penalty_status'] as String? ?? 'NORMAL',
     );
   }
 }

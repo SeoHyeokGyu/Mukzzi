@@ -9,15 +9,17 @@ import 'package:mukzzi/src/core/widgets/collection_states.dart';
 import 'package:mukzzi/src/core/widgets/mukzzi_character.dart';
 import '../providers/social_providers.dart';
 import '../../data/models/feed_model.dart';
-import '../../data/models/social_models.dart';
 import '../../../meal_record/data/models/meal_model.dart';
 import '../../../meal_record/presentation/widgets/menu_detail_sheet.dart';
 import '../../../profile/data/models/user_model.dart';
 import '../../../profile/presentation/providers/user_provider.dart';
 
-CharacterState _stateFromLevel(int level) {
-  if (level >= 10) return CharacterState.happy;
-  return CharacterState.normal;
+CharacterState _stateFromPenalty(String status) {
+  switch (status.toUpperCase()) {
+    case 'HUNGRY':  return CharacterState.hungry;
+    case 'STARVED': return CharacterState.starving;
+    default:        return CharacterState.normal;
+  }
 }
 
 class SocialPage extends ConsumerStatefulWidget {
@@ -396,7 +398,7 @@ class _RankingTab extends ConsumerWidget {
                             ),
                             child: Center(
                               child: MukzziCharacter(
-                                state: _stateFromLevel(r.level),
+                                state: _stateFromPenalty(r.penaltyStatus),
                                 size: 48,
                                 level: r.level,
                               ),
@@ -467,7 +469,7 @@ class _RankingTab extends ConsumerWidget {
                             ),
                             child: Center(
                               child: MukzziCharacter(
-                                state: _stateFromLevel(r.level),
+                                state: _stateFromPenalty(r.penaltyStatus),
                                 size: 34,
                                 level: r.level,
                               ),

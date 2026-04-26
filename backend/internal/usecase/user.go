@@ -36,6 +36,7 @@ type UserUsecase interface {
 	GetRecommendations(id int64) ([]domain.User, error)
 	Onboarding(id int64, mukzziName string, height, weight float64, activityLevel domain.ActivityLevel, goal domain.DietGoal, bodyType, muscle, skinTone, expression int) error
 	AddExp(userID int64, amount int) error
+	SyncRankingToRedis(ctx context.Context) error
 }
 
 type userUsecase struct {
@@ -334,7 +335,6 @@ func (u *userUsecase) AddExp(userID int64, amount int) error {
 		}
 
 		char.Exp += amount
-		// 간단한 레벨업 로직 (예: 100 EXP당 1 레벨)
 		if char.Exp >= 100 {
 			char.Level += char.Exp / 100
 			char.Exp = char.Exp % 100
@@ -351,12 +351,32 @@ func (u *userUsecase) AddExp(userID int64, amount int) error {
 	}
 
 	// 2. Redis 랭킹 업데이트 (ZSET)
-	// 주간 랭킹 키에 유저의 점수를 누적
 	_ = u.rdb.ZIncrBy(ctx, RankingWeeklyKey, float64(amount), fmt.Sprintf("%d", userID)).Err()
 
 	// 캐시 삭제
 	u.rdb.Del(ctx, fmt.Sprintf("user:char:%d", userID))
 
+	return nil
+}
+
+func (u *userUsecase) SyncRankingToRedis(ctx context.Context) error {
+	var chars []domain.Character
+	if err := u.db.Find(&chars).Error; err != nil {
+		return err
+	}
+
+	u.rdb.Del(ctx, RankingWeeklyKey)
+
+	for _, char := range chars {
+		// 초기 스코어는 레벨 * 100 + 경험치로 산정
+		score := float64(char.Level*100 + char.Exp)
+		if score > 0 {
+			_ = u.rdb.ZAdd(ctx, RankingWeeklyKey, redis.Z{
+				Score:  score,
+				Member: fmt.Sprintf("%d", char.UserID),
+			}).Err()
+		}
+	}
 	return nil
 }
 
