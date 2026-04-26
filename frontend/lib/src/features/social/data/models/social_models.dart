@@ -63,3 +63,29 @@ class FriendRequestModel {
     );
   }
 }
+
+class RankingModel {
+  final String userId;
+  final String nickname;
+  final int level;
+  final double score;
+  final int rank;
+
+  RankingModel({
+    required this.userId,
+    required this.nickname,
+    required this.level,
+    required this.score,
+    required this.rank,
+  });
+
+  factory RankingModel.fromJson(Map<String, dynamic> json) {
+    return RankingModel(
+      userId: json['user_id']?.toString() ?? '',
+      nickname: json['nickname'] as String? ?? '',
+      level: json['level'] as int? ?? 1,
+      score: (json['score'] as num?)?.toDouble() ?? 0.0,
+      rank: json['rank'] as int? ?? 0,
+    );
+  }
+}

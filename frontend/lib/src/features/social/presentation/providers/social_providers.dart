@@ -80,6 +80,11 @@ final socialFeedProvider = StateNotifierProvider.autoDispose<SocialFeedNotifier,
   return SocialFeedNotifier(ref.watch(socialRepositoryProvider));
 });
 
+// 소셜 랭킹
+final socialRankingProvider = FutureProvider.autoDispose<List<RankingModel>>((ref) async {
+  return ref.watch(socialRepositoryProvider).getSocialRanking();
+});
+
 // 친구 목록
 final friendsListProvider = FutureProvider.autoDispose<List<UserModel>>((ref) async {
   return ref.watch(socialRepositoryProvider).getFriends();

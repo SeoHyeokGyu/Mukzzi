@@ -109,4 +109,11 @@ class SocialRepository {
     );
     return FeedResponse.fromJson(response);
   }
+
+  // 주간 랭킹 조회
+  Future<List<RankingModel>> getSocialRanking() async {
+    final response = await _apiClient.get('/social/ranking');
+    final List<dynamic> data = response['data'] as List<dynamic>? ?? [];
+    return data.map((e) => RankingModel.fromJson(e as Map<String, dynamic>)).toList();
+  }
 }
