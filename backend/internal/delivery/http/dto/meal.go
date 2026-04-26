@@ -74,6 +74,7 @@ type NutritionResponse struct {
 // MealResponse - 식사 기록 단건 응답
 type MealResponse struct {
 	ID          string             `json:"id"`
+	MenuID      *string            `json:"menu_id,omitempty"`
 	MenuName    string             `json:"menu_name"`
 	Category    string             `json:"category"`
 	MealType    string             `json:"meal_type"`
@@ -85,6 +86,7 @@ type MealResponse struct {
 	Rating      *int               `json:"rating,omitempty"`
 	ImageURL    *string            `json:"image_url,omitempty"`
 	Nutrition   *NutritionResponse `json:"nutrition,omitempty"`
+	User        *UserResponse      `json:"user,omitempty"`
 }
 
 // CreateMealResponse - POST /meals 응답
@@ -133,6 +135,10 @@ func ToMealResponse(m *domain.MealRecord) MealResponse {
 		Rating:      m.Rating,
 		ImageURL:    m.ImageURL,
 	}
+	if m.MenuID != nil {
+		id := strconv.FormatInt(*m.MenuID, 10)
+		resp.MenuID = &id
+	}
 	if m.WeatherTag != nil {
 		s := string(*m.WeatherTag)
 		resp.WeatherTag = &s
@@ -151,6 +157,10 @@ func ToMealResponse(m *domain.MealRecord) MealResponse {
 			Fiber:        m.Nutrition.Fiber,
 			VitaminScore: m.Nutrition.VitaminScore,
 		}
+	}
+	if m.User != nil {
+		u := ToUserResponse(m.User)
+		resp.User = &u
 	}
 	return resp
 }
