@@ -388,3 +388,47 @@ func (h *SocialHandler) ReportUser(c *gin.Context) {
 	}
 	Success(c, nil)
 }
+
+// GetSocialFeed 소셜 피드 조회
+// @Summary      소셜 피드 조회
+// @Description  친구들의 최근 식사 기록(피드)을 조회합니다.
+// @Tags         social
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        cursor  query     int64  false  "커서 (마지막 항목 ID)"
+// @Param        limit   query     int    false  "페이지당 항목 수"
+// @Success      200     {object}  Response
+// @Router       /api/social/feed [get]
+func (h *SocialHandler) GetSocialFeed(c *gin.Context) {
+	userID, _ := c.Get("userID")
+
+	cursor, _ := strconv.ParseInt(c.Query("cursor"), 10, 64)
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	filter := domain.MealListFilter{
+		Cursor: cursor,
+		Limit:  limit,
+	}
+
+	meals, total, err := h.socialUsecase.GetSocialFeed(userID.(int64), filter)
+	if err != nil {
+		InternalError(c, "피드 조회에 실패했습니다.", err.Error())
+		return
+	}
+
+	var nextCursor string
+	if len(meals) > 0 && len(meals) >= limit {
+		nextCursor = strconv.FormatInt(meals[len(meals)-1].ID, 10)
+	}
+
+	c.JSON(200, gin.H{
+		"success": true,
+		"data": gin.H{
+			"meals":       meals,
+			"total":       total,
+			"next_cursor": nextCursor,
+			"has_next":    nextCursor != "",
+		},
+	})
+}

@@ -1,10 +1,14 @@
 package usecase
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
+	"github.com/redis/go-redis/v9"
 )
 
 type SocialUsecase interface {
@@ -25,23 +29,32 @@ type SocialUsecase interface {
 	BlockUser(blockerID, blockedID int64) error
 	UnblockUser(blockerID, blockedID int64) error
 	ReportUser(report *domain.Report) error
+
+	// Feed
+	GetSocialFeed(userID int64, filter domain.MealListFilter) ([]domain.MealRecord, int64, error)
 }
 
 type socialUsecase struct {
 	socialRepo     repository.SocialRepository
 	userRepo       repository.UserRepository
+	mealRepo       repository.MealRepository
 	notificationUc NotificationUsecase
+	rdb            *redis.Client
 }
 
 func NewSocialUsecase(
 	socialRepo repository.SocialRepository,
 	userRepo repository.UserRepository,
+	mealRepo repository.MealRepository,
 	notificationUc NotificationUsecase,
+	rdb *redis.Client,
 ) SocialUsecase {
 	return &socialUsecase{
 		socialRepo:     socialRepo,
 		userRepo:       userRepo,
+		mealRepo:       mealRepo,
 		notificationUc: notificationUc,
+		rdb:            rdb,
 	}
 }
 
@@ -171,19 +184,47 @@ func (u *socialUsecase) RejectFriendRequest(receiverID, requesterID int64) error
 }
 
 func (u *socialUsecase) Nudge(senderID, receiverID int64) error {
+	ctx := context.Background()
+	nudgeKey := fmt.Sprintf("nudge:%d:%d", senderID, receiverID)
+
+	// 1일 1회 제한 확인
+	exists, err := u.rdb.Exists(ctx, nudgeKey).Result()
+	if err != nil {
+		return err
+	}
+	if exists > 0 {
+		return errors.New("오늘은 이미 응원했습니다. 내일 다시 응원해주세요!")
+	}
+
 	// 알림 생성
 	sender, err := u.userRepo.GetByID(senderID)
 	if err != nil {
 		return err
 	}
 
-	return u.notificationUc.CreateNotification(&domain.Notification{
+	err = u.notificationUc.CreateNotification(&domain.Notification{
 		UserID:   receiverID,
 		SenderID: &senderID,
 		Type:     domain.NotificationTypeNudge,
 		Title:    "응원 도착!",
 		Content:  sender.Nickname + "님이 당신을 응원합니다!",
 	})
+	if err != nil {
+		return err
+	}
+
+	// 오늘 남은 시간 계산 (KST 기준 자정까지)
+	now := time.Now()
+	loc, _ := time.LoadLocation("Asia/Seoul")
+	if loc == nil {
+		loc = time.Local
+	}
+	nowInLoc := now.In(loc)
+	tomorrow := time.Date(nowInLoc.Year(), nowInLoc.Month(), nowInLoc.Day()+1, 0, 0, 0, 0, loc)
+	ttl := tomorrow.Sub(nowInLoc)
+
+	// Redis에 응원 기록 저장 (자정까지 유효)
+	return u.rdb.Set(ctx, nudgeKey, "1", ttl).Err()
 }
 
 func (u *socialUsecase) GetGuestbooks(targetUserID int64, page, limit int) ([]domain.Guestbook, error) {
@@ -254,4 +295,29 @@ func (u *socialUsecase) UnblockUser(blockerID, blockedID int64) error {
 
 func (u *socialUsecase) ReportUser(report *domain.Report) error {
 	return u.socialRepo.CreateReport(report)
+}
+
+func (u *socialUsecase) GetSocialFeed(userID int64, filter domain.MealListFilter) ([]domain.MealRecord, int64, error) {
+	// 1. 친구 목록 조회
+	friendships, err := u.socialRepo.GetFriends(userID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// 2. 친구 ID 목록 추출
+	friendIDs := make([]int64, 0, len(friendships))
+	for _, f := range friendships {
+		if f.RequesterID == userID {
+			friendIDs = append(friendIDs, f.ReceiverID)
+		} else {
+			friendIDs = append(friendIDs, f.RequesterID)
+		}
+	}
+
+	// 3. 친구들의 식사 기록 조회 (본인 기록은 제외하거나 포함할지 결정 - 보통 피드에는 본인 기록도 포함되기도 함)
+	// 여기서는 요청하신 대로 '친구들의 피드'에 집중하여 친구 ID들만 넘깁니다.
+	// 만약 본인 기록도 포함하고 싶다면 friendIDs = append(friendIDs, userID) 를 추가하면 됩니다.
+	friendIDs = append(friendIDs, userID) // 본인 소식도 피드에 포함
+
+	return u.mealRepo.FindFriendMeals(friendIDs, filter)
 }

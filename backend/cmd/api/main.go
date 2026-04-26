@@ -35,6 +35,9 @@ func main() {
 	config.SeedTitles(db)
 	config.SeedBadges(db)
 
+	// Redis 초기화
+	rdb := config.InitRedis()
+
 	// 포트 설정
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
@@ -60,11 +63,11 @@ func main() {
 	preferenceRepo := repository.NewPreferenceRepository(db)
 
 	// Auth 도메인
-	authUsecase := usecase.NewAuthUsecase(userRepo)
+	authUsecase := usecase.NewAuthUsecase(userRepo, rdb)
 	authHandler := handler.NewAuthHandler(authUsecase)
 
 	// User 도메인
-	userUsecase := usecase.NewUserUsecase(userRepo, mealRepo, dailyIntakeRepo, badgeRepo, charCollectionRepo, characterRepo, db)
+	userUsecase := usecase.NewUserUsecase(userRepo, mealRepo, dailyIntakeRepo, badgeRepo, charCollectionRepo, characterRepo, rdb, db)
 	userHandler := handler.NewUserHandler(userUsecase)
 
 	// 스케줄러 시작 (30일 경과 탈퇴 회원 물리 삭제 등)
@@ -92,7 +95,7 @@ func main() {
 	notificationHandler := handler.NewNotificationHandler(notificationUsecase)
 
 	// Social 도메인
-	socialUsecase := usecase.NewSocialUsecase(socialRepo, userRepo, notificationUsecase)
+	socialUsecase := usecase.NewSocialUsecase(socialRepo, userRepo, mealRepo, notificationUsecase, rdb)
 	socialHandler := handler.NewSocialHandler(socialUsecase)
 
 	// Meal 도메인
