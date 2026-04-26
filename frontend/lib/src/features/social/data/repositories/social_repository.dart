@@ -1,6 +1,7 @@
 import '../../../../core/network/api_client.dart';
 import '../../../profile/data/models/user_model.dart';
 import '../models/social_models.dart';
+import '../models/feed_model.dart';
 
 class SocialRepository {
   final ApiClient _apiClient;
@@ -95,5 +96,17 @@ class SocialRepository {
   // 사용자 차단
   Future<void> blockUser(String userId) async {
     await _apiClient.post('/users/$userId/block', data: {});
+  }
+
+  // 소셜 피드 조회
+  Future<FeedResponse> getSocialFeed({String? cursor, int limit = 20}) async {
+    final response = await _apiClient.get(
+      '/social/feed',
+      queryParameters: {
+        if (cursor != null) 'cursor': cursor,
+        'limit': limit,
+      },
+    );
+    return FeedResponse.fromJson(response);
   }
 }

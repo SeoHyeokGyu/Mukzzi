@@ -3,10 +3,81 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mukzzi/src/core/providers/common_providers.dart';
 import '../../../profile/data/models/user_model.dart';
 import '../../data/models/social_models.dart';
+import '../../data/models/feed_model.dart';
 import '../../data/repositories/social_repository.dart';
 
 final socialRepositoryProvider = Provider<SocialRepository>((ref) {
   return SocialRepository(ref.watch(apiClientProvider));
+});
+
+// 소셜 피드 상태 클래스
+class SocialFeedState {
+  final List<FeedPost> posts;
+  final bool isLoading;
+  final bool hasMore;
+  final String? nextCursor;
+
+  SocialFeedState({
+    this.posts = const [],
+    this.isLoading = false,
+    this.hasMore = true,
+    this.nextCursor,
+  });
+
+  SocialFeedState copyWith({
+    List<FeedPost>? posts,
+    bool? isLoading,
+    bool? hasMore,
+    String? nextCursor,
+  }) {
+    return SocialFeedState(
+      posts: posts ?? this.posts,
+      isLoading: isLoading ?? this.isLoading,
+      hasMore: hasMore ?? this.hasMore,
+      nextCursor: nextCursor ?? this.nextCursor,
+    );
+  }
+}
+
+// 소셜 피드 Notifier
+class SocialFeedNotifier extends StateNotifier<SocialFeedState> {
+  final SocialRepository _repository;
+  static const int _limit = 20;
+
+  SocialFeedNotifier(this._repository) : super(SocialFeedState()) {
+    fetchNextPage();
+  }
+
+  Future<void> fetchNextPage() async {
+    if (state.isLoading || !state.hasMore) return;
+
+    state = state.copyWith(isLoading: true);
+
+    try {
+      final response = await _repository.getSocialFeed(
+        cursor: state.nextCursor,
+        limit: _limit,
+      );
+      
+      state = state.copyWith(
+        posts: [...state.posts, ...response.posts],
+        isLoading: false,
+        hasMore: response.hasNext,
+        nextCursor: response.nextCursor,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  Future<void> refresh() async {
+    state = SocialFeedState();
+    await fetchNextPage();
+  }
+}
+
+final socialFeedProvider = StateNotifierProvider.autoDispose<SocialFeedNotifier, SocialFeedState>((ref) {
+  return SocialFeedNotifier(ref.watch(socialRepositoryProvider));
 });
 
 // 친구 목록

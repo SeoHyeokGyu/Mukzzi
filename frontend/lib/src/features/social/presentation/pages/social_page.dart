@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:mukzzi/src/core/theme/app_theme.dart';
 import 'package:mukzzi/src/core/widgets/gradient_scaffold.dart';
 import 'package:mukzzi/src/core/widgets/bento_card.dart';
 import 'package:mukzzi/src/core/widgets/collection_states.dart';
 import 'package:mukzzi/src/core/widgets/mukzzi_character.dart';
 import '../providers/social_providers.dart';
+import '../../data/models/feed_model.dart';
 import '../../../profile/data/models/user_model.dart';
 
 CharacterState _stateFromString(String s) {
@@ -19,9 +21,8 @@ CharacterState _stateFromString(String s) {
   }
 }
 
-// TODO: (cjkang) 랭킹·피드 데이터를 API로 교체
+// TODO: (cjkang) 랭킹 데이터를 API로 교체
 typedef _RankEntry = ({String name, int rank, int level, String state, bool isMe});
-typedef _FeedEntry  = ({String name, int level, String ago, String msg, int likes, bool streak});
 
 const List<_RankEntry> _mockRanking = [
   (name: '지원', rank: 1, level: 12, state: '행복',    isMe: false),
@@ -29,12 +30,6 @@ const List<_RankEntry> _mockRanking = [
   (name: '민재', rank: 3, level: 7,  state: '배고픔',  isMe: true),
   (name: '서연', rank: 4, level: 6,  state: '평온',    isMe: false),
   (name: '도윤', rank: 5, level: 4,  state: '기력저하', isMe: false),
-];
-
-const List<_FeedEntry> _mockFeed = [
-  (name: '지원', level: 12, ago: '15분 전',  msg: '오늘 저녁은 된장찌개!', likes: 12, streak: false),
-  (name: '현수', level: 9,  ago: '1시간 전', msg: '7일 연속 기록 달성!',   likes: 24, streak: true),
-  (name: '서연', level: 6,  ago: '3시간 전', msg: '단백질 목표 100% 달성', likes: 8,  streak: false),
 ];
 
 class SocialPage extends ConsumerStatefulWidget {
@@ -102,44 +97,74 @@ class _FeedTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final friendsAsync = ref.watch(friendsListProvider);
+    final feedState = ref.watch(socialFeedProvider);
 
-    return friendsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => CollectionErrorState(onRetry: () => ref.invalidate(friendsListProvider)),
-      data: (friends) {
-        if (friends.isEmpty) {
-          return CollectionEmptyState(
-            icon: Icons.newspaper_outlined,
-            title: '아직 친구가 없어요',
-            subtitle: '친구를 추가하면 피드를 볼 수 있어요',
-            actionLabel: '친구 찾기',
-            onAction: () => context.push('/social/friends'),
-          );
-        }
+    if (feedState.isLoading && feedState.posts.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        return ListView(
+    if (feedState.posts.isEmpty) {
+      return CollectionEmptyState(
+        icon: Icons.newspaper_outlined,
+        title: '아직 소식이 없어요',
+        subtitle: '친구를 추가하면 친구들의 식사 소식을 볼 수 있어요',
+        actionLabel: '친구 찾기',
+        onAction: () => context.push('/social/friends'),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => ref.read(socialFeedProvider.notifier).refresh(),
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (scrollInfo) {
+          if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
+            ref.read(socialFeedProvider.notifier).fetchNextPage();
+          }
+          return false;
+        },
+        child: ListView.builder(
           padding: const EdgeInsets.symmetric(vertical: 12),
-          children: [
-            ..._mockFeed.map((post) => Padding(
+          itemCount: feedState.posts.length + (feedState.hasMore ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index == feedState.posts.length) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            final post = feedState.posts[index];
+            return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
               child: _FeedCard(post: post, tokens: tokens),
-            )),
-          ],
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
 }
 
 class _FeedCard extends StatelessWidget {
-  final _FeedEntry post;
+  final FeedPost post;
   final AppColorTokens tokens;
 
   const _FeedCard({required this.post, required this.tokens});
 
+  String _formatTime(DateTime time) {
+    final diff = DateTime.now().difference(time);
+    if (diff.inMinutes < 1) return '방금 전';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
+    if (diff.inHours < 24) return '${diff.inHours}시간 전';
+    if (diff.inDays < 7) return '${diff.inDays}일 전';
+    return DateFormat('M월 d일').format(time);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hasImage = post.user.profileImageUrl != null && post.user.profileImageUrl!.isNotEmpty;
+    
     return BentoCard(
       borderRadius: BorderRadius.circular(tokens.rCard),
       padding: const EdgeInsets.all(14),
@@ -154,13 +179,21 @@ class _FeedCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: tokens.primaryBg,
                   borderRadius: BorderRadius.circular(10),
+                  image: hasImage 
+                    ? DecorationImage(
+                        image: NetworkImage(post.user.profileImageUrl!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
                 ),
-                child: Center(
-                  child: Text(
-                    post.name[0],
-                    style: TextStyle(fontWeight: FontWeight.w700, color: tokens.primary, fontSize: 16),
-                  ),
-                ),
+                child: !hasImage 
+                  ? Center(
+                      child: Text(
+                        (post.user.nickname ?? post.user.username)[0],
+                        style: TextStyle(fontWeight: FontWeight.w700, color: tokens.primary, fontSize: 16),
+                      ),
+                    )
+                  : null,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -170,46 +203,52 @@ class _FeedCard extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          post.name,
+                          post.user.nickname ?? post.user.username,
                           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: tokens.textPrimary),
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '· Lv.${post.level}',
+                          '· Lv.1', 
                           style: TextStyle(fontSize: 11, color: tokens.textMuted),
                         ),
                       ],
                     ),
-                    Text(post.ago, style: TextStyle(fontSize: 11, color: tokens.textMuted)),
+                    Text(_formatTime(post.meal.recordedAt), style: TextStyle(fontSize: 11, color: tokens.textMuted)),
                   ],
                 ),
               ),
-              if (post.streak)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: tokens.primaryBg,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: Text(
-                    'STREAK',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: tokens.primary),
-                  ),
-                ),
             ],
           ),
           const SizedBox(height: 10),
-          Text(post.msg, style: TextStyle(fontSize: 14, color: tokens.textPrimary)),
-          const SizedBox(height: 10),
+          Text(
+            '${post.meal.mealType}으로 ${post.meal.menuName}을(를) 먹었어요!',
+            style: TextStyle(fontSize: 14, color: tokens.textPrimary),
+          ),
+          if (post.meal.review != null && post.meal.review!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              post.meal.review!,
+              style: TextStyle(fontSize: 13, color: tokens.textSub),
+            ),
+          ],
+          if (post.meal.imageUrl != null && post.meal.imageUrl!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                post.meal.imageUrl!,
+                width: double.infinity,
+                height: 180,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.favorite_outline, size: 14, color: tokens.textSub),
-              const SizedBox(width: 4),
-              Text('${post.likes}', style: TextStyle(fontSize: 12, color: tokens.textSub)),
-              const SizedBox(width: 16),
               Icon(Icons.star_outline, size: 14, color: tokens.textSub),
               const SizedBox(width: 4),
-              Text('응원', style: TextStyle(fontSize: 12, color: tokens.textSub)),
+              Text('응원하기', style: TextStyle(fontSize: 12, color: tokens.textSub)),
             ],
           ),
         ],
