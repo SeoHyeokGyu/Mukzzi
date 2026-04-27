@@ -229,10 +229,30 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 		}
 	}
 
-	// 경험치 부여 및 랭킹 업데이트
+	// 경험치 부여 및 레벨업 판정
 	expAmount := 10
-	if err := u.userUc.AddExp(input.UserID, expAmount); err != nil {
+	expResult, err := u.userUc.AddExp(input.UserID, expAmount)
+	if err != nil {
 		slog.Error("경험치 부여 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
+	}
+
+	var levelUpEvent *domain.LevelUpEvent
+	if expResult != nil && expResult.LeveledUp {
+		levelUpEvent = &domain.LevelUpEvent{
+			OldLevel: expResult.OldLevel,
+			NewLevel: expResult.NewLevel,
+		}
+		_ = u.notificationUsecase.CreateNotification(&domain.Notification{
+			UserID:  input.UserID,
+			Type:    domain.NotificationTypeLevelUp,
+			Title:   "레벨 업!",
+			Content: fmt.Sprintf("먹찌가 레벨 %d이 되었습니다!", expResult.NewLevel),
+		})
+	}
+
+	// streak 갱신
+	if err := u.userUc.UpdateStreakOnMeal(input.UserID, input.RecordedAt); err != nil {
+		slog.Error("streak 갱신 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
 	}
 
 	output.SideEffects = &domain.MealSideEffects{
@@ -241,7 +261,7 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 		GrantedBadges:    grantedBadges,
 		GrantedTitle:     grantedTitle,
 		ExpGained:        expAmount,
-		LevelUp:          nil,
+		LevelUp:          levelUpEvent,
 	}
 
 	return &output, nil
@@ -344,7 +364,23 @@ func (u *mealUsecase) AcceptFriendTag(mealID int64, taggedUserID int64) error {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return ErrTagNotFound
 	}
-	return err
+	if err != nil {
+		return err
+	}
+
+	expResult, expErr := u.userUc.AddExp(taggedUserID, 5)
+	if expErr != nil {
+		slog.Error("친구 태그 수락 경험치 부여 실패", slog.Int64("user_id", taggedUserID), slog.Any("error", expErr))
+	} else if expResult != nil && expResult.LeveledUp {
+		_ = u.notificationUsecase.CreateNotification(&domain.Notification{
+			UserID:  taggedUserID,
+			Type:    domain.NotificationTypeLevelUp,
+			Title:   "레벨 업!",
+			Content: fmt.Sprintf("먹찌가 레벨 %d이 되었습니다!", expResult.NewLevel),
+		})
+	}
+
+	return nil
 }
 
 func (u *mealUsecase) GetTodayNutrition(userID int64) (*domain.DailyIntake, error) {

@@ -12,9 +12,10 @@ const (
 	EvolutionAdult     EvolutionStage = "ADULT"
 	EvolutionLegendary EvolutionStage = "LEGENDARY"
 
-	PenaltyNormal  PenaltyStatus = "NORMAL"
-	PenaltyHungry  PenaltyStatus = "HUNGRY"
-	PenaltyStarved PenaltyStatus = "STARVED"
+	PenaltyNormal   PenaltyStatus = "NORMAL"
+	PenaltyHungry   PenaltyStatus = "HUNGRY"
+	PenaltyStarving PenaltyStatus = "STARVING"
+	PenaltyWeakened PenaltyStatus = "WEAKENED"
 )
 
 // Character 는 사용자의 현재 먹찌 상태를 정의합니다.
@@ -30,6 +31,7 @@ type Character struct {
 	SkinTone             int            `gorm:"default:3" json:"skin_tone"`
 	Expression           int            `gorm:"default:3" json:"expression"`
 	PenaltyStatus        PenaltyStatus  `gorm:"type:varchar(20);default:'NORMAL'" json:"penalty_status"`
+	StreakDays           int            `gorm:"default:0" json:"streak_days"`
 	LastRecordedAt       *time.Time     `json:"last_recorded_at"`
 	EquippedBackgroundID *int64         `gorm:"type:bigint" json:"equipped_background_id,string"`
 	EquippedAccessoryID  *int64         `gorm:"type:bigint" json:"equipped_accessory_id,string"`

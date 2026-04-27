@@ -146,11 +146,16 @@ type MasteryUpdate struct {
 	GradeChanged bool   `json:"grade_changed"`
 }
 
+type LevelUpEvent struct {
+	OldLevel int `json:"old_level"`
+	NewLevel int `json:"new_level"`
+}
+
 type MealSideEffects struct {
 	QuestsProgressed []QuestProgress `json:"quests_progressed"`
 	MasteryUpdated   *MasteryUpdate  `json:"mastery_updated"`
 	GrantedBadges    []Badge         `json:"granted_badges"`
 	GrantedTitle     *Title          `json:"granted_title,omitempty"`
 	ExpGained        int             `json:"exp_gained"`
-	LevelUp          interface{}     `json:"level_up"`
+	LevelUp          *LevelUpEvent   `json:"level_up"`
 }

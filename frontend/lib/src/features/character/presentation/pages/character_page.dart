@@ -7,13 +7,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../../core/widgets/mukzzi_character.dart';
+import '../providers/character_provider.dart';
 import '../providers/title_provider.dart';
-
-// TODO: (cjkang) 캐릭터 상태/레벨/XP를 API 응답에서 가져오도록 교체
-const _mockState = CharacterState.normal;
-const int _mockLevel = 1;
-const double _mockXp = 0;
-const double _mockXpGoal = 100;
 
 class CharacterPage extends ConsumerWidget {
   const CharacterPage({super.key});
@@ -21,8 +16,15 @@ class CharacterPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
+    final char = ref.watch(characterProvider).valueOrNull;
 
-    final heroBg = switch (_mockState) {
+    final level = char?.level ?? 1;
+    final xp = char?.exp.toDouble() ?? 0.0;
+    const xpGoal = 100.0;
+    final state = char?.state ?? CharacterState.normal;
+    final evolutionLabel = char?.evolutionLabel ?? '부화 단계';
+
+    final heroBg = switch (state) {
       CharacterState.hungry   => tokens.charBgHungry,
       CharacterState.starving => tokens.charBgStarving,
       _                       => tokens.charBgNormal,
@@ -41,13 +43,13 @@ class CharacterPage extends ConsumerWidget {
               child: Column(
                 children: [
                   Text(
-                    'Lv.$_mockLevel · 부화 단계',
+                    'Lv.$level · $evolutionLabel',
                     style: TextStyle(fontSize: 13, color: tokens.textMuted),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '먹찌',
+                    char?.name ?? '먹찌',
                     style: GoogleFonts.poppins(
                       fontSize: 26,
                       fontWeight: FontWeight.w700,
@@ -69,15 +71,15 @@ class CharacterPage extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _levelBadge('Lv.$_mockLevel', tokens),
-                      _statePill(_mockState, tokens),
+                      _levelBadge('Lv.$level', tokens),
+                      _statePill(state, tokens),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const MukzziCharacter(state: _mockState, size: 200, level: _mockLevel),
+                  MukzziCharacter(state: state, size: 200, level: level),
                   const SizedBox(height: 12),
                   Text(
-                    'Lv.$_mockLevel까지 ${(_mockXpGoal - _mockXp).toInt()} XP',
+                    'Lv.${level + 1}까지 ${(xpGoal - xp).toInt()} XP',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -90,7 +92,7 @@ class CharacterPage extends ConsumerWidget {
                     children: [
                       Text('EXP', style: TextStyle(fontSize: 11, color: tokens.heroTextSub)),
                       Text(
-                        '${_mockXp.toInt()} / ${_mockXpGoal.toInt()}',
+                        '${xp.toInt()} / ${xpGoal.toInt()}',
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: tokens.primary),
                       ),
                     ],
@@ -99,7 +101,7 @@ class CharacterPage extends ConsumerWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
-                      value: (_mockXp / _mockXpGoal).clamp(0.0, 1.0),
+                      value: (xp / xpGoal).clamp(0.0, 1.0),
                       minHeight: 7,
                       backgroundColor: Colors.black.withValues(alpha: 0.12),
                       valueColor: AlwaysStoppedAnimation<Color>(tokens.primary),
@@ -139,11 +141,11 @@ class CharacterPage extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _EvolutionStage(label: '알',    minLevel: 1,  current: _mockLevel == 1, done: _mockLevel > 1,  tokens: tokens),
-                  _EvolutionStage(label: '아기',   minLevel: 3,  current: _mockLevel >= 3 && _mockLevel < 7, done: _mockLevel >= 7,  tokens: tokens),
-                  _EvolutionStage(label: '청소년', minLevel: 7,  current: _mockLevel >= 7 && _mockLevel < 15, done: _mockLevel >= 15, tokens: tokens),
-                  _EvolutionStage(label: '성체',   minLevel: 15, current: _mockLevel >= 15 && _mockLevel < 30, done: _mockLevel >= 30, tokens: tokens),
-                  _EvolutionStage(label: '전설',   minLevel: 30, current: _mockLevel >= 30, done: false, tokens: tokens),
+                  _EvolutionStage(label: '알',    minLevel: 1,  current: level == 1,                      done: level > 1,   tokens: tokens),
+                  _EvolutionStage(label: '아기',   minLevel: 3,  current: level >= 3 && level < 7,         done: level >= 7,  tokens: tokens),
+                  _EvolutionStage(label: '청소년', minLevel: 7,  current: level >= 7 && level < 15,        done: level >= 15, tokens: tokens),
+                  _EvolutionStage(label: '성체',   minLevel: 15, current: level >= 15 && level < 30,       done: level >= 30, tokens: tokens),
+                  _EvolutionStage(label: '전설',   minLevel: 30, current: level >= 30,                     done: false,       tokens: tokens),
                 ],
               ),
             ),

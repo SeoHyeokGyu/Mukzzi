@@ -5,6 +5,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/collection_states.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../domain/models/reward_model.dart';
+import '../providers/character_provider.dart';
 import '../providers/reward_provider.dart';
 
 class RewardListPage extends ConsumerWidget {
@@ -81,7 +82,7 @@ class _RewardGroup extends StatelessWidget {
   }
 }
 
-class _RewardCard extends StatelessWidget {
+class _RewardCard extends ConsumerWidget {
   final RewardModel reward;
 
   const _RewardCard({required this.reward});
@@ -101,8 +102,35 @@ class _RewardCard extends StatelessWidget {
     }
   }
 
+  bool get _isEquippable =>
+      reward.acquired && (reward.rewardType == 'BACKGROUND' || reward.rewardType == 'ACCESSORY');
+
+  Future<void> _equip(BuildContext context, WidgetRef ref) async {
+    try {
+      final id = int.tryParse(reward.id) ?? 0;
+      final repo = ref.read(characterRepositoryProvider);
+      if (reward.rewardType == 'BACKGROUND') {
+        await repo.equipItem(backgroundId: id);
+      } else {
+        await repo.equipItem(accessoryId: id);
+      }
+      ref.invalidate(characterProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('장착되었습니다.')),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('장착에 실패했습니다.')),
+        );
+      }
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final acquired = reward.acquired;
 
     return Container(
@@ -161,7 +189,26 @@ class _RewardCard extends StatelessWidget {
               ],
             ),
           ),
-          if (acquired)
+          if (_isEquippable)
+            GestureDetector(
+              onTap: () => _equip(context, ref),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.softPeach,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  '장착',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.orange,
+                  ),
+                ),
+              ),
+            )
+          else if (acquired)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
@@ -186,10 +233,7 @@ class _RewardCard extends StatelessWidget {
               ),
               child: const Text(
                 '미획득',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.textTertiary,
-                ),
+                style: TextStyle(fontSize: 11, color: AppColors.textTertiary),
               ),
             ),
         ],

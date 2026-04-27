@@ -10,4 +10,25 @@ class CharacterRepository {
     final response = await _apiClient.get('/users/me/character');
     return CharacterModel.fromJson(response['data'] as Map<String, dynamic>);
   }
+
+  Future<void> applyAppearance({
+    required int bodyType,
+    required int muscle,
+    required int skinTone,
+    required int expression,
+  }) async {
+    await _apiClient.patch('/characters/me/appearance', data: {
+      'body_type': bodyType,
+      'muscle': muscle,
+      'skin_tone': skinTone,
+      'expression': expression,
+    });
+  }
+
+  Future<void> equipItem({int? backgroundId, int? accessoryId}) async {
+    await _apiClient.patch('/characters/me/equipment', data: {
+      if (backgroundId != null) 'background_id': backgroundId.toString(),
+      if (accessoryId != null) 'accessory_id': accessoryId.toString(),
+    });
+  }
 }

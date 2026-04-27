@@ -7,6 +7,8 @@ class CharacterModel {
   final int level;
   final int exp;
   final CharacterState state;
+  final String evolutionStage;
+  final int streakDays;
   final int bodyType;
   final int muscle;
   final int skinTone;
@@ -19,6 +21,8 @@ class CharacterModel {
     required this.level,
     required this.exp,
     required this.state,
+    required this.evolutionStage,
+    required this.streakDays,
     required this.bodyType,
     required this.muscle,
     required this.skinTone,
@@ -26,12 +30,11 @@ class CharacterModel {
   });
 
   factory CharacterModel.fromJson(Map<String, dynamic> json) {
-    // 백엔드 EvolutionStage, PenaltyStatus 등을 CharacterState 로 매핑하는 로직 필요
-    // 일단 간단히 매핑
     CharacterState status = CharacterState.normal;
     final penalty = json['penalty_status'] as String? ?? 'NORMAL';
     if (penalty == 'HUNGRY') status = CharacterState.hungry;
     if (penalty == 'STARVING') status = CharacterState.starving;
+    if (penalty == 'WEAKENED') status = CharacterState.weak;
 
     return CharacterModel(
       id: json['id']?.toString() ?? '',
@@ -40,10 +43,23 @@ class CharacterModel {
       level: json['level'] as int? ?? 1,
       exp: json['exp'] as int? ?? 0,
       state: status,
+      evolutionStage: json['evolution_stage'] as String? ?? 'EGG',
+      streakDays: json['streak_days'] as int? ?? 0,
       bodyType: json['body_type'] as int? ?? 0,
       muscle: json['muscle'] as int? ?? 0,
       skinTone: json['skin_tone'] as int? ?? 0,
       expression: json['expression'] as int? ?? 0,
     );
+  }
+
+  String get evolutionLabel {
+    switch (evolutionStage) {
+      case 'EGG':       return '부화 단계';
+      case 'BABY':      return '아기 단계';
+      case 'TEEN':      return '청소년 단계';
+      case 'ADULT':     return '성체 단계';
+      case 'LEGENDARY': return '전설 단계';
+      default:          return '부화 단계';
+    }
   }
 }

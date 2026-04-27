@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
@@ -35,7 +36,9 @@ type UserUsecase interface {
 	Search(query string) ([]domain.User, error)
 	GetRecommendations(id int64) ([]domain.User, error)
 	Onboarding(id int64, mukzziName string, height, weight float64, activityLevel domain.ActivityLevel, goal domain.DietGoal, bodyType, muscle, skinTone, expression int) error
-	AddExp(userID int64, amount int) error
+	AddExp(userID int64, amount int) (*AddExpResult, error)
+	UpdateStreakOnMeal(userID int64, recordedAt time.Time) error
+	RunInactivityPenalty() error
 	SyncRankingToRedis(ctx context.Context) error
 }
 
@@ -46,6 +49,7 @@ type userUsecase struct {
 	badgeRepo       repository.BadgeRepository
 	charRepo        repository.CharacterCollectionRepository
 	characterRepo   repository.CharacterRepository
+	notificationUc  NotificationUsecase
 	rdb             *redis.Client
 	db              *gorm.DB
 }
@@ -58,6 +62,7 @@ func NewUserUsecase(
 	badgeRepo repository.BadgeRepository,
 	charRepo repository.CharacterCollectionRepository,
 	characterRepo repository.CharacterRepository,
+	notificationUc NotificationUsecase,
 	rdb *redis.Client,
 	db *gorm.DB,
 ) UserUsecase {
@@ -68,6 +73,7 @@ func NewUserUsecase(
 		badgeRepo:       badgeRepo,
 		charRepo:        charRepo,
 		characterRepo:   characterRepo,
+		notificationUc:  notificationUc,
 		rdb:             rdb,
 		db:              db,
 	}
@@ -324,39 +330,157 @@ func (u *userUsecase) Onboarding(id int64, mukzziName string, height, weight flo
 
 const RankingWeeklyKey = "ranking:exp:weekly"
 
-func (u *userUsecase) AddExp(userID int64, amount int) error {
-	ctx := context.Background()
+type AddExpResult struct {
+	LeveledUp bool
+	OldLevel  int
+	NewLevel  int
+}
 
-	// 1. DB 업데이트
+func (u *userUsecase) AddExp(userID int64, amount int) (*AddExpResult, error) {
+	ctx := context.Background()
+	result := &AddExpResult{}
+
 	err := u.db.Transaction(func(tx *gorm.DB) error {
 		var char domain.Character
 		if err := tx.Where("user_id = ?", userID).First(&char).Error; err != nil {
 			return err
 		}
 
+		result.OldLevel = char.Level
 		char.Exp += amount
 		if char.Exp >= 100 {
 			char.Level += char.Exp / 100
 			char.Exp = char.Exp % 100
 		}
 
-		if err := tx.Save(&char).Error; err != nil {
-			return err
+		if char.Level > result.OldLevel {
+			result.LeveledUp = true
+			result.NewLevel = char.Level
+		} else {
+			result.NewLevel = char.Level
 		}
-		return nil
-	})
 
+		return tx.Save(&char).Error
+	})
 	if err != nil {
+		return nil, err
+	}
+
+	_ = u.rdb.ZIncrBy(ctx, RankingWeeklyKey, float64(amount), fmt.Sprintf("%d", userID)).Err()
+	u.rdb.Del(ctx, fmt.Sprintf("user:char:%d", userID))
+
+	return result, nil
+}
+
+func (u *userUsecase) UpdateStreakOnMeal(userID int64, recordedAt time.Time) error {
+	char, err := u.characterRepo.GetByUserID(userID)
+	if err != nil || char == nil {
 		return err
 	}
 
-	// 2. Redis 랭킹 업데이트 (ZSET)
-	_ = u.rdb.ZIncrBy(ctx, RankingWeeklyKey, float64(amount), fmt.Sprintf("%d", userID)).Err()
+	loc, _ := time.LoadLocation("Asia/Seoul")
+	if loc == nil {
+		loc = time.Local
+	}
+	today := recordedAt.In(loc).Truncate(24 * time.Hour)
 
-	// 캐시 삭제
-	u.rdb.Del(ctx, fmt.Sprintf("user:char:%d", userID))
+	if char.LastRecordedAt != nil {
+		lastDay := char.LastRecordedAt.In(loc).Truncate(24 * time.Hour)
+		yesterday := today.AddDate(0, 0, -1)
 
+		switch {
+		case lastDay.Equal(today):
+			if char.PenaltyStatus == domain.PenaltyNormal {
+				return nil
+			}
+		case lastDay.Equal(yesterday):
+			char.StreakDays++
+		default:
+			char.StreakDays = 1
+		}
+	} else {
+		char.StreakDays = 1
+	}
+
+	char.LastRecordedAt = &recordedAt
+	char.PenaltyStatus = domain.PenaltyNormal
+	return u.characterRepo.Update(char)
+}
+
+func (u *userUsecase) RunInactivityPenalty() error {
+	var chars []domain.Character
+	if err := u.db.Find(&chars).Error; err != nil {
+		return err
+	}
+
+	now := time.Now()
+	for i := range chars {
+		char := &chars[i]
+		if char.LastRecordedAt == nil {
+			continue
+		}
+
+		days := int(now.Sub(*char.LastRecordedAt).Hours() / 24)
+		newStatus := penaltyFromDays(days)
+		if char.PenaltyStatus == newStatus {
+			continue
+		}
+
+		char.PenaltyStatus = newStatus
+		if err := u.characterRepo.Update(char); err != nil {
+			slog.Error("패널티 상태 업데이트 실패", slog.Int64("user_id", char.UserID), slog.Any("error", err))
+			continue
+		}
+
+		if u.notificationUc != nil {
+			_ = u.notificationUc.CreateNotification(&domain.Notification{
+				UserID:  char.UserID,
+				Type:    domain.NotificationTypePenaltyChanged,
+				Title:   penaltyTitle(newStatus),
+				Content: penaltyContent(newStatus),
+			})
+		}
+	}
 	return nil
+}
+
+func penaltyFromDays(days int) domain.PenaltyStatus {
+	switch {
+	case days >= 5:
+		return domain.PenaltyWeakened
+	case days >= 3:
+		return domain.PenaltyStarving
+	case days >= 2:
+		return domain.PenaltyHungry
+	default:
+		return domain.PenaltyNormal
+	}
+}
+
+func penaltyTitle(status domain.PenaltyStatus) string {
+	switch status {
+	case domain.PenaltyHungry:
+		return "먹찌가 배고파요!"
+	case domain.PenaltyStarving:
+		return "먹찌가 굶주리고 있어요!"
+	case domain.PenaltyWeakened:
+		return "먹찌가 약해지고 있어요!"
+	default:
+		return ""
+	}
+}
+
+func penaltyContent(status domain.PenaltyStatus) string {
+	switch status {
+	case domain.PenaltyHungry:
+		return "2일째 식사 기록이 없어요. 오늘 식사를 기록해보세요!"
+	case domain.PenaltyStarving:
+		return "3일째 식사 기록이 없어요. 빨리 식사를 기록해주세요!"
+	case domain.PenaltyWeakened:
+		return "5일 이상 식사 기록이 없어요. 먹찌가 약해지고 있습니다!"
+	default:
+		return ""
+	}
 }
 
 func (u *userUsecase) SyncRankingToRedis(ctx context.Context) error {

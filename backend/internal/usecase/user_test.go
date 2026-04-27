@@ -14,7 +14,7 @@ func TestUserUsecase_GetProfile(t *testing.T) {
 	t.Run("프로필 조회 성공 - 비밀번호 마스킹 확인", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
 		dummyRDB := redis.NewClient(&redis.Options{})
-		uc := NewUserUsecase(mockRepo, nil, nil, nil, nil, nil, dummyRDB, &gorm.DB{})
+		uc := NewUserUsecase(mockRepo, nil, nil, nil, nil, nil, nil, dummyRDB, &gorm.DB{})
 
 		mockUser := &domain.User{
 			BaseDomain: domain.BaseDomain{ID: 1},
@@ -35,7 +35,7 @@ func TestUserUsecase_UpdateProfile(t *testing.T) {
 	t.Run("프로필 수정 성공 - 닉네임 및 이미지", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
 		dummyRDB := redis.NewClient(&redis.Options{})
-		uc := NewUserUsecase(mockRepo, nil, nil, nil, nil, nil, dummyRDB, &gorm.DB{})
+		uc := NewUserUsecase(mockRepo, nil, nil, nil, nil, nil, nil, dummyRDB, &gorm.DB{})
 
 		existingUser := &domain.User{
 			BaseDomain:      domain.BaseDomain{ID: 1},
@@ -58,7 +58,7 @@ func TestUserUsecase_UpdateBody(t *testing.T) {
 	t.Run("신체 정보 업데이트 성공", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
 		dummyRDB := redis.NewClient(&redis.Options{})
-		uc := NewUserUsecase(mockRepo, nil, nil, nil, nil, nil, dummyRDB, &gorm.DB{})
+		uc := NewUserUsecase(mockRepo, nil, nil, nil, nil, nil, nil, dummyRDB, &gorm.DB{})
 
 		mockRepo.On("CreateBody", mock.AnythingOfType("*domain.UserBody")).Return(nil)
 		mockRepo.On("GetNutritionGoal", int64(1)).Return(nil, nil)
@@ -74,7 +74,7 @@ func TestUserUsecase_DeleteAccount(t *testing.T) {
 	t.Run("계정 삭제 성공", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
 		dummyRDB := redis.NewClient(&redis.Options{})
-		uc := NewUserUsecase(mockRepo, nil, nil, nil, nil, nil, dummyRDB, &gorm.DB{})
+		uc := NewUserUsecase(mockRepo, nil, nil, nil, nil, nil, nil, dummyRDB, &gorm.DB{})
 
 		mockRepo.On("Delete", int64(1)).Return(nil)
 

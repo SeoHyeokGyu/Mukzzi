@@ -59,7 +59,6 @@ func main() {
 	masteryRepo := repository.NewMasteryRepository(db)
 	titleRepo := repository.NewTitleRepository(db)
 	rewardRepo := repository.NewRewardRepository(db)
-	notificationRepo := repository.NewNotificationRepository(db)
 	favoriteRepo := repository.NewFavoriteRepository(db)
 	preferenceRepo := repository.NewPreferenceRepository(db)
 
@@ -67,11 +66,16 @@ func main() {
 	authUsecase := usecase.NewAuthUsecase(userRepo, rdb)
 	authHandler := handler.NewAuthHandler(authUsecase)
 
+	// Notification 도메인 (UserUsecase 의존성으로 먼저 초기화)
+	notificationRepo := repository.NewNotificationRepository(db)
+	notificationUsecase := usecase.NewNotificationUsecase(notificationRepo)
+	notificationHandler := handler.NewNotificationHandler(notificationUsecase)
+
 	// User 도메인
-	userUsecase := usecase.NewUserUsecase(userRepo, mealRepo, dailyIntakeRepo, badgeRepo, charCollectionRepo, characterRepo, rdb, db)
+	userUsecase := usecase.NewUserUsecase(userRepo, mealRepo, dailyIntakeRepo, badgeRepo, charCollectionRepo, characterRepo, notificationUsecase, rdb, db)
 	userHandler := handler.NewUserHandler(userUsecase)
 
-	// 스케줄러 시작 (30일 경과 탈퇴 회원 물리 삭제 등)
+	// 스케줄러 시작
 	config.StartScheduler(userUsecase)
 
 	// Collection 도메인
@@ -100,10 +104,6 @@ func main() {
 	if err := userUsecase.SyncRankingToRedis(context.Background()); err != nil {
 		slog.Error("랭킹 Redis 동기화 실패", slog.Any("error", err))
 	}
-
-	// Notification 도메인
-	notificationUsecase := usecase.NewNotificationUsecase(notificationRepo)
-	notificationHandler := handler.NewNotificationHandler(notificationUsecase)
 
 	// Social 도메인
 	socialUsecase := usecase.NewSocialUsecase(socialRepo, userRepo, mealRepo, characterRepo, notificationUsecase, rdb)

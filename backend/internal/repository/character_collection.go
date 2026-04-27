@@ -1,20 +1,20 @@
 package repository
 
 import (
+	"errors"
+	"time"
+
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"gorm.io/gorm"
 )
 
 // CharacterCollectionRepository 먹찌 도감 저장소 인터페이스
 type CharacterCollectionRepository interface {
-	// CountByUserID 사용자가 달성한 외형 종류 수
 	CountByUserID(userID int64) (int64, error)
-
-	// FindByUserID 사용자가 달성한 외형 목록 조회
 	FindByUserID(userID int64, limit, offset int) ([]domain.CharacterCollection, int64, error)
-
-	// Create 도감 정보 생성
 	Create(collection *domain.CharacterCollection) error
+	// RegisterIfNew 신규 외형 조합이면 도감에 등록. 반환값: 신규 등록 여부
+	RegisterIfNew(userID int64, bodyType, muscle, skinTone, expression int) (bool, error)
 }
 
 type characterCollectionRepositoryImpl struct {
@@ -58,4 +58,32 @@ func (r *characterCollectionRepositoryImpl) FindByUserID(userID int64, limit, of
 
 func (r *characterCollectionRepositoryImpl) Create(collection *domain.CharacterCollection) error {
 	return r.db.Create(collection).Error
+}
+
+func (r *characterCollectionRepositoryImpl) RegisterIfNew(userID int64, bodyType, muscle, skinTone, expression int) (bool, error) {
+	var existing domain.CharacterCollection
+	err := r.db.Where(&domain.CharacterCollection{
+		UserID:     userID,
+		BodyType:   bodyType,
+		Muscle:     muscle,
+		SkinTone:   skinTone,
+		Expression: expression,
+	}).First(&existing).Error
+
+	if err == nil {
+		return false, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return false, err
+	}
+
+	col := &domain.CharacterCollection{
+		UserID:     userID,
+		BodyType:   bodyType,
+		Muscle:     muscle,
+		SkinTone:   skinTone,
+		Expression: expression,
+		AchievedAt: time.Now(),
+	}
+	return true, r.db.Create(col).Error
 }
