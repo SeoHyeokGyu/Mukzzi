@@ -23,3 +23,13 @@ type RegisterRequest struct {
 	Password string `json:"password" binding:"required,min=6"`
 	Nickname string `json:"nickname"`
 }
+
+// RefreshRequest 는 토큰 갱신 요청 데이터를 정의합니다.
+type RefreshRequest struct {
+	RefreshToken string `json:"refreshToken" binding:"required"`
+}
+
+// RefreshResponse 는 토큰 갱신 응답 데이터를 정의합니다.
+type RefreshResponse struct {
+	AccessToken string `json:"accessToken"`
+}

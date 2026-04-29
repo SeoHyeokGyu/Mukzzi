@@ -79,7 +79,7 @@ const _palettes = {
   ),
 };
 
-class MukzziCharacter extends StatelessWidget {
+class MukzziCharacter extends StatefulWidget {
   final CharacterState state;
   final double size;
   final int level;
@@ -92,10 +92,42 @@ class MukzziCharacter extends StatelessWidget {
   });
 
   @override
+  State<MukzziCharacter> createState() => _MukzziCharacterState();
+}
+
+class _MukzziCharacterState extends State<MukzziCharacter>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat(reverse: true);
+    _scale = Tween<double>(begin: 1.0, end: 1.04).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      size: Size(size, size),
-      painter: _MukzziPainter(state: state, level: level),
+    final painter = _MukzziPainter(state: widget.state, level: widget.level);
+    if (MediaQuery.of(context).disableAnimations) {
+      return CustomPaint(size: Size(widget.size, widget.size), painter: painter);
+    }
+    return AnimatedBuilder(
+      animation: _scale,
+      builder: (context, child) => Transform.scale(scale: _scale.value, child: child),
+      child: CustomPaint(size: Size(widget.size, widget.size), painter: painter),
     );
   }
 }
@@ -130,7 +162,6 @@ class _MukzziPainter extends CustomPainter {
 
     canvas.drawOval(bodyRect, Paint()..color = palette.body);
 
-    // Shade as radial gradient overlay
     canvas.save();
     canvas.clipPath(Path()..addOval(bodyRect));
     canvas.drawOval(
@@ -181,7 +212,6 @@ class _MukzziPainter extends CustomPainter {
         canvas.drawCircle(const Offset(123, 93), 4.5, pupil);
         canvas.drawCircle(const Offset(77, 90), 2, shine);
         canvas.drawCircle(const Offset(121, 90), 2, shine);
-        // Worried brows
         final brow = Paint()
           ..color = palette.pupil.withValues(alpha: 0.5)
           ..strokeWidth = 2.5
@@ -302,14 +332,12 @@ class _MukzziPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
     final qPath = Path();
-    // top curve of ?
     qPath.addArc(
       Rect.fromCenter(center: const Offset(148, 39), width: 11, height: 11),
       math.pi * 0.75,
       math.pi * 1.25,
     );
     canvas.drawPath(qPath, arc);
-    // tail
     canvas.drawLine(const Offset(148, 45), const Offset(148, 48), arc);
     canvas.drawCircle(const Offset(148, 51.5), 1.8, Paint()..color = const Color(0xFF3A2010));
   }

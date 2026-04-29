@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -38,8 +37,7 @@ class _RouterNotifier extends ChangeNotifier {
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final secureStorage = ref.watch(secureStorageProvider);
-  final prefs = ref.watch(sharedPreferencesProvider);
+  final tokenStorage = ref.watch(tokenStorageProvider);
 
   final notifier = _RouterNotifier(ref);
   ref.onDispose(notifier.dispose);
@@ -70,12 +68,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) async {
       final authState = ref.read(authProvider);
       final userState = ref.read(userProvider);
-      final String? token;
-      if (kIsWeb) {
-        token = prefs.getString(AppConstants.accessTokenKey);
-      } else {
-        token = await secureStorage.read(key: AppConstants.accessTokenKey);
-      }
+      final token = await tokenStorage.read(AppConstants.accessTokenKey);
 
       // userProvider에 최신 정보가 있으면 그것을 사용, 없으면 authState 사용
       final currentUser = userState.user ?? authState.user;

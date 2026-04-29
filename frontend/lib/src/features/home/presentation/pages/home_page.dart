@@ -25,6 +25,12 @@ const double _carbsConsumed = 150;
 const double _carbsGoal = 300;
 const double _fatConsumed = 30;
 const double _fatGoal = 60;
+const int _mockStreakDays = 3;
+const _mockQuests = [
+  (label: '아침 기록', done: true),
+  (label: '점심 기록', done: true),
+  (label: '저녁 기록', done: false),
+];
 
 const _mockMeals = [
   (emoji: '🍚', time: '오전 8:30', name: '아침밥', kcal: 350),
@@ -204,9 +210,13 @@ class _HomePageState extends ConsumerState<HomePage> {
             error: (_, __) => _buildHeroCard(tokens, null),
           ),
           const SizedBox(height: 12),
+          _buildStreakQuestRow(tokens),
+          const SizedBox(height: 12),
           _buildQuickCTAs(tokens),
           const SizedBox(height: 12),
           _buildNutritionCard(tokens),
+          const SizedBox(height: 12),
+          _buildRecommendCard(tokens),
           const SizedBox(height: 24),
           _buildRecentMeals(tokens),
           const SizedBox(height: 16),
@@ -324,6 +334,63 @@ class _HomePageState extends ConsumerState<HomePage> {
     return _animated(card, slideY: true);
   }
 
+  Widget _buildStreakQuestRow(AppColorTokens tokens) {
+    final row = BentoCard(
+      borderRadius: BorderRadius.circular(tokens.rCard),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Icon(Icons.local_fire_department, color: tokens.primary, size: 18),
+          const SizedBox(width: 4),
+          Text(
+            '연속 $_mockStreakDays일',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: tokens.primary),
+          ),
+          const SizedBox(width: 12),
+          Container(width: 1, height: 28, color: tokens.primaryBg),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Row(
+              children: [
+                for (int i = 0; i < _mockQuests.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(2),
+                          child: LinearProgressIndicator(
+                            value: _mockQuests[i].done ? 1.0 : 0.0,
+                            minHeight: 4,
+                            backgroundColor: tokens.primaryBg,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              _mockQuests[i].done ? tokens.primary : tokens.primaryBg,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _mockQuests[i].label,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: _mockQuests[i].done ? tokens.textSub : tokens.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    return _animated(row, delay: 100.ms, slideY: true);
+  }
+
   Color _stateIndicatorColor(CharacterState s) {
     return switch (s) {
       CharacterState.happy    => const Color(0xFFFF85A1),
@@ -406,31 +473,45 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     final card = BentoCard(
       borderRadius: BorderRadius.circular(tokens.rCard),
-      child: Row(
+      padding: const EdgeInsets.all(20),
+      child: Column(
         children: [
-          // Compact donut (72px)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '오늘의 영양',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: tokens.textPrimary),
+              ),
+              Text(
+                '${_caloriesConsumed.toInt()} / ${_caloriesGoal.toInt()} kcal',
+                style: TextStyle(fontSize: 11, color: tokens.textSub),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           SizedBox(
-            width: 72,
-            height: 72,
+            width: 120,
+            height: 120,
             child: Stack(
               alignment: Alignment.center,
               children: [
                 PieChart(
                   PieChartData(
                     sectionsSpace: 2,
-                    centerSpaceRadius: 24,
+                    centerSpaceRadius: 40,
                     startDegreeOffset: -90,
                     sections: [
                       PieChartSectionData(
                         value: _caloriesConsumed,
                         color: tokens.primary,
-                        radius: 13,
+                        radius: 18,
                         showTitle: false,
                       ),
                       PieChartSectionData(
                         value: remaining,
                         color: tokens.primaryBg,
-                        radius: 13,
+                        radius: 18,
                         showTitle: false,
                       ),
                     ],
@@ -442,7 +523,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     Text(
                       '${_caloriesConsumed.toInt()}',
                       style: GoogleFonts.poppins(
-                        fontSize: 12,
+                        fontSize: 18,
                         fontWeight: FontWeight.w800,
                         color: tokens.primary,
                         height: 1.1,
@@ -450,52 +531,63 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ),
                     Text(
                       'kcal',
-                      style: TextStyle(
-                        fontSize: 8,
-                        color: tokens.textMuted,
-                        height: 1.2,
-                      ),
+                      style: TextStyle(fontSize: 11, color: tokens.textMuted, height: 1.2),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '오늘의 영양',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                        color: tokens.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      '${_caloriesConsumed.toInt()} / ${_caloriesGoal.toInt()} kcal',
-                      style: TextStyle(fontSize: 11, color: tokens.textSub),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                _MacroBar(label: '탄수', consumed: _carbsConsumed, goal: _carbsGoal, color: AppColors.carbsColor, tokens: tokens),
-                const SizedBox(height: 6),
-                _MacroBar(label: '단백', consumed: _proteinConsumed, goal: _proteinGoal, color: AppColors.proteinColor, tokens: tokens),
-                const SizedBox(height: 6),
-                _MacroBar(label: '지방', consumed: _fatConsumed, goal: _fatGoal, color: AppColors.fatColor, tokens: tokens),
-              ],
-            ),
-          ),
+          const SizedBox(height: 16),
+          _MacroBar(label: '탄수', consumed: _carbsConsumed, goal: _carbsGoal, color: AppColors.carbsColor, tokens: tokens),
+          const SizedBox(height: 8),
+          _MacroBar(label: '단백', consumed: _proteinConsumed, goal: _proteinGoal, color: AppColors.proteinColor, tokens: tokens),
+          const SizedBox(height: 8),
+          _MacroBar(label: '지방', consumed: _fatConsumed, goal: _fatGoal, color: AppColors.fatColor, tokens: tokens),
         ],
       ),
     );
     return _animated(card, delay: 160.ms, slideY: true);
+  }
+
+  Widget _buildRecommendCard(AppColorTokens tokens) {
+    final card = BentoCard(
+      borderRadius: BorderRadius.circular(tokens.rCard),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      onTap: () => ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('준비 중입니다'))),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: tokens.primaryBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.help_outline, color: tokens.primary, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '오늘 뭐 먹지?',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: tokens.textPrimary),
+                ),
+                Text(
+                  'AI가 오늘 식사를 추천해드려요',
+                  style: TextStyle(fontSize: 11, color: tokens.textMuted),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.chevron_right, color: tokens.textMuted, size: 20),
+        ],
+      ),
+    );
+    return _animated(card, delay: 200.ms, slideY: true);
   }
 
   Widget _buildRecentMeals(AppColorTokens tokens) {

@@ -136,11 +136,19 @@ class _FeedTab extends ConsumerWidget {
   }
 }
 
-class _FeedCard extends StatelessWidget {
+class _FeedCard extends StatefulWidget {
   final FeedPost post;
   final AppColorTokens tokens;
 
   const _FeedCard({required this.post, required this.tokens});
+
+  @override
+  State<_FeedCard> createState() => _FeedCardState();
+}
+
+class _FeedCardState extends State<_FeedCard> {
+  bool _cheered = false;
+  int _cheerCount = 0;
 
   String _formatTime(DateTime time) {
     final diff = DateTime.now().difference(time);
@@ -153,8 +161,10 @@ class _FeedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final post = widget.post;
+    final tokens = widget.tokens;
     final hasImage = post.user.profileImageUrl != null && post.user.profileImageUrl!.isNotEmpty;
-    
+
     return BentoCard(
       borderRadius: BorderRadius.circular(tokens.rCard),
       padding: const EdgeInsets.all(14),
@@ -163,27 +173,25 @@ class _FeedCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: tokens.primaryBg,
-                  borderRadius: BorderRadius.circular(10),
-                  image: hasImage 
-                    ? DecorationImage(
-                        image: NetworkImage(post.user.profileImageUrl!),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-                ),
-                child: !hasImage 
-                  ? Center(
-                      child: Text(
-                        (post.user.nickname ?? post.user.username)[0],
-                        style: TextStyle(fontWeight: FontWeight.w700, color: tokens.primary, fontSize: 16),
-                      ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: hasImage
+                  ? Image.network(
+                      post.user.profileImageUrl!,
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
                     )
-                  : null,
+                  : Container(
+                      width: 40,
+                      height: 40,
+                      color: tokens.primaryBg,
+                      child: const MukzziCharacter(
+                        state: CharacterState.normal,
+                        size: 40,
+                        level: 1,
+                      ),
+                    ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -270,12 +278,29 @@ class _FeedCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(Icons.star_outline, size: 14, color: tokens.textSub),
-              const SizedBox(width: 4),
-              Text('응원하기', style: TextStyle(fontSize: 12, color: tokens.textSub)),
-            ],
+          GestureDetector(
+            onTap: () => setState(() {
+              _cheered = !_cheered;
+              _cheerCount += _cheered ? 1 : -1;
+            }),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _cheered ? Icons.favorite : Icons.favorite_border,
+                  size: 14,
+                  color: _cheered ? const Color(0xFFFF85A1) : tokens.textSub,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _cheerCount > 0 ? '$_cheerCount' : '응원하기',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _cheered ? const Color(0xFFFF85A1) : tokens.textSub,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

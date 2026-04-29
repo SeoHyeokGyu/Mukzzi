@@ -19,6 +19,7 @@ type AuthUsecase interface {
 	Register(user *domain.User) (*domain.User, error)
 	Login(username, email, password string) (string, string, *domain.User, error)
 	Logout(userID string) error
+	Refresh(refreshToken string) (string, error)
 }
 
 type authUsecase struct {
@@ -108,4 +109,44 @@ func (u *authUsecase) Login(username, email, password string) (string, string, *
 func (u *authUsecase) Logout(userID string) error {
 	ctx := context.Background()
 	return u.rdb.Del(ctx, fmt.Sprintf("refresh_token:%s", userID)).Err()
+}
+
+// Refresh 는 유효한 refreshToken으로 새 accessToken을 발급합니다.
+func (u *authUsecase) Refresh(refreshToken string) (string, error) {
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		jwtSecret = "mukzzi-secret"
+	}
+
+	token, err := jwt.Parse(refreshToken, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return []byte(jwtSecret), nil
+	})
+	if err != nil || !token.Valid {
+		return "", errors.New("유효하지 않은 refresh token입니다.")
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", errors.New("토큰 파싱에 실패했습니다.")
+	}
+
+	userIDStr, ok := claims["user_id"].(string)
+	if !ok {
+		return "", errors.New("토큰에서 사용자 정보를 찾을 수 없습니다.")
+	}
+
+	ctx := context.Background()
+	stored, err := u.rdb.Get(ctx, fmt.Sprintf("refresh_token:%s", userIDStr)).Result()
+	if err != nil || stored != refreshToken {
+		return "", errors.New("만료되었거나 유효하지 않은 refresh token입니다.")
+	}
+
+	newAccessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": userIDStr,
+		"exp":     time.Now().Add(time.Hour).Unix(),
+	})
+	return newAccessToken.SignedString([]byte(jwtSecret))
 }

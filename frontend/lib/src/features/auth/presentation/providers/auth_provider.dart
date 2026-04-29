@@ -1,13 +1,12 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../../core/providers/common_providers.dart';
-import '../../../../core/network/exceptions.dart';
-import '../../data/models/auth_models.dart';
-import '../../data/repositories/auth_repository.dart';
-import '../../../profile/data/models/user_model.dart';
+import 'package:mukzzi/src/core/constants/app_constants.dart';
+import 'package:mukzzi/src/core/providers/common_providers.dart';
+import 'package:mukzzi/src/core/network/exceptions.dart';
+import 'package:mukzzi/src/core/storage/token_storage.dart';
+import 'package:mukzzi/src/features/auth/data/models/auth_models.dart';
+import 'package:mukzzi/src/features/auth/data/repositories/auth_repository.dart';
+import 'package:mukzzi/src/features/profile/data/models/user_model.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(ref.watch(apiClientProvider));
@@ -31,39 +30,27 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repository;
+  final TokenStorage _tokenStorage;
   final SharedPreferences _prefs;
-  final FlutterSecureStorage _secureStorage;
 
-  AuthNotifier(this._repository, this._prefs, this._secureStorage) : super(AuthState()) {
+  AuthNotifier(this._repository, this._tokenStorage, this._prefs)
+      : super(AuthState()) {
     _checkAuthStatus();
   }
 
   Future<void> _checkAuthStatus() async {
     state = state.copyWith(isLoading: true);
     try {
-      final String? token;
-      if (kIsWeb) {
-        token = _prefs.getString(AppConstants.accessTokenKey);
-      } else {
-        token = await _secureStorage.read(key: AppConstants.accessTokenKey);
-      }
-
+      final token = await _tokenStorage.read(AppConstants.accessTokenKey);
       if (token != null) {
         final user = await _repository.fetchMe();
         state = state.copyWith(user: user);
       }
     } on UnauthorizedException {
-      // 401 인증 에러일 때만 세션 초기화
-      if (kIsWeb) {
-        await _prefs.remove(AppConstants.accessTokenKey);
-      } else {
-        await _secureStorage.delete(key: AppConstants.accessTokenKey);
-      }
-      await _prefs.remove(AppConstants.userIdKey);
+      await _clearTokens();
       state = AuthState();
-    } catch (e) {
-      // 일반적인 네트워크 에러 등은 토큰을 유지하고 상태만 업데이트
-      state = state.copyWith(error: null); 
+    } catch (_) {
+      state = state.copyWith(error: null);
     } finally {
       state = state.copyWith(isLoading: false);
     }
@@ -80,25 +67,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
           password: password,
         ),
       );
-      
-      if (kIsWeb) {
-        await _prefs.setString(AppConstants.accessTokenKey, response.accessToken);
-        await _prefs.setString(AppConstants.refreshTokenKey, response.refreshToken);
-      } else {
-        await _secureStorage.write(key: AppConstants.accessTokenKey, value: response.accessToken);
-        await _secureStorage.write(key: AppConstants.refreshTokenKey, value: response.refreshToken);
-      }
+
+      await _tokenStorage.write(
+          AppConstants.accessTokenKey, response.accessToken);
+      await _tokenStorage.write(
+          AppConstants.refreshTokenKey, response.refreshToken);
       await _prefs.setString(AppConstants.userIdKey, response.user.id);
-      
+
       state = state.copyWith(user: response.user, isLoading: false);
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e is AppException ? e.message : e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        error: e is AppException ? e.message : e.toString(),
+      );
       return false;
     }
   }
 
-  Future<bool> register(String username, String email, String password, String? nickname) async {
+  Future<bool> register(
+      String username, String email, String password, String? nickname) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       await _repository.register(
@@ -112,7 +100,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e is AppException ? e.message : e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        error: e is AppException ? e.message : e.toString(),
+      );
       return false;
     }
   }
@@ -121,23 +112,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       await _repository.logout();
     } catch (_) {}
-
-    if (kIsWeb) {
-      await _prefs.remove(AppConstants.accessTokenKey);
-      await _prefs.remove(AppConstants.refreshTokenKey);
-    } else {
-      await _secureStorage.delete(key: AppConstants.accessTokenKey);
-      await _secureStorage.delete(key: AppConstants.refreshTokenKey);
-    }
-    await _prefs.remove(AppConstants.userIdKey);
+    await _clearTokens();
     state = AuthState();
+  }
+
+  Future<void> _clearTokens() async {
+    await _tokenStorage.deleteAll([
+      AppConstants.accessTokenKey,
+      AppConstants.refreshTokenKey,
+    ]);
+    await _prefs.remove(AppConstants.userIdKey);
   }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(
     ref.watch(authRepositoryProvider),
+    ref.watch(tokenStorageProvider),
     ref.watch(sharedPreferencesProvider),
-    ref.watch(secureStorageProvider),
   );
 });

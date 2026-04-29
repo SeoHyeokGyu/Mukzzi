@@ -84,6 +84,33 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	})
 }
 
+// Refresh Access Token 갱신
+// @Summary      Access Token 갱신
+// @Description  유효한 Refresh Token으로 새로운 Access Token을 발급합니다.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        RefreshRequest  body      dto.RefreshRequest  true  "Refresh Token"
+// @Success      200  {object}  Response
+// @Failure      400  {object}  Response
+// @Failure      401  {object}  Response
+// @Router       /api/auth/refresh [post]
+func (h *AuthHandler) Refresh(c *gin.Context) {
+	var req dto.RefreshRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		BadRequest(c, "INVALID_REQUEST", "refresh token이 필요합니다.")
+		return
+	}
+
+	accessToken, err := h.authUsecase.Refresh(req.RefreshToken)
+	if err != nil {
+		Unauthorized(c, "INVALID_REFRESH_TOKEN", err.Error())
+		return
+	}
+
+	Success(c, dto.RefreshResponse{AccessToken: accessToken})
+}
+
 // Logout 사용자 로그아웃
 // @Summary      사용자 로그아웃
 // @Description  로그아웃하여 Refresh Token을 무효화합니다.
