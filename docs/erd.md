@@ -142,8 +142,32 @@ erDiagram
     users ||--o{ user_bodies : "records body info"
     users ||--|| characters : owns
     users ||--o{ meal_records : records
-    
-    %% ... (이전과 동일한 나머지 관계들)
+    users ||--o{ user_devices : "has devices"
+    users ||--o{ friendships : "requester"
+    users ||--o{ friendships : "receiver"
+    users ||--o{ blocks : "blocker"
+    users ||--o{ blocks : "blocked"
+    users ||--o{ guestbooks : "target"
+    users ||--o{ guestbooks : "writer"
+    users ||--o{ nudges : "sender"
+    users ||--o{ nudges : "receiver"
+    users ||--o{ reports : "reporter"
+    users ||--o{ reports : "target"
+    users ||--o{ notifications : "receives"
+    users ||--o{ user_badges : "earns"
+    users ||--o{ user_titles : "earns"
+    users ||--o{ user_rewards : "earns"
+    users ||--o{ masteries : "has"
+    users ||--o{ character_collections : "collects"
+    meal_records ||--o{ meal_friend_tags : "has tags"
+    meal_records ||--|| nutritions : "has nutrition"
+    meal_records }o--|| menus : "references"
+    menus ||--o{ favorites : "favorited"
+    menus ||--o{ menu_preferences : "preferred"
+    menus ||--o{ masteries : "mastered by"
+    badges ||--o{ user_badges : "granted to"
+    titles ||--o{ user_titles : "granted to"
+    rewards ||--o{ user_rewards : "granted to"
 ```
 
 ---

@@ -7,7 +7,7 @@
 [![Go](https://img.shields.io/badge/Go-1.26-00ADD8.svg)](https://go.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7+-red.svg)](https://redis.io/)
-[![Progress](https://img.shields.io/badge/Progress-기획%20단계-yellow.svg)]()
+[![Progress](https://img.shields.io/badge/Progress-MVP%20개발%20중-blue.svg)]()
 
 **상세 기획 문서**: [docs/](docs/) - 사용자 플로우, 캐릭터 시스템, 기능 티어, 기술 스택 상세
 
@@ -47,9 +47,9 @@
 - 조건 조합으로 상황에 딱 맞는 메뉴 제안
 
 #### 선호도 기반 추천
-- 기록 빈도, 시간대 패턴, 날씨·기분 패턴, 명시적 선호(좋아요/싫어요) 4가지 신호 조합
-- 최근 3일 내 먹은 메뉴 제외, 신호별 가중합으로 개인화 추천 목록 제공
-- 신규 유저는 전체 메뉴 DB 기반 일반 추천으로 폴백
+- **MVP**: 즐겨찾기, 최근 기록, 명시적 선호(좋아요/싫어요) 3가지 신호 기반 단순 추천
+- **Tier 2**: 기록 빈도·시간대·날씨기분 패턴·명시적 선호 4가지 신호 가중합산으로 고도화
+- 최근 3일 내 먹은 메뉴 제외, 신규 유저는 전체 DB 기반 일반 추천으로 폴백
 
 ### 2. 식사 기록
 
@@ -126,8 +126,7 @@
 - **Language**: Go 1.26
 - **Framework**: Gin (경량 HTTP 라우터)
 - **ORM**: GORM (PostgreSQL 연동)
-- **Scheduler**: robfig/cron (패널티 시스템, 푸시 알림 배치)
-- **Real-time**: gorilla/websocket — Tier 3 그룹 기능 대비
+- **Scheduler**: robfig/cron (패널티 시스템, 물리 삭제 배치)
 
 ### Database
 - **Main DB**: PostgreSQL 15+ (영양소·캐릭터 관계 데이터)
@@ -163,7 +162,6 @@ Client (Mobile / Browser)
         v
    frontend (nginx) :80
    /api/*  -->  backend (Go) :8080
-   /ws/*   -->  backend (Go) :8080  (WebSocket)
    /       -->  Flutter Web (static)
         |
         v
@@ -257,8 +255,8 @@ Cron Scheduler (매일 실행)
 | ERD / DB 설계 | ✅ 완료 |
 | API 설계 | ✅ 완료 |
 | 와이어프레임 | 🔲 예정 |
-| 프론트엔드 개발 | 🔲 예정 |
-| 백엔드 개발 | 🔲 예정 |
+| 백엔드 개발 | 🔄 진행 중 (Auth/User/Meal/Nutrition/Collection/Social/Notification 구현, Quest/OAuth/Character HTTP API 미구현) |
+| 프론트엔드 개발 | 🔄 진행 중 (주요 화면 구현, 룰렛/필터/캘린더/퀘스트 미구현) |
 | 캐릭터 에셋 제작 | 🔲 예정 |
 | 테스트 | 🔲 예정 |
 
@@ -289,36 +287,7 @@ Cron Scheduler (매일 실행)
 
 ## 데모 & 스크린샷
 
-> **이미지 저장 위치**: `docs/images/` 폴더
-
-<!-- TODO: 개발 완료 후 스크린샷 추가 -->
-
-### 1. 온보딩 & 먹찌 생성
-![온보딩](./docs/images/01-onboarding.png)
-
-### 2. 홈 화면 (먹찌 상태)
-![홈 화면](./docs/images/02-home.png)
-
-### 3. 메뉴 결정 (룰렛)
-![랜덤 룰렛](./docs/images/03-roulette.png)
-
-### 4. 식사 기록
-![식사 기록](./docs/images/05-meal-record.png)
-
-### 5. 캐릭터 성장 연출
-![먹찌 성장](./docs/images/06-transformation.png)
-
-### 6. 먹부림 캘린더
-![캘린더](./docs/images/07-calendar.png)
-
-### 7. 먹찌 도감
-![도감](./docs/images/08-collection.png)
-
-### 8. 친구 검색 & 프로필 방문
-![친구 검색](./docs/images/08-friend-search.png)
-
-### 9. 영양 밸런스 피드백
-![영양 피드백](./docs/images/09-nutrition.png)
+> 이미지 저장 위치: `docs/images/` 폴더 — 화면 개발 완료 후 추가 예정
 
 ---
 

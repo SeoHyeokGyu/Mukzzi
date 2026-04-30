@@ -1,6 +1,6 @@
 # API 명세
 
-> 상태: 진행 중 (Auth/User/Meal/Nutrition/Collection/Social/Notification 구현, Character/Quest/Onboarding/메뉴관리 미구현)
+> 상태: 진행 중 (Auth 기본/User/Meal/Nutrition/Collection/Social/Notification/온보딩 구현, Character HTTP API/Quest/OAuth/메뉴관리 미구현)
 
 백엔드 REST API 엔드포인트 명세입니다. 기획 문서([planning.md](planning.md))와 ERD([erd.md](erd.md))를 기반으로 작성합니다. 상세한 Request/Response 스펙은 Swagger를 참조하세요.
 
@@ -78,7 +78,7 @@
 
 | Method | Endpoint | 인증 | 설명 |
 |--------|----------|------|------|
-| POST | /onboarding | O | 온보딩 완료 (신체 정보 + 영양 목표 + 캐릭터 생성을 일괄 처리) |
+| POST | /users/onboarding | O | 온보딩 완료 (신체 정보 + 영양 목표 + 캐릭터 생성 + 도감 초기 등록 트랜잭션) |
 
 ### 3. 사용자 (User)
 
@@ -95,13 +95,13 @@
 | GET | /users/search | O | 사용자 검색 (query: 닉네임 또는 고유 ID) |
 | GET | /users/recommendations | O | 추천 사용자 목록 (비슷한 식습관/먹찌/인기) |
 
-### 4. 캐릭터 (Character)
+### 4. 캐릭터 (Character) — ⚠️ 부분 구현
 
-| Method | Endpoint | 인증 | 설명 |
-|--------|----------|------|------|
-| GET | /characters/me | O | 내 캐릭터 상태 및 외형 조회 |
-| PATCH | /characters/me/appearance | O | 외형 변경 (도감에서 이전 외형 적용) |
-| PATCH | /characters/me/equipment | O | 배경/악세서리 장착 변경 |
+| Method | Endpoint | 인증 | 설명 | 구현 |
+|--------|----------|------|------|------|
+| GET | /users/me/character | O | 내 캐릭터 상태 및 외형 조회 (Redis 캐시 5분) | ✓ |
+| PATCH | /characters/me/appearance | O | 외형 변경 (도감에서 이전 외형 적용) | ❌ |
+| PATCH | /characters/me/equipment | O | 배경/악세서리 장착 변경 | ❌ |
 
 ### 5. 메뉴 (Menu)
 

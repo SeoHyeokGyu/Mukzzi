@@ -348,9 +348,10 @@ func (u *userUsecase) AddExp(userID int64, amount int) (*AddExpResult, error) {
 
 		result.OldLevel = char.Level
 		char.Exp += amount
-		if char.Exp >= 100 {
-			char.Level += char.Exp / 100
-			char.Exp = char.Exp % 100
+		// 레벨업 공식: 레벨 N의 필요 EXP = 100 × N (선형 증가)
+		for char.Exp >= char.Level*100 {
+			char.Exp -= char.Level * 100
+			char.Level++
 		}
 
 		if char.Level > result.OldLevel {

@@ -32,9 +32,10 @@
 정해진 시간에 수행되어야 하는 작업들을 `robfig/cron`을 통해 관리합니다. 즉각적인 비동기 처리는 Go의 Goroutine을 사용합니다.
 
 1. 정기 및 예약 작업 (Scheduled Tasks)
-   - 매일 새벽 5시 일일 퀘스트 초기화 및 신규 할당
-   - 장기 미접속 사용자에 대한 캐릭터 만족도 패널티 부여
-   - 기간 만료된 미수령 보상에 대한 자동 소멸 처리
+   - 매일 00:00 탈퇴 회원 물리 삭제 (30일 경과 기준) ✓ 구현됨
+   - 매일 새벽 5시 미기록 사용자 패널티 상태 갱신 ✓ 구현됨
+   - 매일 새벽 5시 일일 퀘스트 초기화 및 신규 할당 ❌ 미구현
+   - 기간 만료된 미수령 보상에 대한 자동 소멸 처리 ❌ 미구현
 
 ### Infra
 
@@ -58,7 +59,7 @@
 
 | 키 패턴 | 타입 | TTL | 용도 |
 |---------|------|-----|------|
-| `refresh:{user_id}` | String | Refresh Token 만료와 동일 | Refresh Token 저장, 로그아웃 시 삭제 |
+| `refresh_token:{user_id}` | String | Refresh Token 만료와 동일 (14일) | Refresh Token 저장, 로그아웃 시 삭제 |
 | `rate:api:{user_id}` | String (counter) | 60s | 일반 API Rate Limiting (60 req/min) |
 | `rate:auth:{ip}` | String (counter) | 60s | 인증 API Rate Limiting (10 req/min) |
 | `nudge:{sender_id}:{receiver_id}` | String | 자정까지 (TTL 동적 계산) | 일일 응원 횟수 제한 (1회/일) |
@@ -108,9 +109,11 @@ backend/
 │   ├── swagger.json
 │   └── swagger.yaml
 └── internal/                        # 캡슐화된 애플리케이션 레이어
-    ├── config/                      # 설정 (DB, Redis 연결, 로거, 시드)
+    ├── config/                      # 설정 (DB, Redis 연결, 로거, 시드, 스케줄러)
     │   ├── db.go
+    │   ├── redis.go
     │   ├── logger.go
+    │   ├── scheduler.go             # Cron 작업 등록 및 실행
     │   └── seed.go                  # 뱃지 시드 데이터
     ├── domain/                      # 1. 엔티티 (Entities) 계층
     │   ├── base.go                  # BaseDomain (Sonyflake ID, 타임스탬프, Soft Delete)
@@ -132,6 +135,9 @@ backend/
     │   ├── mastery_tracker.go       # 식사 기록 시 마스터리 갱신
     │   ├── character_collection.go
     │   ├── title.go
+    │   ├── title_granter.go         # 마스터리 등급 변경 시 칭호 자동 부여
+    │   ├── favorite.go
+    │   ├── preference.go
     │   ├── reward.go
     │   ├── social.go
     │   ├── notification.go
@@ -143,6 +149,8 @@ backend/
     │       │   ├── user.go
     │       │   ├── meal.go          # 식사 기록 + 영양소 API
     │       │   ├── menu.go
+    │       │   ├── favorite.go
+    │       │   ├── preference.go
     │       │   ├── collection.go    # Badge/Mastery/Title/Reward API
     │       │   ├── social.go
     │       │   ├── notification.go
@@ -164,6 +172,8 @@ backend/
     │           ├── user.go
     │           ├── meal.go
     │           ├── menu.go
+    │           ├── favorite.go
+    │           ├── preference.go
     │           ├── collection.go
     │           ├── social.go
     │           └── notification.go
@@ -357,7 +367,7 @@ Client -> nginx :443 (TLS termination)
 
 | 항목 | 설정 | 비고 |
 |------|------|------|
-| Access Token 만료 | 30분 | 짧은 주기로 탈취 피해 최소화 |
+| Access Token 만료 | 1시간 | 짧은 주기로 탈취 피해 최소화 |
 | Refresh Token 만료 | 14일 | Redis에 저장, 로그아웃 시 즉시 삭제 |
 | 서명 알고리즘 | HS256 | JWT_SECRET 환경변수 사용 |
 | 토큰 위치 | Authorization: Bearer {token} | 쿠키 미사용 (모바일 앱 호환) |

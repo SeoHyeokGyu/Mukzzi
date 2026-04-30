@@ -1,13 +1,13 @@
 # DDD 도메인 설계
 
-> 상태: 진행 중 (Meal/Nutrition/Collection 구현 완료, Character/Quest/Onboarding 미구현)
+> 상태: 진행 중 (Auth 기본/User/Meal/Nutrition/Collection/Social/Notification/레벨·경험치·패널티 구현, Character HTTP API/Quest/OAuth 미구현)
 
 기획 문서([planning.md](planning.md))의 기능 정의를 기반으로 바운디드 컨텍스트를 정의하고, 도메인 간 관계를 설계합니다.
 
 **구현 현황:**
-- ✓ **구현 완료**: Auth (기본), User, Meal, Nutrition (오늘/주간), Collection (전체), Social, Notification
-- ⚠️ **부분 구현**: Menu (검색만), Auth (OAuth 미구현)
-- ❌ **미구현**: Character, Quest, Onboarding
+- ✓ **구현 완료**: Auth (기본 register/login/refresh/logout), User, Meal, Nutrition (오늘/주간), Collection (전체), Social, Notification, 레벨/경험치 시스템, 패널티 시스템, 온보딩
+- ⚠️ **부분 구현**: Menu (검색만), Auth (OAuth 미구현), Character (도메인/유스케이스만, HTTP API 미구현)
+- ❌ **미구현**: Quest, Character HTTP API (GET /characters/me 등)
 
 ---
 
@@ -83,9 +83,10 @@ type BaseDomain struct {
 **현재 구현:**
 - ✓ Bearer JWT 기반 인증 미들웨어 구현
 - ✓ 기본 회원가입 (`POST /auth/register`) - username/email/password
+- ✓ Refresh Token 발급 및 Redis 저장 (`refresh_token:{user_id}`, TTL 14일)
+- ✓ Access Token 갱신 (`POST /auth/refresh`) - Redis 저장 토큰 검증 후 재발급
+- ✓ 로그아웃 (`POST /auth/logout`) - Redis에서 Refresh Token 삭제
 - ❌ OAuth 소셜 로그인 미구현 (Kakao/Google/Apple)
-- ❌ Refresh Token Redis 저장 미구현
-- ❌ 로그아웃 엔드포인트 미구현
 
 **TODO:** OAuth2 통합 필요 (Kakao, Google, Apple)
 
@@ -108,11 +109,12 @@ type BaseDomain struct {
 - ✓ 프로필 조회/수정, 신체 정보 등록, 영양 목표 설정 API 구현
 - ✓ 신체 정보 및 목표 기반 자동 권장 섭취량 계산 로직 구현
 - ✓ User 엔티티 필드 확장 (OAuth, 신체정보, 영양목표, 설정, 칭호장착)
+- ✓ 온보딩 (`POST /users/onboarding`) - 신체정보 + 영양목표 + 캐릭터 생성 + 도감 초기 등록 트랜잭션
+- ✓ 회원 탈퇴 Soft Delete + 물리 삭제 배치 (30일 경과 시 매일 00:00 자동 실행)
+- ✓ 프로필/캐릭터 Redis 캐싱 (TTL 5분)
 - ❌ OAuth 소셜 로그인 미구현
-- ❌ 온보딩 통합 프로세스 미구현
-- ❌ 회원 탈퇴 (Soft Delete) 물리적 정리 로직 미구현
 
-### Character (캐릭터/성장) - ❌ 미구현
+### Character (캐릭터/성장) - ⚠️ 부분 구현
 
 **설계:**
 - 책임: 먹찌 생성, 파츠 조합, 진화 단계 관리, 영양 성분에 따른 외형 변화, 배경/악세서리 장착
@@ -120,10 +122,22 @@ type BaseDomain struct {
 - 비즈니스 규칙:
   - 설정된 권장 섭취량 목표 대비 실제 섭취 비율(7일 평균)에 따라 캐릭터의 외형 상태가 결정됨.
   - 파츠 조합: 체형(5) x 근육(5) x 피부색(5) x 표정(5) = 625가지 외형.
-  - 진화 단계: EGG -> BABY -> CHILD -> TEEN -> ADULT -> LEGEND.
+  - 진화 단계: EGG -> BABY -> TEEN -> ADULT -> LEGENDARY (도메인 enum 기준; 기획의 CHILD·LEGEND와 명칭 차이 있음, 추후 정렬 필요).
   - 진화 조건은 레벨 도달 + 해당 업적 퀘스트 달성을 모두 충족해야 전환됨. (예: BABY 전환 = Lv.5 이상 + '첫 깨어남' 업적 달성)
   - 패널티 상태: NORMAL -> HUNGRY(미기록 2일 경과) -> STARVING(미기록 3일 경과) -> WEAKENED(미기록 5일 이상). 식사 1회 기록 시 즉시 NORMAL 복구.
   - 달성한 외형은 도감에 기록되며, 이전 외형으로 변경 가능 (가역적).
+
+**현재 구현:**
+- ✓ Character 도메인 엔티티 정의 (Level, Exp, EvolutionStage, PenaltyStatus, StreakDays, 파츠 필드 전체)
+- ✓ 레벨/경험치 시스템 (`AddExp`) - 식사 기록 시 10 EXP, 친구 태그 수락 시 5 EXP 지급
+- ✓ 레벨업 판정 및 LevelUp 알림 발송 (100 EXP/레벨 선형 증가)
+- ✓ 패널티 시스템 (`RunInactivityPenalty`) - 매일 05:00 배치로 상태 갱신
+- ✓ 연속 기록일(Streak) 갱신 (`UpdateStreakOnMeal`)
+- ✓ 캐릭터 조회 (`GET /users/me/character`) - Redis 캐시 5분
+- ✓ CharacterCollection 자동 등록 (온보딩 시 초기 외형 등록)
+- ❌ 캐릭터 외형 HTTP API 미구현 (`GET /characters/me`, `PATCH /characters/me/appearance`, `PATCH /characters/me/equipment`)
+- ❌ 외형 재계산 배치 미구현 (`AppearanceRecalculate`)
+- ❌ 진화 단계 전환 로직 미구현
 
 ### Meal (식사 기록) - ✓ 구현 완료
 
@@ -271,7 +285,7 @@ type BaseDomain struct {
 
 배치 재계산은 전체 사용자가 아닌, **최근 7일 이내에 식사를 기록한 활성 사용자**만을 대상으로 합니다. `characters.last_recorded_at`이 7일 이내인 사용자를 필터링합니다.
 
-### 스케줄링 작업 추가
+### 스케줄링 작업 추가 (미구현)
 
 | 작업 | 스케줄 | 설명 |
 |------|--------|------|
@@ -331,13 +345,14 @@ type BaseDomain struct {
 
 ### 스케줄링 작업 (Cron 기반 예약 실행)
 
-| 작업 | 스케줄 | 설명 |
-|------|--------|------|
-| DailyQuestReset | 매일 05:00 | 일일 퀘스트 초기화 및 신규 할당 |
-| WeeklyQuestReset | 매주 월요일 05:00 | 주간 퀘스트 초기화 및 신규 할당 |
-| InactivityPenalty | 매일 05:00 | 미기록 사용자 패널티 상태 갱신 및 알림 |
-| ExpiredRewardCleanup | 매일 05:00 | 기간 만료 미수령 보상 자동 소멸 |
-| AppearanceRecalculate | 매일 05:10 | 활성 사용자 캐릭터 외형 일괄 재계산 |
+| 작업 | 스케줄 | 설명 | 구현 |
+|------|--------|------|------|
+| PhysicalDeletion | 매일 00:00 | 탈퇴 후 30일 경과 회원 물리 삭제 | ✓ |
+| InactivityPenalty | 매일 05:00 | 미기록 사용자 패널티 상태 갱신 | ✓ |
+| DailyQuestReset | 매일 05:00 | 일일 퀘스트 초기화 및 신규 할당 | ❌ |
+| WeeklyQuestReset | 매주 월요일 05:00 | 주간 퀘스트 초기화 및 신규 할당 | ❌ |
+| ExpiredRewardCleanup | 매일 05:00 | 기간 만료 미수령 보상 자동 소멸 | ❌ |
+| AppearanceRecalculate | 매일 05:10 | 활성 사용자 캐릭터 외형 일괄 재계산 | ❌ |
 
 ---
 
