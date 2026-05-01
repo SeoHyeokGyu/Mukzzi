@@ -34,7 +34,7 @@ class CharacterModel {
     final penalty = json['penalty_status'] as String? ?? 'NORMAL';
     if (penalty == 'HUNGRY') status = CharacterState.hungry;
     if (penalty == 'STARVING') status = CharacterState.starving;
-    if (penalty == 'WEAKENED') status = CharacterState.weak;
+    if (penalty == 'WEAKENED') status = CharacterState.sleeping;
 
     return CharacterModel(
       id: json['id']?.toString() ?? '',

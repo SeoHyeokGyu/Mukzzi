@@ -24,12 +24,6 @@ class CharacterPage extends ConsumerWidget {
     final state = char?.state ?? CharacterState.normal;
     final evolutionLabel = char?.evolutionLabel ?? '부화 단계';
 
-    final heroBg = switch (state) {
-      CharacterState.hungry   => tokens.charBgHungry,
-      CharacterState.starving => tokens.charBgStarving,
-      _                       => tokens.charBgNormal,
-    };
-
     return GradientScaffold(
       appBar: AppBar(automaticallyImplyLeading: false, toolbarHeight: 0),
       body: SingleChildScrollView(
@@ -63,7 +57,7 @@ class CharacterPage extends ConsumerWidget {
             const SizedBox(height: 12),
             // 캐릭터 히어로 카드
             BentoCard(
-              gradient: heroBg,
+              showPaperTexture: true,
               borderRadius: BorderRadius.circular(tokens.rHero),
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
               child: Column(
@@ -141,11 +135,9 @@ class CharacterPage extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _EvolutionStage(label: '알',    minLevel: 1,  current: level == 1,                      done: level > 1,   tokens: tokens),
-                  _EvolutionStage(label: '아기',   minLevel: 3,  current: level >= 3 && level < 7,         done: level >= 7,  tokens: tokens),
-                  _EvolutionStage(label: '청소년', minLevel: 7,  current: level >= 7 && level < 15,        done: level >= 15, tokens: tokens),
-                  _EvolutionStage(label: '성체',   minLevel: 15, current: level >= 15 && level < 30,       done: level >= 30, tokens: tokens),
-                  _EvolutionStage(label: '전설',   minLevel: 30, current: level >= 30,                     done: false,       tokens: tokens),
+                  _EvolutionStage(label: '아기',   minLevel: 1, current: level >= 1 && level < 3,  done: level >= 3,  tokens: tokens),
+                  _EvolutionStage(label: '청소년', minLevel: 3, current: level >= 3 && level < 7,  done: level >= 7,  tokens: tokens),
+                  _EvolutionStage(label: '성체',   minLevel: 7, current: level >= 7,                done: false,       tokens: tokens),
                 ],
               ),
             ),
@@ -221,7 +213,7 @@ class CharacterPage extends ConsumerWidget {
       CharacterState.happy    => const Color(0xFFFF85A1),
       CharacterState.hungry   => const Color(0xFFFFCC33),
       CharacterState.starving => const Color(0xFFFF4444),
-      CharacterState.weak     => const Color(0xFFA0A5BB),
+      CharacterState.sleeping => const Color(0xFF2D6BFF),
       CharacterState.normal   => const Color(0xFF4CAF50),
     };
     return Container(

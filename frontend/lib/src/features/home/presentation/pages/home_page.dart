@@ -232,14 +232,8 @@ class _HomePageState extends ConsumerState<HomePage> {
     final xp = char?.exp.toDouble() ?? 0;
     const xpGoal = 100.0;
 
-    final heroBg = switch (state) {
-      CharacterState.hungry   => tokens.charBgHungry,
-      CharacterState.starving => tokens.charBgStarving,
-      _                       => tokens.charBgNormal,
-    };
-
     final card = BentoCard(
-      gradient: heroBg,
+      showPaperTexture: true,
       borderRadius: BorderRadius.circular(tokens.rHero),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
       child: Column(
@@ -396,7 +390,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       CharacterState.happy    => const Color(0xFFFF85A1),
       CharacterState.hungry   => const Color(0xFFFFCC33),
       CharacterState.starving => const Color(0xFFFF4444),
-      CharacterState.weak     => const Color(0xFFA0A5BB),
+      CharacterState.sleeping => const Color(0xFF2D6BFF),
       CharacterState.normal   => const Color(0xFF4CAF50),
     };
   }

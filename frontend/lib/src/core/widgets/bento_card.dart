@@ -9,6 +9,7 @@ class BentoCard extends StatelessWidget {
   final BorderRadius? borderRadius;
   final List<BoxShadow>? shadows;
   final VoidCallback? onTap;
+  final bool showPaperTexture;
 
   const BentoCard({
     super.key,
@@ -19,26 +20,34 @@ class BentoCard extends StatelessWidget {
     this.borderRadius,
     this.shadows,
     this.onTap,
+    this.showPaperTexture = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final radius = borderRadius ?? BorderRadius.circular(20);
-    final container = Container(
+    final tokens = Theme.of(context).extension<AppColorTokens>();
+    final radius = borderRadius ?? BorderRadius.circular(tokens?.rCard ?? 20);
+    
+    Widget content = Container(
       height: height,
       padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: gradient == null
-          ? (Theme.of(context).cardTheme.color ?? AppColors.surface)
-          : null,
-        gradient: gradient,
+        color: showPaperTexture 
+            ? (tokens?.paper ?? const Color(0xFFFAFAFA))
+            : (gradient == null ? (Theme.of(context).cardTheme.color ?? AppColors.surface) : null),
+        gradient: showPaperTexture ? null : gradient,
         borderRadius: radius,
         boxShadow: shadows ?? AppColors.cardShadow,
       ),
-      child: child,
+      child: showPaperTexture 
+          ? CustomPaint(
+              painter: _GridPainter(tokens?.paperLine ?? const Color(0x14000000)),
+              child: child,
+            )
+          : child,
     );
 
-    if (onTap == null) return container;
+    if (onTap == null) return content;
 
     return ClipRRect(
       borderRadius: radius,
@@ -47,9 +56,34 @@ class BentoCard extends StatelessWidget {
         child: InkWell(
           borderRadius: radius,
           onTap: onTap,
-          child: container,
+          child: content,
         ),
       ),
     );
   }
+}
+
+class _GridPainter extends CustomPainter {
+  final Color lineColor;
+
+  _GridPainter(this.lineColor);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 1.0;
+
+    const double spacing = 16.0;
+
+    // Draw dot grid
+    for (double x = 0; x < size.width; x += spacing) {
+      for (double y = 0; y < size.height; y += spacing) {
+        canvas.drawCircle(Offset(x, y), 0.8, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
