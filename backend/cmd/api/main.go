@@ -115,6 +115,15 @@ func main() {
 	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, userUsecase, badgeGranter, masteryTracker, titleGranter, notificationUsecase, db)
 	mealHandler := handler.NewMealHandler(mealUsecase)
 
+	// Roulette 도메인
+	rouletteRepo := repository.NewRouletteRepository(db)
+	rouletteUc := usecase.NewRouletteUsecase(rouletteRepo)
+	rouletteHandler := handler.NewRouletteHandler(rouletteUc)
+
+	filterRepo := repository.NewMenuFilterRepository(db)
+	filterUc := usecase.NewMenuFilterUsecase(filterRepo)
+	filterHandler := handler.NewMenuFilterHandler(filterUc)
+
 	// 라우터 초기화
 	r := route.NewRouter(
 		authHandler,
@@ -126,6 +135,8 @@ func main() {
 		mealHandler,
 		favoriteHandler,
 		preferenceHandler,
+		rouletteHandler,
+		filterHandler,
 	)
 
 	// 서버 실행
