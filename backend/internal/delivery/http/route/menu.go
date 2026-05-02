@@ -12,6 +12,8 @@ func MenuRoute(
 	menuHandler *handler.MenuHandler,
 	favoriteHandler *handler.FavoriteHandler,
 	preferenceHandler *handler.PreferenceHandler,
+	rouletteHandler *handler.RouletteHandler,
+	filterHandler *handler.MenuFilterHandler,
 ) {
 	menus := rg.Group("/menus")
 	menus.Use(middleware.AuthMiddleware())
@@ -19,7 +21,12 @@ func MenuRoute(
 		// 메뉴 검색/등록/조회
 		menus.GET("/search", menuHandler.Search)
 		menus.POST("", menuHandler.Create)
-		menus.GET("/favorites", favoriteHandler.GetList) // /:id 보다 앞에 등록
+		// 선호도
+		menus.GET("/favorites", favoriteHandler.GetList)
+		// 룰렛
+		menus.POST("/roulette", rouletteHandler.Spin)
+		// 상황별 필터
+		menus.GET("/filter", filterHandler.Filter)
 		menus.GET("/:id", menuHandler.FindByID)
 
 		// 즐겨찾기

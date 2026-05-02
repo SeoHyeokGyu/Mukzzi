@@ -21,6 +21,8 @@ func NewRouter(
 	mealHandler *handler.MealHandler,
 	favoriteHandler *handler.FavoriteHandler,
 	preferenceHandler *handler.PreferenceHandler,
+	rouletteHandler *handler.RouletteHandler,
+	filterHandler *handler.MenuFilterHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -55,7 +57,7 @@ func NewRouter(
 		AuthRoute(api, authHandler)
 		UserRoute(api, userHandler)
 		CollectionRoute(api, collectionHandler)
-		MenuRoute(api, menuHandler, favoriteHandler, preferenceHandler)
+		MenuRoute(api, menuHandler, favoriteHandler, preferenceHandler, rouletteHandler, filterHandler)
 		SocialRoute(api, socialHandler)
 		NotificationRoute(api, notificationHandler)
 		MealRoute(api, mealHandler)
