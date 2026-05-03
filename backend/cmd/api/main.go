@@ -9,6 +9,7 @@ import (
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/config"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/handler"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/route"
+	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/infrastructure/eventbus"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/usecase"
 	"github.com/joho/godotenv"
@@ -35,6 +36,7 @@ func main() {
 	db := config.InitDB()
 	config.SeedTitles(db)
 	config.SeedBadges(db)
+	config.SeedQuests(db)
 
 	// Redis 초기화
 	rdb := config.InitRedis()
@@ -46,6 +48,8 @@ func main() {
 	}
 
 	// 의존성 주입 (DI)
+	eventBus := eventbus.NewInternalBus()
+
 	userRepo := repository.NewUserRepository(db)
 	badgeRepo := repository.NewBadgeRepository(db)
 	menuRepo := repository.NewMenuRepository(db)
@@ -61,6 +65,7 @@ func main() {
 	rewardRepo := repository.NewRewardRepository(db)
 	favoriteRepo := repository.NewFavoriteRepository(db)
 	preferenceRepo := repository.NewPreferenceRepository(db)
+	questRepo := repository.NewQuestRepository(db)
 
 	// Auth 도메인
 	authUsecase := usecase.NewAuthUsecase(userRepo, rdb)
@@ -75,8 +80,12 @@ func main() {
 	userUsecase := usecase.NewUserUsecase(userRepo, mealRepo, dailyIntakeRepo, badgeRepo, charCollectionRepo, characterRepo, notificationUsecase, rdb, db)
 	userHandler := handler.NewUserHandler(userUsecase)
 
+	// Quest 도메인
+	questUsecase := usecase.NewQuestUsecase(questRepo, userUsecase, characterRepo, db)
+	questHandler := handler.NewQuestHandler(questUsecase)
+
 	// 스케줄러 시작
-	config.StartScheduler(userUsecase)
+	config.StartScheduler(userUsecase, questUsecase)
 
 	// Collection 도메인
 	badgeGranter := usecase.NewBadgeGranter(badgeRepo, mealRepo, dailyIntakeRepo, charCollectionRepo)
@@ -106,13 +115,13 @@ func main() {
 	}
 
 	// Social 도메인
-	socialUsecase := usecase.NewSocialUsecase(socialRepo, userRepo, mealRepo, characterRepo, notificationUsecase, rdb)
+	socialUsecase := usecase.NewSocialUsecase(socialRepo, userRepo, mealRepo, characterRepo, notificationUsecase, eventBus, rdb)
 	socialHandler := handler.NewSocialHandler(socialUsecase)
 
 	// Meal 도메인
 	masteryTracker := usecase.NewMasteryTracker(masteryRepo)
 	titleGranter := usecase.NewTitleGranter(titleRepo)
-	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, userUsecase, badgeGranter, masteryTracker, titleGranter, notificationUsecase, db)
+	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, userUsecase, badgeGranter, masteryTracker, titleGranter, notificationUsecase, eventBus, questUsecase, db)
 	mealHandler := handler.NewMealHandler(mealUsecase)
 
 	// Roulette 도메인
@@ -137,6 +146,7 @@ func main() {
 		preferenceHandler,
 		rouletteHandler,
 		filterHandler,
+		questHandler,
 	)
 
 	// 서버 실행

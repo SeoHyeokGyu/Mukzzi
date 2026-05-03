@@ -99,6 +99,8 @@ type mealUsecase struct {
 	masteryTracker      MasteryTracker
 	titleGranter        TitleGranter
 	notificationUsecase NotificationUsecase
+	eventBus            domain.EventBus
+	questUc             QuestUsecase
 	db                  *gorm.DB
 }
 
@@ -112,6 +114,8 @@ func NewMealUsecase(
 	masteryTracker MasteryTracker,
 	titleGranter TitleGranter,
 	notificationUsecase NotificationUsecase,
+	eventBus domain.EventBus,
+	questUc QuestUsecase,
 	db *gorm.DB,
 ) MealUsecase {
 	return &mealUsecase{
@@ -124,6 +128,8 @@ func NewMealUsecase(
 		masteryTracker:      masteryTracker,
 		titleGranter:        titleGranter,
 		notificationUsecase: notificationUsecase,
+		eventBus:            eventBus,
+		questUc:             questUc,
 		db:                  db,
 	}
 }
@@ -255,8 +261,25 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 		slog.Error("streak 갱신 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
 	}
 
+	// 퀘스트 진행도 갱신
+	event := domain.Event{
+		Type:      domain.EventMealCreated,
+		UserID:    input.UserID,
+		CreatedAt: time.Now(),
+		Payload: map[string]interface{}{
+			"meal_id":   output.Meal.ID,
+			"meal_type": string(output.Meal.MealType),
+		},
+	}
+	u.eventBus.Publish(event)
+	progressedQuests, err := u.questUc.HandleEvent(ctx, event)
+	if err != nil {
+		slog.Error("퀘스트 업데이트 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
+		progressedQuests = []domain.QuestProgress{}
+	}
+
 	output.SideEffects = &domain.MealSideEffects{
-		QuestsProgressed: []domain.QuestProgress{},
+		QuestsProgressed: progressedQuests,
 		MasteryUpdated:   masteryUpdate,
 		GrantedBadges:    grantedBadges,
 		GrantedTitle:     grantedTitle,

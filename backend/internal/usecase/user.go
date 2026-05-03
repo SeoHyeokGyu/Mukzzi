@@ -37,6 +37,7 @@ type UserUsecase interface {
 	GetRecommendations(id int64) ([]domain.User, error)
 	Onboarding(id int64, mukzziName string, height, weight float64, activityLevel domain.ActivityLevel, goal domain.DietGoal, bodyType, muscle, skinTone, expression int) error
 	AddExp(userID int64, amount int) (*AddExpResult, error)
+	AddPoint(ctx context.Context, userID int64, amount int) error
 	UpdateStreakOnMeal(userID int64, recordedAt time.Time) error
 	RunInactivityPenalty() error
 	SyncRankingToRedis(ctx context.Context) error
@@ -371,6 +372,10 @@ func (u *userUsecase) AddExp(userID int64, amount int) (*AddExpResult, error) {
 	u.rdb.Del(ctx, fmt.Sprintf("user:char:%d", userID))
 
 	return result, nil
+}
+
+func (u *userUsecase) AddPoint(ctx context.Context, userID int64, amount int) error {
+	return u.userRepo.AddPoint(userID, amount)
 }
 
 func (u *userUsecase) UpdateStreakOnMeal(userID int64, recordedAt time.Time) error {

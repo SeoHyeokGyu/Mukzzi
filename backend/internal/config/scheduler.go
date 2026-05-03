@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"log/slog"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 )
 
 // StartScheduler 는 백그라운드 크론 스케줄러를 시작합니다.
-func StartScheduler(userUsecase usecase.UserUsecase) {
+func StartScheduler(userUsecase usecase.UserUsecase, questUsecase usecase.QuestUsecase) {
 	loc, err := time.LoadLocation("Asia/Seoul")
 	if err != nil {
 		loc = time.Local
@@ -22,7 +23,10 @@ func StartScheduler(userUsecase usecase.UserUsecase) {
 		name string
 	}{
 		{"0 0 * * *", func() { runPhysicalDeletion(userUsecase) }, "탈퇴 회원 물리 삭제"},
-		{"0 5 * * *", func() { runInactivityPenalty(userUsecase) }, "패널티 상태 갱신"},
+		{"0 5 * * *", func() {
+			runInactivityPenalty(userUsecase)
+			runQuestReset(questUsecase)
+		}, "패널티 상태 및 퀘스트 갱신"},
 	}
 
 	for _, job := range jobs {
@@ -52,5 +56,14 @@ func runInactivityPenalty(userUsecase usecase.UserUsecase) {
 		slog.Error("패널티 상태 갱신 중 오류 발생", slog.Any("error", err))
 	} else {
 		slog.Info("패널티 상태 갱신 작업 완료")
+	}
+}
+
+func runQuestReset(questUsecase usecase.QuestUsecase) {
+	slog.Info("일일 퀘스트 초기화 및 할당 작업 시작")
+	if err := questUsecase.AssignAllUsersDailyQuests(context.Background()); err != nil {
+		slog.Error("일일 퀘스트 초기화 중 오류 발생", slog.Any("error", err))
+	} else {
+		slog.Info("일일 퀘스트 초기화 및 할당 작업 완료")
 	}
 }

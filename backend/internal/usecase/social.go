@@ -58,6 +58,7 @@ type socialUsecase struct {
 	mealRepo      repository.MealRepository
 	characterRepo repository.CharacterRepository
 	notificationUc NotificationUsecase
+	eventBus      domain.EventBus
 	rdb           *redis.Client
 }
 
@@ -67,6 +68,7 @@ func NewSocialUsecase(
 	mealRepo repository.MealRepository,
 	characterRepo repository.CharacterRepository,
 	notificationUc NotificationUsecase,
+	eventBus domain.EventBus,
 	rdb *redis.Client,
 ) SocialUsecase {
 	return &socialUsecase{
@@ -75,6 +77,7 @@ func NewSocialUsecase(
 		mealRepo:      mealRepo,
 		characterRepo: characterRepo,
 		notificationUc: notificationUc,
+		eventBus:      eventBus,
 		rdb:           rdb,
 	}
 }
@@ -245,7 +248,18 @@ func (u *socialUsecase) Nudge(senderID, receiverID int64) error {
 	ttl := tomorrow.Sub(nowInLoc)
 
 	// Redis에 응원 기록 저장 (자정까지 유효)
-	return u.rdb.Set(ctx, nudgeKey, "1", ttl).Err()
+	if err := u.rdb.Set(ctx, nudgeKey, "1", ttl).Err(); err != nil {
+		return err
+	}
+
+	// 퀘스트용 이벤트 발행
+	u.eventBus.Publish(domain.Event{
+		Type:      domain.EventFriendNudged,
+		UserID:    senderID,
+		CreatedAt: time.Now(),
+	})
+
+	return nil
 }
 
 func (u *socialUsecase) GetGuestbooks(targetUserID int64, page, limit int) ([]domain.Guestbook, error) {
@@ -272,6 +286,13 @@ func (u *socialUsecase) WriteGuestbook(entry *domain.Guestbook) error {
 			Content:  sender.Nickname + "님이 방명록에 글을 남겼습니다.",
 		})
 	}
+
+	// 퀘스트용 이벤트 발행
+	u.eventBus.Publish(domain.Event{
+		Type:      domain.EventGuestbookPosted,
+		UserID:    entry.WriterID,
+		CreatedAt: time.Now(),
+	})
 
 	return nil
 }
