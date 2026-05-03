@@ -15,6 +15,8 @@ import 'package:mukzzi/src/features/notification/presentation/providers/notifica
 import 'package:mukzzi/src/features/character/data/models/character_model.dart';
 import 'package:mukzzi/src/features/character/presentation/providers/character_provider.dart';
 import 'package:mukzzi/src/features/profile/presentation/providers/user_provider.dart';
+import 'package:mukzzi/src/features/home/presentation/widgets/menu_decision_section.dart';
+
 
 // Mock 데이터 - 추후 API로 교체
 const double _caloriesConsumed = 1200;
@@ -216,7 +218,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           const SizedBox(height: 12),
           _buildNutritionCard(tokens),
           const SizedBox(height: 12),
-          _buildRecommendCard(tokens),
+          _animated(const MenuDecisionSection(), delay: 200.ms, slideY: true),
           const SizedBox(height: 24),
           _buildRecentMeals(tokens),
           const SizedBox(height: 16),
@@ -551,46 +553,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
     );
     return _animated(card, delay: 160.ms, slideY: true);
-  }
-
-  Widget _buildRecommendCard(AppColorTokens tokens) {
-    final card = BentoCard(
-      borderRadius: BorderRadius.circular(tokens.rCard),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      onTap: () => ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('준비 중입니다'))),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: tokens.primaryBg,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(Icons.help_outline, color: tokens.primary, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '오늘 뭐 먹지?',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: tokens.textPrimary),
-                ),
-                Text(
-                  'AI가 오늘 식사를 추천해드려요',
-                  style: TextStyle(fontSize: 11, color: tokens.textMuted),
-                ),
-              ],
-            ),
-          ),
-          Icon(Icons.chevron_right, color: tokens.textMuted, size: 20),
-        ],
-      ),
-    );
-    return _animated(card, delay: 200.ms, slideY: true);
   }
 
   Widget _buildRecentMeals(AppColorTokens tokens) {

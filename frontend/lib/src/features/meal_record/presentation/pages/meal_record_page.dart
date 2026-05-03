@@ -189,6 +189,7 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
   late TabController _tabController;
   late TextEditingController _menuController;
   late MealType _selectedMealType;
+  MenuModel? _initialMenu;
 
   @override
   void initState() {
@@ -196,6 +197,33 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
     _tabController = TabController(length: 2, vsync: this);
     _menuController = TextEditingController();
     _selectedMealType = MealTypeHelper.fromHour(TimeOfDay.now().hour);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final extra = GoRouterState.of(context).extra as Map<String, dynamic>?;
+    if (extra != null && _initialMenu == null) {
+      final menuName = extra['menuName'] as String?;
+      final menuId = extra['menuId'] as String?;
+      if (menuName != null) {
+        _menuController.text = menuName;
+        if (menuId != null) {
+          _initialMenu = MenuModel(
+            id: menuId,
+            name: menuName,
+            category: extra['category'] as String? ?? 'KOREAN',
+            source: '',
+            defaultCalories: (extra['calories'] as num?)?.toDouble() ?? 0,
+            defaultCarbs: (extra['carbs'] as num?)?.toDouble() ?? 0,
+            defaultProtein: (extra['protein'] as num?)?.toDouble() ?? 0,
+            defaultFat: (extra['fat'] as num?)?.toDouble() ?? 0,
+            defaultFiber: 0,
+            defaultVitaminScore: 0,
+          );
+        }
+      }
+    }
   }
 
   @override
@@ -230,12 +258,14 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
         children: [
           _MealInputTab(
             menuController: _menuController,
+            initialMenu: _initialMenu,
             selectedMealType: _selectedMealType,
             onMealTypeChanged: (v) => setState(() => _selectedMealType = v),
             onSaved: () {
               ref.read(mealListProvider.notifier).refresh();
               _tabController.animateTo(1);
               _menuController.clear();
+              setState(() => _initialMenu = null);
             },
           ),
           _MealListTab(onAddTap: () => _tabController.animateTo(0)),
@@ -251,12 +281,14 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
 
 class _MealInputTab extends ConsumerStatefulWidget {
   final TextEditingController menuController;
+  final MenuModel? initialMenu;
   final MealType selectedMealType;
   final ValueChanged<MealType> onMealTypeChanged;
   final VoidCallback onSaved;
 
   const _MealInputTab({
     required this.menuController,
+    this.initialMenu,
     required this.selectedMealType,
     required this.onMealTypeChanged,
     required this.onSaved,
@@ -272,9 +304,19 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
   double _servingSize = 1.0;
   String? _selectedWeather;
   String? _selectedMood;
-  String? _selectedPreference; // 'LIKE' | 'DISLIKE' | null
-  bool _wantFavorite = false; // 즐겨찾기 로컬 토글 (저장 시 API 호출)
+  String? _selectedPreference;
+  bool _wantFavorite = false;
   MenuModel? _selectedMenu;
+
+  @override
+  void initState() {
+    super.initState();
+    // 룰렛/필터에서 넘어온 메뉴 초기값 세팅
+    if (widget.initialMenu != null) {
+      _selectedMenu = widget.initialMenu;
+      _wantFavorite = false;
+    }
+  }
 
   String? _getMealTypeMismatchWarning() {
     final expected = MealTypeHelper.fromHour(_selectedTime.hour);
@@ -342,10 +384,8 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
     if (!mounted) return;
 
     if (success) {
-      // 식사 저장 성공 후 메뉴 ID 기반 후속 처리
       final savedMenu = _selectedMenu;
       if (savedMenu != null) {
-        // 1. 즐겨찾기 — 로컬 토글 상태와 실제 상태가 다를 때만 API 호출
         final isFav = ref.read(favoriteListProvider).isFavorite(savedMenu.id);
         if (_wantFavorite != isFav) {
           try {
@@ -353,7 +393,6 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
           } catch (_) {}
         }
 
-        // 2. 선호도
         if (_selectedPreference != null) {
           try {
             await ref
@@ -402,11 +441,9 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── 식사 사진 영역 ──
           _PhotoArea(tokens: tokens),
           const SizedBox(height: 16),
 
-          // ── 음식 검색 ──
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -419,14 +456,12 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
             controller: widget.menuController,
             onMenuSelected: (menu) => setState(() {
               _selectedMenu = menu;
-              // 메뉴 선택 시 실제 즐겨찾기 상태로 초기화
               _wantFavorite = menu != null
                   ? ref.read(favoriteListProvider).isFavorite(menu.id)
                   : false;
             }),
           ),
 
-          // ── 선택된 음식 아이템 리스트 ──
           if (_selectedMenu != null) ...[
             const SizedBox(height: 8),
             _FoodItemRow(
@@ -443,7 +478,6 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
               tokens: tokens,
             ),
             const SizedBox(height: 12),
-            // ── 칼로리 요약 ──
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               decoration: BoxDecoration(
@@ -486,7 +520,6 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
           ],
           const SizedBox(height: 20),
 
-          // ── 식사 옵션 ──
           _MealOptionsSection(
             selectedMealType: widget.selectedMealType,
             onMealTypeChanged: widget.onMealTypeChanged,
@@ -506,7 +539,6 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
           ),
           const SizedBox(height: 20),
 
-          // ── 저장 버튼 ──
           SizedBox(
             width: double.infinity,
             height: 56,
@@ -636,7 +668,6 @@ class _FoodItemRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            // 즐겨찾기 토글 (로컬 상태, 저장 시 API 호출)
             GestureDetector(
               onTap: onFavoriteToggle,
               child: Icon(
@@ -646,7 +677,6 @@ class _FoodItemRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            // 메뉴명 + 인분/칼로리
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -668,7 +698,6 @@ class _FoodItemRow extends StatelessWidget {
                 ],
               ),
             ),
-            // 인분 조절
             Container(
               decoration: BoxDecoration(
                 color: tokens.listItemBg,
@@ -755,7 +784,7 @@ class _MealOptionsSection extends StatefulWidget {
   final ValueChanged<String?> onMoodChanged;
   final String? selectedPreference;
   final ValueChanged<String?> onPreferenceChanged;
-  final bool hasMenu; // 메뉴가 선택됐을 때만 선호도 노출
+  final bool hasMenu;
   final String? warning;
   final AppColorTokens tokens;
 
@@ -794,7 +823,6 @@ class _MealOptionsSectionState extends State<_MealOptionsSection> {
       ),
       child: Column(
         children: [
-          // 식사 종류 + 시간 (항상 노출)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             child: Column(
@@ -877,7 +905,6 @@ class _MealOptionsSectionState extends State<_MealOptionsSection> {
               ],
             ),
           ),
-          // 더보기 토글 (날씨/기분/선호도)
           GestureDetector(
             onTap: () => setState(() => _expanded = !_expanded),
             child: Padding(
@@ -898,7 +925,6 @@ class _MealOptionsSectionState extends State<_MealOptionsSection> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
               child: Column(
                 children: [
-                  // 날씨 / 기분
                   Row(
                     children: [
                       Expanded(
@@ -936,7 +962,6 @@ class _MealOptionsSectionState extends State<_MealOptionsSection> {
                       ),
                     ],
                   ),
-                  // 선호도 (메뉴가 선택된 경우만)
                   if (widget.hasMenu) ...[
                     const SizedBox(height: 12),
                     Row(
@@ -1265,8 +1290,7 @@ class _DetailRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 72,
-            child: Text(label,
-                style: TextStyle(color: tokens.textMuted)),
+            child: Text(label, style: TextStyle(color: tokens.textMuted)),
           ),
           Expanded(child: Text(value)),
         ],
@@ -1306,8 +1330,7 @@ class _EmptyState extends StatelessWidget {
                   ?.copyWith(color: tokens.textSub)),
           const SizedBox(height: 6),
           Text(sub,
-              style: TextStyle(
-                  fontSize: 13, color: tokens.textMuted)),
+              style: TextStyle(fontSize: 13, color: tokens.textMuted)),
           if (actionLabel != null && onAction != null) ...[
             const SizedBox(height: 20),
             FilledButton(
