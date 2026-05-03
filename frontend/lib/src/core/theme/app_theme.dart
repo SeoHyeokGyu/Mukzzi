@@ -83,6 +83,8 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
   // Text on the hero card (always a light background in both themes)
   final Color heroText;
   final Color heroTextSub;
+  final Color paper;
+  final Color paperLine;
   final Gradient bgGrad;
   final Gradient cardHeroGrad;
   final Gradient charBgNormal;
@@ -104,6 +106,8 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     required this.primaryBg,
     required this.heroText,
     required this.heroTextSub,
+    required this.paper,
+    required this.paperLine,
     required this.bgGrad,
     required this.cardHeroGrad,
     required this.charBgNormal,
@@ -126,6 +130,8 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     primaryBg: Color(0x24FF7A3D),
     heroText: Color(0xFF3A2010),
     heroTextSub: Color(0xA63A2010),
+    paper: Color(0xFFFAFAFA),
+    paperLine: Color(0x14000000),
     bgGrad: LinearGradient(
       colors: [Color(0xFF14110E), Color(0xFF1C1611)],
       begin: Alignment.topCenter,
@@ -165,6 +171,8 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     primaryBg: AppColors.lightPrimaryBg,
     heroText: AppColors.lightTextPrimary,
     heroTextSub: AppColors.lightTextSecondary,
+    paper: Color(0xFFFAFAFA),
+    paperLine: Color(0x14000000),
     bgGrad: LinearGradient(
       colors: [AppColors.lightBackground, Color(0xFFF8EFE3)],
       begin: Alignment.topCenter,
@@ -205,6 +213,8 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     Color? primaryBg,
     Color? heroText,
     Color? heroTextSub,
+    Color? paper,
+    Color? paperLine,
     Gradient? bgGrad,
     Gradient? cardHeroGrad,
     Gradient? charBgNormal,
@@ -226,6 +236,8 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
       primaryBg: primaryBg ?? this.primaryBg,
       heroText: heroText ?? this.heroText,
       heroTextSub: heroTextSub ?? this.heroTextSub,
+      paper: paper ?? this.paper,
+      paperLine: paperLine ?? this.paperLine,
       bgGrad: bgGrad ?? this.bgGrad,
       cardHeroGrad: cardHeroGrad ?? this.cardHeroGrad,
       charBgNormal: charBgNormal ?? this.charBgNormal,
@@ -252,6 +264,8 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
       primaryBg: Color.lerp(primaryBg, other.primaryBg, t)!,
       heroText: Color.lerp(heroText, other.heroText, t)!,
       heroTextSub: Color.lerp(heroTextSub, other.heroTextSub, t)!,
+      paper: Color.lerp(paper, other.paper, t)!,
+      paperLine: Color.lerp(paperLine, other.paperLine, t)!,
       // Gradient lerp across dark↔light is jarring; snap at midpoint
       bgGrad: t < 0.5 ? bgGrad : other.bgGrad,
       cardHeroGrad: t < 0.5 ? cardHeroGrad : other.cardHeroGrad,

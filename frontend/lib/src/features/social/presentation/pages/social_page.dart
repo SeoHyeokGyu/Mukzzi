@@ -188,7 +188,7 @@ class _FeedCardState extends State<_FeedCard> {
                       color: tokens.primaryBg,
                       child: const MukzziCharacter(
                         state: CharacterState.normal,
-                        size: 40,
+                        size: 80,
                         level: 1,
                       ),
                     ),
@@ -424,7 +424,7 @@ class _RankingTab extends ConsumerWidget {
                             child: Center(
                               child: MukzziCharacter(
                                 state: _stateFromPenalty(r.penaltyStatus),
-                                size: 48,
+                                size: 64,
                                 level: r.level,
                               ),
                             ),
@@ -495,7 +495,7 @@ class _RankingTab extends ConsumerWidget {
                             child: Center(
                               child: MukzziCharacter(
                                 state: _stateFromPenalty(r.penaltyStatus),
-                                size: 34,
+                                size: 64,
                                 level: r.level,
                               ),
                             ),
