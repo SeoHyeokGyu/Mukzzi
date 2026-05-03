@@ -236,6 +236,18 @@ class _HomePageState extends ConsumerState<HomePage> {
       showPaperTexture: true,
       borderRadius: BorderRadius.circular(tokens.rHero),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+      shadows: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.3),
+          blurRadius: 16,
+          offset: const Offset(0, 4),
+        ),
+        BoxShadow(
+          color: state.indicatorColor.withValues(alpha: 0.18),
+          blurRadius: 28,
+          spreadRadius: 2,
+        ),
+      ],
       child: Column(
         children: [
           Row(
@@ -257,18 +269,25 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _stateIndicatorColor(state),
+                  color: state.indicatorColor,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(
-                  state.label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A1A1A),
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(state.icon, size: 11, color: const Color(0xFF1A1A1A)),
+                    const SizedBox(width: 3),
+                    Text(
+                      state.label,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A1A1A),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -383,16 +402,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
     );
     return _animated(row, delay: 100.ms, slideY: true);
-  }
-
-  Color _stateIndicatorColor(CharacterState s) {
-    return switch (s) {
-      CharacterState.happy    => const Color(0xFFFF85A1),
-      CharacterState.hungry   => const Color(0xFFFFCC33),
-      CharacterState.starving => const Color(0xFFFF4444),
-      CharacterState.sleeping => const Color(0xFF2D6BFF),
-      CharacterState.normal   => const Color(0xFF4CAF50),
-    };
   }
 
   Widget _buildQuickCTAs(AppColorTokens tokens) {

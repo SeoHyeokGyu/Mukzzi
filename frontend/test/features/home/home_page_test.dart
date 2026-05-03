@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mukzzi/src/core/theme/app_theme.dart';
 import 'package:mukzzi/src/features/home/presentation/pages/home_page.dart';
 
-Widget _wrap(Widget child) => MaterialApp(theme: AppTheme.darkTheme, home: child);
+Widget _wrap(Widget child) => ProviderScope(child: MaterialApp(theme: AppTheme.darkTheme, home: child));
 
 void main() {
   group('HomePage', () {
