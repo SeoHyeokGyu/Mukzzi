@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
-	"github.com/redis/go-redis/v9"
+	"github.com/go-redis/redismock/v9"
 )
 
 // mockMenuRepository 테스트용 mock 저장소
@@ -95,7 +95,8 @@ func TestMenuSearch_Basic(t *testing.T) {
 	mockRepo := NewMockMenuRepository()
 	favRepo := &mockFavoriteRepository{}
 	prefRepo := &mockPreferenceRepository{}
-	uc := NewMenuUsecase(mockRepo, favRepo, prefRepo, redis.NewClient(&redis.Options{}))
+	db, _ := redismock.NewClientMock()
+	uc := NewMenuUsecase(mockRepo, favRepo, prefRepo, db)
 
 	t.Run("검색어로 메뉴 조회", func(t *testing.T) {
 		result, err := uc.Search(context.Background(), domain.SearchMenuQuery{
@@ -115,7 +116,8 @@ func TestMenuSearch_Pagination(t *testing.T) {
 	mockRepo := NewMockMenuRepository()
 	favRepo := &mockFavoriteRepository{}
 	prefRepo := &mockPreferenceRepository{}
-	uc := NewMenuUsecase(mockRepo, favRepo, prefRepo, redis.NewClient(&redis.Options{}))
+	db, _ := redismock.NewClientMock()
+	uc := NewMenuUsecase(mockRepo, favRepo, prefRepo, db)
 
 	t.Run("limit 초과 시 has_next true", func(t *testing.T) {
 		result, err := uc.Search(context.Background(), domain.SearchMenuQuery{
