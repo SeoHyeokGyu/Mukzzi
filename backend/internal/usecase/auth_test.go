@@ -2,8 +2,10 @@ package usecase
 
 import (
 	"testing"
+	"time"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
+	"github.com/go-redis/redismock/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/crypto/bcrypt"
@@ -94,6 +96,11 @@ func (m *MockUserRepository) UpdateEquippedTitle(userID int64, titleID *int64) e
 	return args.Error(0)
 }
 
+func (m *MockUserRepository) AddPoint(userID int64, amount int) error {
+	args := m.Called(userID, amount)
+	return args.Error(0)
+}
+
 func (m *MockUserRepository) DeletePhysicallyExpired(days int) error {
 	args := m.Called(days)
 	return args.Error(0)
@@ -101,8 +108,8 @@ func (m *MockUserRepository) DeletePhysicallyExpired(days int) error {
 
 func TestAuthUsecase_Login(t *testing.T) {
 	mockRepo := new(MockUserRepository)
-	// NewAuthUsecase 에 nil (redis.Client) 추가
-	uc := NewAuthUsecase(mockRepo, nil)
+	db, mockRedis := redismock.NewClientMock()
+	uc := NewAuthUsecase(mockRepo, db)
 
 	t.Run("로그인 성공", func(t *testing.T) {
 		hashed, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
@@ -113,6 +120,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 		}
 
 		mockRepo.On("GetByUsername", "test").Return(mockUser, nil)
+		mockRedis.Regexp().ExpectSet("refresh_token:1", ".*", 24*14*time.Hour).SetVal("OK")
 
 		// Login 반환값이 (accessToken, refreshToken, user, error) 로 변경됨
 		accessToken, refreshToken, user, err := uc.Login("test", "", "password")
@@ -122,6 +130,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 		assert.NotEmpty(t, refreshToken)
 		assert.Equal(t, mockUser, user)
 		mockRepo.AssertExpectations(t)
+		assert.NoError(t, mockRedis.ExpectationsWereMet())
 	})
 
 	t.Run("로그인 실패 - 잘못된 비밀번호", func(t *testing.T) {

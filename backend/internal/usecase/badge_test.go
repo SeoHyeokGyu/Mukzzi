@@ -103,12 +103,10 @@ func TestBadgeUsecase_GetBadges(t *testing.T) {
 
 	t.Run("미획득 뱃지만 필터링하여 조회", func(t *testing.T) {
 		userID := int64(100)
-		acquiredBadges := []domain.UserBadge{
-			{UserID: userID, BadgeID: 1, AcquiredAt: now},
-		}
 
-		mockRepo.On("FindAllBadges", 21, 0).Return(allBadges, nil)
-		mockRepo.On("FindUserAcquiredBadges", userID).Return(acquiredBadges, nil)
+		// 획득하지 않은 뱃지만 반환하도록 모킹
+		unacquiredBadges := []domain.Badge{allBadges[1]}
+		mockRepo.On("FindUnacquiredBadges", userID, 21, 0).Return(unacquiredBadges, nil)
 
 		result, err := uc.GetBadges(context.Background(), domain.GetBadgesQuery{
 			UserID:          userID,
@@ -119,5 +117,6 @@ func TestBadgeUsecase_GetBadges(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, result.Badges, 1)
 		assert.Equal(t, int64(2), result.Badges[0].ID)
+		mockRepo.AssertExpectations(t)
 	})
 }

@@ -3,14 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers/common_providers.dart';
-import '../providers/favorite_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
+import '../../../../core/widgets/shimmer_card.dart';
+import '../../../quest/data/models/quest_model.dart';
+import '../../../quest/presentation/providers/quest_provider.dart';
 import '../../data/models/meal_model.dart';
 import '../../data/models/menu_model.dart';
 import '../../data/repositories/meal_repository.dart';
 import '../../data/repositories/preference_repository.dart';
+import '../providers/favorite_provider.dart';
 import '../widgets/menu_search_field.dart';
 
 // ─────────────────────────────────────────
@@ -31,15 +34,20 @@ class MealCreateState {
   final bool isLoading;
   final String? error;
   final MealRecord? created;
-  final GrantedTitleInfo? grantedTitle;
+  final MealSideEffects? sideEffects;
 
-  const MealCreateState({this.isLoading = false, this.error, this.created, this.grantedTitle});
+  const MealCreateState({
+    this.isLoading = false,
+    this.error,
+    this.created,
+    this.sideEffects,
+  });
 
   MealCreateState copyWith({
     bool? isLoading,
     String? error,
     MealRecord? created,
-    GrantedTitleInfo? grantedTitle,
+    MealSideEffects? sideEffects,
     bool clearError = false,
     bool clearCreated = false,
   }) =>
@@ -47,14 +55,15 @@ class MealCreateState {
         isLoading: isLoading ?? this.isLoading,
         error: clearError ? null : error ?? this.error,
         created: clearCreated ? null : created ?? this.created,
-        grantedTitle: grantedTitle ?? this.grantedTitle,
+        sideEffects: sideEffects ?? this.sideEffects,
       );
 }
 
 class MealCreateNotifier extends StateNotifier<MealCreateState> {
   final MealRepository _repo;
+  final Ref _ref;
 
-  MealCreateNotifier(this._repo) : super(const MealCreateState());
+  MealCreateNotifier(this._repo, this._ref) : super(const MealCreateState());
 
   Future<bool> submit(CreateMealRequest request) async {
     state = state.copyWith(isLoading: true, clearError: true, clearCreated: true);
@@ -63,8 +72,12 @@ class MealCreateNotifier extends StateNotifier<MealCreateState> {
       state = state.copyWith(
         isLoading: false,
         created: result.meal,
-        grantedTitle: result.grantedTitle,
+        sideEffects: result.sideEffects,
       );
+      
+      // 퀘스트 정보 갱신
+      _ref.read(questProvider.notifier).fetchQuests();
+      
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -75,7 +88,7 @@ class MealCreateNotifier extends StateNotifier<MealCreateState> {
 
 final mealCreateProvider =
 StateNotifierProvider.autoDispose<MealCreateNotifier, MealCreateState>(
-      (ref) => MealCreateNotifier(ref.watch(mealRepositoryProvider)),
+      (ref) => MealCreateNotifier(ref.watch(mealRepositoryProvider), ref),
 );
 
 // --- List ---
@@ -330,24 +343,14 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
     return '선택한 시간은 ${labels[expected]} 시간대예요';
   }
 
-  void _showTitleAcquiredSnackBar(GrantedTitleInfo title) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.emoji_events_outlined, color: Colors.amber),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                '칭호 획득: ${title.name}',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
-        duration: const Duration(seconds: 4),
-        behavior: SnackBarBehavior.floating,
-      ),
+  void _showSideEffectsOverlay(MealSideEffects? sideEffects) {
+    if (sideEffects == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _SideEffectsBottomSheet(sideEffects: sideEffects),
     );
   }
 
@@ -402,15 +405,15 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
         }
       }
 
-      if (mounted) {
+      final sideEffects = ref.read(mealCreateProvider).sideEffects;
+      if (sideEffects != null && mounted) {
+        _showSideEffectsOverlay(sideEffects);
+      } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('식사 기록이 저장되었습니다')),
         );
       }
-      final grantedTitle = ref.read(mealCreateProvider).grantedTitle;
-      if (grantedTitle != null && mounted) {
-        _showTitleAcquiredSnackBar(grantedTitle);
-      }
+
       setState(() {
         _selectedMenu = null;
         _servingSize = 1.0;
@@ -1091,7 +1094,14 @@ class _MealListTabState extends ConsumerState<_MealListTab> {
     final listState = ref.watch(mealListProvider);
 
     if (listState.isLoading && listState.records.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: 5,
+        itemBuilder: (context, index) => const Padding(
+          padding: EdgeInsets.only(bottom: 12),
+          child: ShimmerListItem(),
+        ),
+      );
     }
 
     if (listState.error != null && listState.records.isEmpty) {
@@ -1338,6 +1348,136 @@ class _EmptyState extends StatelessWidget {
               child: Text(actionLabel!),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SideEffectsBottomSheet extends StatelessWidget {
+  final MealSideEffects sideEffects;
+
+  const _SideEffectsBottomSheet({required this.sideEffects});
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
+      decoration: BoxDecoration(
+        color: tokens.card,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: tokens.textMuted.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            '기록 완료!',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '+${sideEffects.expGained} XP 획득',
+            style: TextStyle(fontSize: 14, color: tokens.primary, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 24),
+          if (sideEffects.questsProgressed.isNotEmpty) ...[
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '퀘스트 진행도',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...sideEffects.questsProgressed.map((q) => _QuestProgressOverlayItem(q: q, tokens: tokens)),
+            const SizedBox(height: 12),
+          ],
+          if (sideEffects.grantedTitle != null) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: tokens.primaryBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: tokens.primary.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.stars, color: Colors.orange),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('새로운 칭호 획득!', style: TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.bold)),
+                        Text(sideEffects.grantedTitle!.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: tokens.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('확인', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuestProgressOverlayItem extends StatelessWidget {
+  final QuestProgressInfoModel q;
+  final AppColorTokens tokens;
+
+  const _QuestProgressOverlayItem({required this.q, required this.tokens});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(q.questType, style: const TextStyle(fontSize: 12)),
+              Text('${q.progress} / ${q.target}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: q.progress / q.target,
+              minHeight: 4,
+              backgroundColor: tokens.primaryBg,
+              valueColor: AlwaysStoppedAnimation<Color>(q.completed ? Colors.green : tokens.primary),
+            ),
+          ),
         ],
       ),
     );

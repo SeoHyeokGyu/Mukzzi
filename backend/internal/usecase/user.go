@@ -37,7 +37,10 @@ type UserUsecase interface {
 	GetRecommendations(id int64) ([]domain.User, error)
 	Onboarding(id int64, mukzziName string, height, weight float64, activityLevel domain.ActivityLevel, goal domain.DietGoal, bodyType, muscle, skinTone, expression int) error
 	AddExp(userID int64, amount int) (*AddExpResult, error)
+	AddPoint(ctx context.Context, userID int64, amount int) error
 	UpdateStreakOnMeal(userID int64, recordedAt time.Time) error
+	RecalculateStreak(userID int64) error
+	RecalculateAllUsersStreak() error
 	RunInactivityPenalty() error
 	SyncRankingToRedis(ctx context.Context) error
 }
@@ -50,11 +53,11 @@ type userUsecase struct {
 	charRepo        repository.CharacterCollectionRepository
 	characterRepo   repository.CharacterRepository
 	notificationUc  NotificationUsecase
+	eventBus        domain.EventBus
 	rdb             *redis.Client
 	db              *gorm.DB
 }
 
-// NewUserUsecase 는 UserUsecase 인터페이스의 구현체를 반환합니다.
 func NewUserUsecase(
 	userRepo repository.UserRepository,
 	mealRepo repository.MealRepository,
@@ -63,6 +66,7 @@ func NewUserUsecase(
 	charRepo repository.CharacterCollectionRepository,
 	characterRepo repository.CharacterRepository,
 	notificationUc NotificationUsecase,
+	eventBus domain.EventBus,
 	rdb *redis.Client,
 	db *gorm.DB,
 ) UserUsecase {
@@ -74,6 +78,7 @@ func NewUserUsecase(
 		charRepo:        charRepo,
 		characterRepo:   characterRepo,
 		notificationUc:  notificationUc,
+		eventBus:        eventBus,
 		rdb:             rdb,
 		db:              db,
 	}
@@ -143,8 +148,8 @@ func (u *userUsecase) UpdateProfile(id int64, nickname, profileImageURL string) 
 		return err
 	}
 
-	// 캐시 삭제
-	u.rdb.Del(context.Background(), fmt.Sprintf("user:profile:%d", id))
+	// 캐시 삭제 (비동기)
+	go u.rdb.Del(context.Background(), fmt.Sprintf("user:profile:%d", id))
 	return nil
 }
 
@@ -166,8 +171,8 @@ func (u *userUsecase) UpdateBody(id int64, height, weight float64, activityLevel
 		return u.userRepo.CreateOrUpdateNutritionGoal(nutritionGoal)
 	}
 
-	// 정보 변경 시 프로필 캐시 삭제 (isOnboarded 등 상태 변경 가능성)
-	u.rdb.Del(context.Background(), fmt.Sprintf("user:profile:%d", id))
+	// 정보 변경 시 프로필 캐시 삭제 (비동기)
+	go u.rdb.Del(context.Background(), fmt.Sprintf("user:profile:%d", id))
 	return nil
 }
 
@@ -324,6 +329,13 @@ func (u *userUsecase) Onboarding(id int64, mukzziName string, height, weight flo
 		u.rdb.Del(context.Background(), fmt.Sprintf("user:char:%d", id))
 		u.rdb.Del(context.Background(), fmt.Sprintf("user:profile:%d", id))
 
+		// 첫 일일 퀘스트 즉시 할당을 위한 이벤트 발행
+		u.eventBus.Publish(domain.Event{
+			Type:      domain.EventUserOnboarded,
+			UserID:    id,
+			CreatedAt: time.Now(),
+		})
+
 		return nil
 	})
 }
@@ -337,7 +349,6 @@ type AddExpResult struct {
 }
 
 func (u *userUsecase) AddExp(userID int64, amount int) (*AddExpResult, error) {
-	ctx := context.Background()
 	result := &AddExpResult{}
 
 	err := u.db.Transaction(func(tx *gorm.DB) error {
@@ -367,10 +378,17 @@ func (u *userUsecase) AddExp(userID int64, amount int) (*AddExpResult, error) {
 		return nil, err
 	}
 
-	_ = u.rdb.ZIncrBy(ctx, RankingWeeklyKey, float64(amount), fmt.Sprintf("%d", userID)).Err()
-	u.rdb.Del(ctx, fmt.Sprintf("user:char:%d", userID))
+	// 비동기로 Redis 랭킹 업데이트 및 캐시 무효화 (Fire and Forget)
+	go func() {
+		_ = u.rdb.ZIncrBy(context.Background(), RankingWeeklyKey, float64(amount), fmt.Sprintf("%d", userID)).Err()
+		u.rdb.Del(context.Background(), fmt.Sprintf("user:char:%d", userID))
+	}()
 
 	return result, nil
+}
+
+func (u *userUsecase) AddPoint(ctx context.Context, userID int64, amount int) error {
+	return u.userRepo.AddPoint(userID, amount)
 }
 
 func (u *userUsecase) UpdateStreakOnMeal(userID int64, recordedAt time.Time) error {
@@ -383,20 +401,28 @@ func (u *userUsecase) UpdateStreakOnMeal(userID int64, recordedAt time.Time) err
 	if loc == nil {
 		loc = time.Local
 	}
-	today := recordedAt.In(loc).Truncate(24 * time.Hour)
+
+	// 05:00 KST 기준 "서비스 날짜" 계산
+	getServiceDate := func(t time.Time) time.Time {
+		return t.In(loc).Add(-5 * time.Hour).Truncate(24 * time.Hour)
+	}
+
+	today := getServiceDate(recordedAt)
 
 	if char.LastRecordedAt != nil {
-		lastDay := char.LastRecordedAt.In(loc).Truncate(24 * time.Hour)
+		lastDay := getServiceDate(*char.LastRecordedAt)
 		yesterday := today.AddDate(0, 0, -1)
 
 		switch {
 		case lastDay.Equal(today):
+			// 같은 날 이미 기록함. 패널티 상태만 복구하고 종료
 			if char.PenaltyStatus == domain.PenaltyNormal {
 				return nil
 			}
 		case lastDay.Equal(yesterday):
 			char.StreakDays++
 		default:
+			// 연속이 끊김
 			char.StreakDays = 1
 		}
 	} else {
@@ -406,6 +432,80 @@ func (u *userUsecase) UpdateStreakOnMeal(userID int64, recordedAt time.Time) err
 	char.LastRecordedAt = &recordedAt
 	char.PenaltyStatus = domain.PenaltyNormal
 	return u.characterRepo.Update(char)
+}
+
+func (u *userUsecase) RecalculateStreak(userID int64) error {
+	// 1. 해당 유저의 모든 식사 기록 일자 조회 (05:00 기준)
+	var dates []time.Time
+	// internal/repository/meal.go 에 정의된 쿼리 활용 (여기서는 db 직접 사용)
+	err := u.db.Raw(`
+		SELECT DISTINCT DATE_TRUNC('day', recorded_at - INTERVAL '5 hours') as service_date 
+		FROM meal_records 
+		WHERE user_id = ? AND deleted_at IS NULL
+		ORDER BY service_date DESC`, userID).Scan(&dates).Error
+	if err != nil {
+		return err
+	}
+
+	char, err := u.characterRepo.GetByUserID(userID)
+	if err != nil || char == nil {
+		return err
+	}
+
+	if len(dates) == 0 {
+		char.StreakDays = 0
+		return u.characterRepo.Update(char)
+	}
+
+	// 2. 연속 일수 계산
+	loc, _ := time.LoadLocation("Asia/Seoul")
+	if loc == nil {
+		loc = time.Local
+	}
+	today := time.Now().In(loc).Add(-5 * time.Hour).Truncate(24 * time.Hour)
+	yesterday := today.AddDate(0, 0, -1)
+
+	streak := 0
+	lastCheck := today
+
+	// 첫 번째 기록이 오늘이거나 어제여야 스트릭이 유지됨
+	firstRecordDate := dates[0].In(time.UTC).Truncate(24 * time.Hour)
+	if !firstRecordDate.Equal(today) && !firstRecordDate.Equal(yesterday) {
+		char.StreakDays = 0
+		return u.characterRepo.Update(char)
+	}
+
+	lastCheck = firstRecordDate
+	streak = 1
+
+	for i := 1; i < len(dates); i++ {
+		currentDate := dates[i].In(time.UTC).Truncate(24 * time.Hour)
+		expectedDate := lastCheck.AddDate(0, 0, -1)
+
+		if currentDate.Equal(expectedDate) {
+			streak++
+			lastCheck = currentDate
+		} else {
+			break
+		}
+	}
+
+	char.StreakDays = streak
+	return u.characterRepo.Update(char)
+}
+
+func (u *userUsecase) RecalculateAllUsersStreak() error {
+	var userIDs []int64
+	if err := u.db.Model(&domain.User{}).Pluck("id", &userIDs).Error; err != nil {
+		return err
+	}
+
+	for _, id := range userIDs {
+		if err := u.RecalculateStreak(id); err != nil {
+			slog.Error("스트릭 재계산 실패", slog.Int64("user_id", id), slog.Any("error", err))
+		}
+	}
+	return nil
 }
 
 func (u *userUsecase) RunInactivityPenalty() error {

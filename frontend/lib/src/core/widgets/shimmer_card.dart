@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import '../theme/app_theme.dart';
 
 class ShimmerCard extends StatelessWidget {
   final double? height;
@@ -15,15 +16,19 @@ class ShimmerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
+    final baseColor = tokens.textMuted.withValues(alpha: 0.1);
+    final highlightColor = tokens.textMuted.withValues(alpha: 0.2);
+
     return Shimmer.fromColors(
-      baseColor: const Color(0xFF1E1E2A),
-      highlightColor: const Color(0xFF2A2A38),
+      baseColor: baseColor,
+      highlightColor: highlightColor,
       child: Container(
         height: height ?? 80,
         width: width ?? double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1E2A),
-          borderRadius: borderRadius ?? BorderRadius.circular(20),
+          color: baseColor,
+          borderRadius: borderRadius ?? BorderRadius.circular(tokens.rCard),
         ),
       ),
     );
@@ -35,23 +40,27 @@ class ShimmerListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
+    final baseColor = tokens.textMuted.withValues(alpha: 0.1);
+    final highlightColor = tokens.textMuted.withValues(alpha: 0.2);
+
     return Shimmer.fromColors(
-      baseColor: const Color(0xFF1E1E2A),
-      highlightColor: const Color(0xFF2A2A38),
+      baseColor: baseColor,
+      highlightColor: highlightColor,
       child: Container(
         height: 72,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1E2A),
-          borderRadius: BorderRadius.circular(20),
+          color: tokens.card,
+          borderRadius: BorderRadius.circular(tokens.rItem),
         ),
         child: Row(
           children: [
             Container(
               width: 40,
               height: 40,
-              decoration: const BoxDecoration(
-                color: Color(0xFF1E1E2A),
+              decoration: BoxDecoration(
+                color: baseColor,
                 shape: BoxShape.circle,
               ),
             ),
@@ -61,13 +70,13 @@ class ShimmerListItem extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(height: 14, width: 120, color: Colors.white),
+                  Container(height: 14, width: 120, color: baseColor),
                   const SizedBox(height: 6),
-                  Container(height: 10, width: 80, color: Colors.white),
+                  Container(height: 10, width: 80, color: baseColor),
                 ],
               ),
             ),
-            Container(height: 14, width: 60, color: Colors.white),
+            Container(height: 14, width: 60, color: baseColor),
           ],
         ),
       ),

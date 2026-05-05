@@ -31,6 +31,9 @@ type UserRepository interface {
 	// UpdateEquippedTitle 장착 칭호 갱신 (nil이면 해제)
 	UpdateEquippedTitle(userID int64, titleID *int64) error
 
+	// AddPoint 포인트 추가
+	AddPoint(userID int64, amount int) error
+
 	// DeletePhysicallyExpired 기간이 만료된 소프트 삭제된 사용자들을 물리적으로 삭제
 	DeletePhysicallyExpired(days int) error
 }
@@ -127,6 +130,13 @@ func (r *userRepository) UpdateEquippedTitle(userID int64, titleID *int64) error
 	return r.db.Model(&domain.User{}).
 		Where("id = ?", userID).
 		Update("equipped_title_id", titleID).Error
+}
+
+// AddPoint 는 사용자의 포인트를 추가합니다.
+func (r *userRepository) AddPoint(userID int64, amount int) error {
+	return r.db.Model(&domain.User{}).
+		Where("id = ?", userID).
+		Update("point", gorm.Expr("point + ?", amount)).Error
 }
 
 // GetNutritionGoal 은 사용자의 영양 목표를 조회합니다.

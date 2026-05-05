@@ -99,6 +99,8 @@ type mealUsecase struct {
 	masteryTracker      MasteryTracker
 	titleGranter        TitleGranter
 	notificationUsecase NotificationUsecase
+	eventBus            domain.EventBus
+	questUc             QuestUsecase
 	db                  *gorm.DB
 }
 
@@ -112,6 +114,8 @@ func NewMealUsecase(
 	masteryTracker MasteryTracker,
 	titleGranter TitleGranter,
 	notificationUsecase NotificationUsecase,
+	eventBus domain.EventBus,
+	questUc QuestUsecase,
 	db *gorm.DB,
 ) MealUsecase {
 	return &mealUsecase{
@@ -124,6 +128,8 @@ func NewMealUsecase(
 		masteryTracker:      masteryTracker,
 		titleGranter:        titleGranter,
 		notificationUsecase: notificationUsecase,
+		eventBus:            eventBus,
+		questUc:             questUc,
 		db:                  db,
 	}
 }
@@ -255,8 +261,25 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 		slog.Error("streak 갱신 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
 	}
 
+	// 퀘스트 진행도 갱신
+	event := domain.Event{
+		Type:      domain.EventMealCreated,
+		UserID:    input.UserID,
+		CreatedAt: time.Now(),
+		Payload: map[string]interface{}{
+			"meal_id":   output.Meal.ID,
+			"meal_type": string(output.Meal.MealType),
+		},
+	}
+	u.eventBus.Publish(event)
+	progressedQuests, err := u.questUc.HandleEvent(ctx, event)
+	if err != nil {
+		slog.Error("퀘스트 업데이트 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
+		progressedQuests = []domain.QuestProgress{}
+	}
+
 	output.SideEffects = &domain.MealSideEffects{
-		QuestsProgressed: []domain.QuestProgress{},
+		QuestsProgressed: progressedQuests,
 		MasteryUpdated:   masteryUpdate,
 		GrantedBadges:    grantedBadges,
 		GrantedTitle:     grantedTitle,
@@ -356,7 +379,16 @@ func (u *mealUsecase) DeleteMeal(mealID int64, userID int64) error {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return ErrMealNotFound
 	}
-	return err
+	if err != nil {
+		return err
+	}
+
+	// 스트릭 즉시 재계산 (정합성 보장)
+	if err := u.userUc.RecalculateStreak(userID); err != nil {
+		slog.Error("식사 삭제 후 스트릭 재계산 실패", slog.Int64("user_id", userID), slog.Any("error", err))
+	}
+
+	return nil
 }
 
 func (u *mealUsecase) AcceptFriendTag(mealID int64, taggedUserID int64) error {
@@ -372,12 +404,14 @@ func (u *mealUsecase) AcceptFriendTag(mealID int64, taggedUserID int64) error {
 	if expErr != nil {
 		slog.Error("친구 태그 수락 경험치 부여 실패", slog.Int64("user_id", taggedUserID), slog.Any("error", expErr))
 	} else if expResult != nil && expResult.LeveledUp {
-		_ = u.notificationUsecase.CreateNotification(&domain.Notification{
-			UserID:  taggedUserID,
-			Type:    domain.NotificationTypeLevelUp,
-			Title:   "레벨 업!",
-			Content: fmt.Sprintf("먹찌가 레벨 %d이 되었습니다!", expResult.NewLevel),
-		})
+		go func() {
+			_ = u.notificationUsecase.CreateNotification(&domain.Notification{
+				UserID:  taggedUserID,
+				Type:    domain.NotificationTypeLevelUp,
+				Title:   "레벨 업!",
+				Content: fmt.Sprintf("먹찌가 레벨 %d이 되었습니다!", expResult.NewLevel),
+			})
+		}()
 	}
 
 	return nil

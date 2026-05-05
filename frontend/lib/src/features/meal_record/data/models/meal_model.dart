@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mukzzi/src/features/quest/data/models/quest_model.dart';
 
 // ─────────────────────────────────────────
 // MealType enum + extension + helper
@@ -176,19 +177,51 @@ class GrantedTitleInfo {
       );
 }
 
+class MealSideEffects {
+  final List<QuestProgressInfoModel> questsProgressed;
+  final GrantedTitleInfo? grantedTitle;
+  final int expGained;
+  final Map<String, dynamic>? levelUp;
+  final Map<String, dynamic>? masteryUpdated;
+
+  const MealSideEffects({
+    this.questsProgressed = const [],
+    this.grantedTitle,
+    this.expGained = 0,
+    this.levelUp,
+    this.masteryUpdated,
+  });
+
+  factory MealSideEffects.fromJson(Map<String, dynamic> json) {
+    final quests = (json['quests_progressed'] as List?)
+        ?.map((q) => QuestProgressInfoModel.fromJson(q))
+        .toList();
+
+    return MealSideEffects(
+      questsProgressed: quests ?? [],
+      grantedTitle: json['granted_title'] != null
+          ? GrantedTitleInfo.fromJson(json['granted_title'] as Map<String, dynamic>)
+          : null,
+      expGained: json['exp_gained'] as int? ?? 0,
+      levelUp: json['level_up'] as Map<String, dynamic>?,
+      masteryUpdated: json['mastery_updated'] as Map<String, dynamic>?,
+    );
+  }
+}
+
 class CreateMealResult {
   final MealRecord meal;
-  final GrantedTitleInfo? grantedTitle;
+  final MealSideEffects? sideEffects;
 
-  const CreateMealResult({required this.meal, this.grantedTitle});
+  const CreateMealResult({required this.meal, this.sideEffects});
 
   factory CreateMealResult.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>;
-    final sideEffects = data['side_effects'] as Map<String, dynamic>?;
-    final titleJson = sideEffects?['granted_title'] as Map<String, dynamic>?;
     return CreateMealResult(
       meal: MealRecord.fromJson(data['meal'] as Map<String, dynamic>),
-      grantedTitle: titleJson != null ? GrantedTitleInfo.fromJson(titleJson) : null,
+      sideEffects: data['side_effects'] != null
+          ? MealSideEffects.fromJson(data['side_effects'] as Map<String, dynamic>)
+          : null,
     );
   }
 }

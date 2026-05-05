@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
-	"github.com/redis/go-redis/v9"
+	"github.com/go-redis/redismock/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -122,6 +122,7 @@ func (m *MockUserRepositoryForSocial) GetRecommendations(id int64, l int) ([]dom
 	return nil, nil
 }
 func (m *MockUserRepositoryForSocial) UpdateEquippedTitle(id int64, t *int64) error { return nil }
+func (m *MockUserRepositoryForSocial) AddPoint(id int64, amount int) error      { return nil }
 func (m *MockUserRepositoryForSocial) DeletePhysicallyExpired(d int) error          { return nil }
 
 type MockMealRepositoryForSocial struct {
@@ -159,10 +160,10 @@ func TestSocialUsecase_GetFriends(t *testing.T) {
 	mockUserRepo := new(MockUserRepositoryForSocial)
 	mockMealRepo := new(MockMealRepositoryForSocial)
 	mockCharRepo := new(MockCharacterRepositoryForSocial)
-	dummyRDB := redis.NewClient(&redis.Options{})
+	dummyRDB, _ := redismock.NewClientMock()
 
-	uc := NewSocialUsecase(mockSocialRepo, mockUserRepo, mockMealRepo, mockCharRepo, nil, dummyRDB)
-
+	// eventBus (nil) 추가
+	uc := NewSocialUsecase(mockSocialRepo, mockUserRepo, mockMealRepo, mockCharRepo, nil, nil, dummyRDB)
 	t.Run("친구 목록 조회 성공", func(t *testing.T) {
 		userID := int64(1)
 		friendID := int64(2)
