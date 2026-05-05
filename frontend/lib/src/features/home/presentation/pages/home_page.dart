@@ -367,10 +367,14 @@ class _HomePageState extends ConsumerState<HomePage> {
             child: Row(
               children: [
                 if (quests.isEmpty)
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      '진행 중인 퀘스트가 없습니다.',
-                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                      '새로운 모험이 기다리고 있어요! 탭해서 퀘스트 확인 ➔',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: tokens.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   )
                 else
