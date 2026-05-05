@@ -51,6 +51,7 @@ type userUsecase struct {
 	charRepo        repository.CharacterCollectionRepository
 	characterRepo   repository.CharacterRepository
 	notificationUc  NotificationUsecase
+	questUc         QuestUsecase
 	rdb             *redis.Client
 	db              *gorm.DB
 }
@@ -64,6 +65,7 @@ func NewUserUsecase(
 	charRepo repository.CharacterCollectionRepository,
 	characterRepo repository.CharacterRepository,
 	notificationUc NotificationUsecase,
+	questUc QuestUsecase,
 	rdb *redis.Client,
 	db *gorm.DB,
 ) UserUsecase {
@@ -75,6 +77,7 @@ func NewUserUsecase(
 		charRepo:        charRepo,
 		characterRepo:   characterRepo,
 		notificationUc:  notificationUc,
+		questUc:         questUc,
 		rdb:             rdb,
 		db:              db,
 	}
@@ -324,6 +327,14 @@ func (u *userUsecase) Onboarding(id int64, mukzziName string, height, weight flo
 		// 온보딩 완료 시 관련 캐시 무효화
 		u.rdb.Del(context.Background(), fmt.Sprintf("user:char:%d", id))
 		u.rdb.Del(context.Background(), fmt.Sprintf("user:profile:%d", id))
+
+		// 첫 일일 퀘스트 즉시 할당
+		if u.questUc != nil {
+			if err := u.questUc.AssignDailyQuests(context.Background(), id); err != nil {
+				slog.Error("온보딩 중 퀘스트 할당 실패", slog.Int64("user_id", id), slog.Any("error", err))
+				// 퀘스트 실패가 온보딩 전체 실패로 이어지지 않도록 에러는 무시
+			}
+		}
 
 		return nil
 	})

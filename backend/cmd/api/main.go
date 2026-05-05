@@ -76,13 +76,16 @@ func main() {
 	notificationUsecase := usecase.NewNotificationUsecase(notificationRepo)
 	notificationHandler := handler.NewNotificationHandler(notificationUsecase)
 
+	// Quest 도메인
+	questUsecase := usecase.NewQuestUsecase(questRepo, nil, characterRepo, db)
+	questHandler := handler.NewQuestHandler(questUsecase)
+
 	// User 도메인
-	userUsecase := usecase.NewUserUsecase(userRepo, mealRepo, dailyIntakeRepo, badgeRepo, charCollectionRepo, characterRepo, notificationUsecase, rdb, db)
+	userUsecase := usecase.NewUserUsecase(userRepo, mealRepo, dailyIntakeRepo, badgeRepo, charCollectionRepo, characterRepo, notificationUsecase, questUsecase, rdb, db)
 	userHandler := handler.NewUserHandler(userUsecase)
 
-	// Quest 도메인
-	questUsecase := usecase.NewQuestUsecase(questRepo, userUsecase, characterRepo, db)
-	questHandler := handler.NewQuestHandler(questUsecase)
+	// 순환 참조 주입
+	questUsecase.SetUserUsecase(userUsecase)
 
 	// 스케줄러 시작
 	config.StartScheduler(userUsecase, questUsecase)

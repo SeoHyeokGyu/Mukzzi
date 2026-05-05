@@ -18,6 +18,7 @@ type QuestUsecase interface {
 	ClaimReward(ctx context.Context, userID int64, userQuestID int64) error
 	AssignDailyQuests(ctx context.Context, userID int64) error
 	AssignAllUsersDailyQuests(ctx context.Context) error
+	SetUserUsecase(userUsecase UserUsecase)
 }
 
 type questUsecase struct {
@@ -39,6 +40,10 @@ func NewQuestUsecase(
 		characterRepo: characterRepo,
 		db:            db,
 	}
+}
+
+func (u *questUsecase) SetUserUsecase(userUsecase UserUsecase) {
+	u.userUsecase = userUsecase
 }
 
 func (u *questUsecase) GetMyQuests(ctx context.Context, userID int64, period string) ([]domain.UserQuest, error) {
