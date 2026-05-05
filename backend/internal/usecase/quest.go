@@ -18,32 +18,30 @@ type QuestUsecase interface {
 	ClaimReward(ctx context.Context, userID int64, userQuestID int64) error
 	AssignDailyQuests(ctx context.Context, userID int64) error
 	AssignAllUsersDailyQuests(ctx context.Context) error
-	SetUserUsecase(userUsecase UserUsecase)
 }
 
 type questUsecase struct {
 	questRepo     domain.QuestRepository
-	userUsecase   UserUsecase
+	userRepo      repository.UserRepository
 	characterRepo repository.CharacterRepository // 경험치 지급용
-	db            *gorm.DB                       // 트랜잭션용
+	eventBus      domain.EventBus
+	db            *gorm.DB // 트랜잭션용
 }
 
 func NewQuestUsecase(
 	questRepo domain.QuestRepository,
-	userUsecase UserUsecase,
+	userRepo repository.UserRepository,
 	characterRepo repository.CharacterRepository,
+	eventBus domain.EventBus,
 	db *gorm.DB,
 ) QuestUsecase {
 	return &questUsecase{
 		questRepo:     questRepo,
-		userUsecase:   userUsecase,
+		userRepo:      userRepo,
 		characterRepo: characterRepo,
+		eventBus:      eventBus,
 		db:            db,
 	}
-}
-
-func (u *questUsecase) SetUserUsecase(userUsecase UserUsecase) {
-	u.userUsecase = userUsecase
 }
 
 func (u *questUsecase) GetMyQuests(ctx context.Context, userID int64, period string) ([]domain.UserQuest, error) {
@@ -142,15 +140,27 @@ func (u *questUsecase) ClaimReward(ctx context.Context, userID int64, userQuestI
 		// 2. 보상 지급
 		// 포인트 지급
 		if uq.Quest.RewardPoint > 0 {
-			if err := u.userUsecase.AddPoint(ctx, userID, uq.Quest.RewardPoint); err != nil {
+			if err := u.userRepo.AddPoint(userID, uq.Quest.RewardPoint); err != nil {
 				return err
 			}
 		}
 
 		// 경험치 지급
 		if uq.Quest.RewardExp > 0 {
-			if _, err := u.userUsecase.AddExp(userID, uq.Quest.RewardExp); err != nil {
+			char, err := u.characterRepo.GetByUserID(userID)
+			if err != nil {
 				return err
+			}
+			if char != nil {
+				char.Exp += uq.Quest.RewardExp
+				// 레벨업 공식: 레벨 N의 필요 EXP = 100 × N (선형 증가)
+				for char.Exp >= char.Level*100 {
+					char.Exp -= char.Level * 100
+					char.Level++
+				}
+				if err := u.characterRepo.Update(char); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -198,7 +208,7 @@ func (u *questUsecase) AssignDailyQuests(ctx context.Context, userID int64) erro
 
 func (u *questUsecase) AssignAllUsersDailyQuests(ctx context.Context) error {
 	slog.Info("모든 유저에게 일일 퀘스트 할당 시작")
-	// 1. 모든 유저 조회 (단순 구현을 위해 일단 DB에서 직접 조회하거나 Repo에 추가)
+	// 1. 모든 유저 조회
 	var userIDs []int64
 	if err := u.db.Model(&domain.User{}).Pluck("id", &userIDs).Error; err != nil {
 		return err

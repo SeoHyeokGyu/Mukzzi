@@ -9,6 +9,7 @@ import (
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/config"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/handler"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/route"
+	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/infrastructure/eventbus"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/usecase"
@@ -77,15 +78,20 @@ func main() {
 	notificationHandler := handler.NewNotificationHandler(notificationUsecase)
 
 	// Quest 도메인
-	questUsecase := usecase.NewQuestUsecase(questRepo, nil, characterRepo, db)
+	questUsecase := usecase.NewQuestUsecase(questRepo, userRepo, characterRepo, eventBus, db)
 	questHandler := handler.NewQuestHandler(questUsecase)
 
 	// User 도메인
-	userUsecase := usecase.NewUserUsecase(userRepo, mealRepo, dailyIntakeRepo, badgeRepo, charCollectionRepo, characterRepo, notificationUsecase, questUsecase, rdb, db)
+	userUsecase := usecase.NewUserUsecase(userRepo, mealRepo, dailyIntakeRepo, badgeRepo, charCollectionRepo, characterRepo, notificationUsecase, eventBus, rdb, db)
 	userHandler := handler.NewUserHandler(userUsecase)
 
-	// 순환 참조 주입
-	questUsecase.SetUserUsecase(userUsecase)
+	// 이벤트 구독 설정
+	eventBus.Subscribe(domain.EventUserOnboarded, func(ev domain.Event) {
+		slog.Info("유저 온보딩 이벤트 수신, 퀘스트 할당 시작", slog.Int64("user_id", ev.UserID))
+		if err := questUsecase.AssignDailyQuests(context.Background(), ev.UserID); err != nil {
+			slog.Error("온보딩 퀘스트 할당 실패", slog.Int64("user_id", ev.UserID), slog.Any("error", err))
+		}
+	})
 
 	// 스케줄러 시작
 	config.StartScheduler(userUsecase, questUsecase)

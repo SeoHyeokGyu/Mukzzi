@@ -23,10 +23,9 @@ func StartScheduler(userUsecase usecase.UserUsecase, questUsecase usecase.QuestU
 		name string
 	}{
 		{"0 0 * * *", func() { runPhysicalDeletion(userUsecase) }, "탈퇴 회원 물리 삭제"},
-		{"0 5 * * *", func() {
-			runInactivityPenalty(userUsecase)
-			runQuestReset(questUsecase)
-		}, "패널티 상태 및 퀘스트 갱신"},
+		{"0 5 * * *", func() { runInactivityPenalty(userUsecase) }, "패널티 상태 갱신"},
+		{"0 5 * * *", func() { runQuestReset(questUsecase) }, "일일 퀘스트 초기화"},
+		{"0 5 * * *", func() { runStreakReconciliation(userUsecase) }, "전체 유저 스트릭 보정"},
 	}
 
 	for _, job := range jobs {
@@ -65,5 +64,14 @@ func runQuestReset(questUsecase usecase.QuestUsecase) {
 		slog.Error("일일 퀘스트 초기화 중 오류 발생", slog.Any("error", err))
 	} else {
 		slog.Info("일일 퀘스트 초기화 및 할당 작업 완료")
+	}
+}
+
+func runStreakReconciliation(userUsecase usecase.UserUsecase) {
+	slog.Info("전체 유저 스트릭 재계산 및 보정 작업 시작")
+	if err := userUsecase.RecalculateAllUsersStreak(); err != nil {
+		slog.Error("스트릭 보정 작업 중 오류 발생", slog.Any("error", err))
+	} else {
+		slog.Info("전체 유저 스트릭 재계산 및 보정 작업 완료")
 	}
 }

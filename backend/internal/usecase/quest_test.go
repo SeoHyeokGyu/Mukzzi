@@ -139,9 +139,8 @@ func TestQuestUsecase_HandleEvent(t *testing.T) {
 
 	t.Run("식사 기록 이벤트 시 관련 퀘스트 진행도 증가", func(t *testing.T) {
 		mockRepo := new(MockQuestRepository)
-		mockUserUc := new(MockUserUsecase)
 		mockCharRepo := new(MockCharacterRepository)
-		uc := NewQuestUsecase(mockRepo, mockUserUc, mockCharRepo, nil)
+		uc := NewQuestUsecase(mockRepo, nil, mockCharRepo, nil, nil)
 
 		event := domain.Event{
 			Type:   domain.EventMealCreated,
@@ -177,9 +176,8 @@ func TestQuestUsecase_HandleEvent(t *testing.T) {
 
 	t.Run("퀘스트 목표 달성 시 상태 변경", func(t *testing.T) {
 		mockRepo := new(MockQuestRepository)
-		mockUserUc := new(MockUserUsecase)
 		mockCharRepo := new(MockCharacterRepository)
-		uc := NewQuestUsecase(mockRepo, mockUserUc, mockCharRepo, nil)
+		uc := NewQuestUsecase(mockRepo, nil, mockCharRepo, nil, nil)
 
 		event := domain.Event{
 			Type:   domain.EventMealCreated,
@@ -226,7 +224,7 @@ func TestQuestUsecase_AssignDailyQuests(t *testing.T) {
 
 	t.Run("일일 퀘스트 할당 성공", func(t *testing.T) {
 		mockRepo := new(MockQuestRepository)
-		uc := NewQuestUsecase(mockRepo, nil, nil, nil)
+		uc := NewQuestUsecase(mockRepo, nil, nil, nil, nil)
 
 		pool := []domain.QuestDefinition{
 			{BaseDomain: domain.BaseDomain{ID: 1}, Code: "Q1"},
