@@ -71,10 +71,8 @@ func TestNotificationUsecase_ReadNotification(t *testing.T) {
 		assert.NoError(t, err)
 
 		// 비동기 처리를 위해 잠시 대기하거나 Close 호출로 Flush 유도
+		time.Sleep(50 * time.Millisecond)
 		uc.Close()
-
-		// 약간의 여유 시간을 주어 워커가 종료되도록 함
-		time.Sleep(10 * time.Millisecond)
 
 		mockRepo.AssertExpectations(t)
 	})
@@ -113,9 +111,9 @@ func TestNotificationUsecase_CreateNotification(t *testing.T) {
 		err := uc.CreateNotification(notification)
 		assert.NoError(t, err)
 
+		time.Sleep(50 * time.Millisecond) // 워커가 채널에서 읽을 시간 확보
 		uc.Close() // 워커 종료 및 채널 flush 대기
 
-		time.Sleep(10 * time.Millisecond)
 		mockRepo.AssertExpectations(t)
 	})
 }
