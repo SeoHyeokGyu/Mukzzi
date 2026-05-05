@@ -8,6 +8,7 @@ import '../core/widgets/main_shell.dart';
 import '../features/auth/presentation/pages/auth_page.dart';
 import '../features/settings/presentation/pages/settings_page.dart';
 import '../features/home/presentation/pages/home_page.dart';
+import '../features/quest/presentation/pages/quest_list_page.dart';
 import '../features/notification/presentation/pages/notification_list_page.dart';
 import '../features/character/presentation/pages/character_page.dart';
 import '../features/character/presentation/pages/badge_list_page.dart';
@@ -110,6 +111,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               path: '/home',
               name: 'home',
               builder: (context, state) => const HomePage(),
+              routes: [
+                GoRoute(
+                  path: 'quests',
+                  name: 'quests',
+                  builder: (context, state) => const QuestListPage(),
+                ),
+              ],
             ),
           ]),
           // 2. 식사 기록 탭

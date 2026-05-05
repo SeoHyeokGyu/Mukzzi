@@ -16,6 +16,8 @@ import 'package:mukzzi/src/features/character/data/models/character_model.dart';
 import 'package:mukzzi/src/features/character/presentation/providers/character_provider.dart';
 import 'package:mukzzi/src/features/profile/presentation/providers/user_provider.dart';
 import 'package:mukzzi/src/features/home/presentation/widgets/menu_decision_section.dart';
+import 'package:mukzzi/src/features/quest/domain/entities/quest.dart';
+import 'package:mukzzi/src/features/quest/presentation/providers/quest_provider.dart';
 
 
 // Mock 데이터 - 추후 API로 교체
@@ -28,11 +30,6 @@ const double _carbsGoal = 300;
 const double _fatConsumed = 30;
 const double _fatGoal = 60;
 const int _mockStreakDays = 3;
-const _mockQuests = [
-  (label: '아침 기록', done: true),
-  (label: '점심 기록', done: true),
-  (label: '저녁 기록', done: false),
-];
 
 const _mockMeals = [
   (emoji: '🍚', time: '오전 8:30', name: '아침밥', kcal: 350),
@@ -200,6 +197,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
 
     final characterAsync = ref.watch(characterProvider);
+    final dailyQuests = ref.watch(dailyQuestsProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -212,7 +210,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             error: (_, __) => _buildHeroCard(tokens, null),
           ),
           const SizedBox(height: 12),
-          _buildStreakQuestRow(tokens),
+          _buildStreakQuestRow(tokens, dailyQuests),
           const SizedBox(height: 12),
           _buildQuickCTAs(tokens),
           const SizedBox(height: 12),
@@ -349,10 +347,11 @@ class _HomePageState extends ConsumerState<HomePage> {
     return _animated(card, slideY: true);
   }
 
-  Widget _buildStreakQuestRow(AppColorTokens tokens) {
+  Widget _buildStreakQuestRow(AppColorTokens tokens, List<Quest> quests) {
     final row = BentoCard(
       borderRadius: BorderRadius.circular(tokens.rCard),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      onTap: () => context.push('/home/quests'),
       child: Row(
         children: [
           Icon(Icons.local_fire_department, color: tokens.primary, size: 18),
@@ -367,36 +366,46 @@ class _HomePageState extends ConsumerState<HomePage> {
           Expanded(
             child: Row(
               children: [
-                for (int i = 0; i < _mockQuests.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(2),
-                          child: LinearProgressIndicator(
-                            value: _mockQuests[i].done ? 1.0 : 0.0,
-                            minHeight: 4,
-                            backgroundColor: tokens.primaryBg,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              _mockQuests[i].done ? tokens.primary : tokens.primaryBg,
+                if (quests.isEmpty)
+                  const Expanded(
+                    child: Text(
+                      '진행 중인 퀘스트가 없습니다.',
+                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
+                  )
+                else
+                  for (int i = 0; i < quests.length && i < 3; i++) ...[
+                    if (i > 0) const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(2),
+                            child: LinearProgressIndicator(
+                              value: quests[i].progress,
+                              minHeight: 4,
+                              backgroundColor: tokens.primaryBg,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                quests[i].isCompleted ? tokens.primary : tokens.primaryBg,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _mockQuests[i].label,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: _mockQuests[i].done ? tokens.textSub : tokens.textMuted,
+                          const SizedBox(height: 4),
+                          Text(
+                            quests[i].title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: quests[i].isCompleted ? tokens.textSub : tokens.textMuted,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
               ],
             ),
           ),

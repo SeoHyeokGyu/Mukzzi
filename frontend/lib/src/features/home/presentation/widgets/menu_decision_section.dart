@@ -339,7 +339,7 @@ class _SlotWidget extends AnimatedWidget {
         ? candidates.map((m) => m.name).toList()
         : (result != null ? [result!.name] : ['...']);
 
-    final maxScroll = (totalItems - 1.5) * itemH;
+    const maxScroll = (totalItems - 1.5) * itemH;
     final scrollOffset = _anim.value * maxScroll;
 
     final resultIdx = result != null
