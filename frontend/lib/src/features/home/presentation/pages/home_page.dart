@@ -369,7 +369,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 if (quests.isEmpty)
                   Expanded(
                     child: Text(
-                      '새로운 모험이 기다리고 있어요! 탭해서 퀘스트 확인 ➔',
+                      '오늘의 목표를 확인하고 먹찌를 키워봐요! ➔',
                       style: TextStyle(
                         fontSize: 11,
                         color: tokens.primary,
