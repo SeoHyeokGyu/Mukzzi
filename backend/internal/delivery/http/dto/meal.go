@@ -91,8 +91,17 @@ type MealResponse struct {
 
 // CreateMealResponse - POST /meals 응답
 type CreateMealResponse struct {
-	Meal        MealResponse            `json:"meal"`
-	SideEffects *domain.MealSideEffects `json:"side_effects"`
+	Meal        MealResponse         `json:"meal"`
+	SideEffects *SideEffectsResponse `json:"side_effects"`
+}
+
+type SideEffectsResponse struct {
+	QuestsProgressed []QuestProgressResponse `json:"quests_progressed"`
+	MasteryUpdated   *domain.MasteryUpdate   `json:"mastery_updated,omitempty"`
+	GrantedBadges    []BadgeResponse         `json:"granted_badges,omitempty"`
+	GrantedTitle     *TitleResponse          `json:"granted_title,omitempty"`
+	ExpGained        int                     `json:"exp_gained"`
+	LevelUp          *domain.LevelUpEvent    `json:"level_up,omitempty"`
 }
 
 // DailyNutritionResponse - GET /nutrition/today 응답
@@ -189,6 +198,45 @@ func ToWeeklyNutritionItem(di domain.DailyIntake) WeeklyNutritionItem {
 		TotalFat:      di.TotalFat,
 		MealCount:     di.MealCount,
 	}
+}
+
+func ToSideEffectsResponse(se *domain.MealSideEffects) *SideEffectsResponse {
+	if se == nil {
+		return nil
+	}
+
+	badges := make([]BadgeResponse, len(se.GrantedBadges))
+	for i, b := range se.GrantedBadges {
+		badges[i] = BadgeResponse{
+			ID:          b.ID,
+			Code:        b.Code,
+			Name:        b.Name,
+			Description: b.Description,
+			IconURL:     b.IconURL,
+			Acquired:    true,
+		}
+	}
+
+	resp := &SideEffectsResponse{
+		QuestsProgressed: ToQuestProgressListResponse(se.QuestsProgressed),
+		MasteryUpdated:   se.MasteryUpdated,
+		GrantedBadges:    badges,
+		ExpGained:        se.ExpGained,
+		LevelUp:          se.LevelUp,
+	}
+
+	if se.GrantedTitle != nil {
+		resp.GrantedTitle = &TitleResponse{
+			ID:          se.GrantedTitle.ID,
+			Code:        se.GrantedTitle.Code,
+			Name:        se.GrantedTitle.Name,
+			Description: se.GrantedTitle.Description,
+			Acquired:    true,
+			IsEquipped:  false,
+		}
+	}
+
+	return resp
 }
 
 // ToCreateMealInput - Request DTO → usecase Input 변환

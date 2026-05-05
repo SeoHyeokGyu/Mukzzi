@@ -3,6 +3,7 @@ package handler
 import (
 	"strconv"
 
+	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/dto"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/usecase"
 	"github.com/gin-gonic/gin"
 )
@@ -22,20 +23,24 @@ func NewQuestHandler(questUc usecase.QuestUsecase) *QuestHandler {
 // @Accept       json
 // @Produce      json
 // @Param        period  query     string  false  "DAILY, WEEKLY, ACHIEVEMENT 중 하나"
-// @Success      200      {object}  Response{data=[]domain.UserQuest}
+// @Success      200      {object}  Response{data=[]dto.UserQuestResponse}
 // @Security     BearerAuth
 // @Router       /api/quests [get]
 func (h *QuestHandler) GetMyQuests(c *gin.Context) {
-	userID := c.MustGet("user_id").(int64)
+	userID, exists := c.Get("userID")
+	if !exists {
+		Unauthorized(c, "UNAUTHORIZED", "인증 정보가 없습니다.")
+		return
+	}
 	period := c.Query("period")
 
-	quests, err := h.questUc.GetMyQuests(c.Request.Context(), userID, period)
+	quests, err := h.questUc.GetMyQuests(c.Request.Context(), userID.(int64), period)
 	if err != nil {
 		InternalError(c, "퀘스트 목록을 가져오는데 실패했습니다.", err.Error())
 		return
 	}
 
-	Success(c, quests)
+	Success(c, dto.ToUserQuestListResponse(quests))
 }
 
 // ClaimReward godoc
@@ -49,14 +54,18 @@ func (h *QuestHandler) GetMyQuests(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /api/quests/{id}/claim [post]
 func (h *QuestHandler) ClaimReward(c *gin.Context) {
-	userID := c.MustGet("user_id").(int64)
+	userID, exists := c.Get("userID")
+	if !exists {
+		Unauthorized(c, "UNAUTHORIZED", "인증 정보가 없습니다.")
+		return
+	}
 	userQuestID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		BadRequest(c, "INVALID_ID", "올바른 퀘스트 ID를 입력해주세요.")
 		return
 	}
 
-	if err := h.questUc.ClaimReward(c.Request.Context(), userID, userQuestID); err != nil {
+	if err := h.questUc.ClaimReward(c.Request.Context(), userID.(int64), userQuestID); err != nil {
 		BadRequest(c, "CLAIM_ERROR", err.Error())
 		return
 	}

@@ -61,7 +61,7 @@ func (h *MealHandler) CreateMeal(c *gin.Context) {
 
 	Created(c, dto.CreateMealResponse{
 		Meal:        dto.ToMealResponse(output.Meal),
-		SideEffects: output.SideEffects,
+		SideEffects: dto.ToSideEffectsResponse(output.SideEffects),
 	})
 }
 
