@@ -22,7 +22,8 @@ func (b *internalBus) Publish(event domain.Event) {
 	b.mu.RUnlock()
 
 	for _, handler := range handlers {
-		handler(event)
+		// 각 핸들러를 별도 고루틴으로 실행하여 비동기 처리
+		go handler(event)
 	}
 }
 

@@ -8,6 +8,7 @@ const (
 	EventMealCreated     EventType = "MEAL_CREATED"
 	EventFriendNudged    EventType = "FRIEND_NUDGED"
 	EventGuestbookPosted EventType = "GUESTBOOK_POSTED"
+	EventUserOnboarded   EventType = "USER_ONBOARDED"
 )
 
 type Event struct {
