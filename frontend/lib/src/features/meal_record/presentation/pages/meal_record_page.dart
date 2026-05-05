@@ -6,6 +6,7 @@ import '../../../../core/providers/common_providers.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
+import '../../../../core/widgets/shimmer_card.dart';
 import '../../../quest/data/models/quest_model.dart';
 import '../../../quest/presentation/providers/quest_provider.dart';
 import '../../data/models/meal_model.dart';
@@ -1093,7 +1094,14 @@ class _MealListTabState extends ConsumerState<_MealListTab> {
     final listState = ref.watch(mealListProvider);
 
     if (listState.isLoading && listState.records.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: 5,
+        itemBuilder: (context, index) => const Padding(
+          padding: EdgeInsets.only(bottom: 12),
+          child: ShimmerListItem(),
+        ),
+      );
     }
 
     if (listState.error != null && listState.records.isEmpty) {
