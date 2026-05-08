@@ -142,6 +142,11 @@ func main() {
 	filterUc := usecase.NewMenuFilterUsecase(filterRepo)
 	filterHandler := handler.NewMenuFilterHandler(filterUc)
 
+	// 추천 도메인
+	recRepo := repository.NewMenuRecommendationRepository(db)
+	recUc := usecase.NewMenuRecommendationUsecase(recRepo)
+	recHandler := handler.NewMenuRecommendationHandler(recUc)
+
 	// 라우터 초기화
 	r := route.NewRouter(
 		authHandler,
@@ -156,6 +161,7 @@ func main() {
 		rouletteHandler,
 		filterHandler,
 		questHandler,
+		recHandler,
 	)
 
 	// 서버 실행

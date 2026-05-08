@@ -5,6 +5,7 @@ import 'package:mukzzi/src/core/theme/app_theme.dart';
 import 'package:mukzzi/src/core/widgets/bento_card.dart';
 import 'package:mukzzi/src/features/meal_record/data/models/menu_model.dart';
 import 'package:mukzzi/src/features/meal_record/presentation/providers/roulette_provider.dart';
+import 'package:mukzzi/src/features/meal_record/presentation/providers/recommendation_provider.dart';
 
 // ─────────────────────────────────────────
 // 상수
@@ -90,14 +91,14 @@ class _MenuDecisionSectionState extends ConsumerState<MenuDecisionSection> {
           ),
           const SizedBox(height: 2),
           Text(
-            '룰렛으로 랜덤 추천, 또는 날씨·기분에 맞게 골라드려요',
+            '룰렛, 상황별 필터, 또는 내 취향 기반으로 골라드려요',
             style: TextStyle(fontSize: 11, color: tokens.textMuted),
           ),
           const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(child: _RouletteButton(tokens: tokens)),
-              const SizedBox(width: 8),
+              Expanded(child: _RouletteButton()),
+              const SizedBox(width: 6),
               Expanded(
                 child: _FilterToggleButton(
                   tokens: tokens,
@@ -105,8 +106,28 @@ class _MenuDecisionSectionState extends ConsumerState<MenuDecisionSection> {
                   onTap: () {
                     if (!filterExpanded) {
                       ref.read(rouletteProvider.notifier).reset();
+                      ref.read(recommendationExpandedProvider.notifier).state = false;
                     }
                     ref.read(filterExpandedProvider.notifier).state = !filterExpanded;
+                  },
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _RecommendToggleButton(
+                  tokens: tokens,
+                  expanded: ref.watch(recommendationExpandedProvider),
+                  onTap: () {
+                    final recExpanded = ref.read(recommendationExpandedProvider);
+                    if (!recExpanded) {
+                      ref.read(rouletteProvider.notifier).reset();
+                      ref.read(filterExpandedProvider.notifier).state = false;
+                      // 펼칠 때 자동으로 fetch
+                      ref.read(recommendationProvider.notifier).fetch();
+                    } else {
+                      ref.read(recommendationProvider.notifier).reset();
+                    }
+                    ref.read(recommendationExpandedProvider.notifier).state = !recExpanded;
                   },
                 ),
               ),
@@ -115,6 +136,10 @@ class _MenuDecisionSectionState extends ConsumerState<MenuDecisionSection> {
           const _RouletteResult(),
           _FilterSection(
             expanded: filterExpanded,
+            tokens: tokens,
+          ),
+          _RecommendSection(
+            expanded: ref.watch(recommendationExpandedProvider),
             tokens: tokens,
           ),
         ],
@@ -128,27 +153,32 @@ class _MenuDecisionSectionState extends ConsumerState<MenuDecisionSection> {
 // ─────────────────────────────────────────
 
 class _RouletteButton extends ConsumerWidget {
-  final AppColorTokens tokens;
-  const _RouletteButton({required this.tokens});
+  const _RouletteButton();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
     final isSpinning = ref.watch(rouletteProvider.select((s) => s.isSpinning));
+    final hasResult = ref.watch(rouletteProvider.select((s) => s.result != null));
+    final filterExpanded = ref.watch(filterExpandedProvider);
+    final recExpanded = ref.watch(recommendationExpandedProvider);
+
+    final isActive = isSpinning || hasResult;
 
     return GestureDetector(
-        onTap: isSpinning
-            ? null
-            : () {
-          // 룰렛 돌릴 때 필터 닫기
-          ref
-              .read(filterExpandedProvider.notifier)
-              .state = false;
-          ref.read(rouletteProvider.notifier).spin();
-        },
-      child: Container(
+      onTap: isSpinning
+          ? null
+          : () {
+        ref.read(filterExpandedProvider.notifier).state = false;
+        ref.read(recommendationExpandedProvider.notifier).state = false;
+        ref.read(recommendationProvider.notifier).reset();
+        ref.read(rouletteProvider.notifier).spin();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: tokens.primary,
+          color: isActive ? tokens.primary : tokens.primary.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(tokens.rItem),
         ),
         child: Row(
@@ -156,14 +186,14 @@ class _RouletteButton extends ConsumerWidget {
           children: [
             Icon(
               isSpinning ? Icons.hourglass_top : Icons.casino_outlined,
-              color: Colors.white,
+              color: isActive ? Colors.white : tokens.primary,
               size: 16,
             ),
             const SizedBox(width: 6),
             Text(
               isSpinning ? '돌리는 중...' : '랜덤 룰렛',
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: isActive ? Colors.white : tokens.primary,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
@@ -198,33 +228,21 @@ class _FilterToggleButton extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: expanded ? tokens.primaryBg : tokens.listItemBg,
+          color: expanded ? tokens.primary : tokens.primary.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(tokens.rItem),
-          border: Border.all(
-            color: expanded
-                ? tokens.primary.withValues(alpha: 0.4)
-                : tokens.primary.withValues(alpha: 0.15),
-            width: 0.5,
-          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.tune, color: tokens.primary, size: 16),
+            Icon(Icons.tune, color: expanded ? Colors.white : tokens.primary, size: 16),
             const SizedBox(width: 6),
             Text(
               '상황별 필터',
               style: TextStyle(
-                color: tokens.primary,
+                color: expanded ? Colors.white : tokens.primary,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              expanded ? Icons.expand_less : Icons.expand_more,
-              color: tokens.primary,
-              size: 16,
             ),
           ],
         ),
@@ -914,6 +932,210 @@ class _FilterResults extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+// ─────────────────────────────────────────
+// 선호도 추천 토글 버튼
+// ─────────────────────────────────────────
+
+class _RecommendToggleButton extends StatelessWidget {
+  final AppColorTokens tokens;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  const _RecommendToggleButton({
+    required this.tokens,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: expanded ? tokens.primary : tokens.primary.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(tokens.rItem),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.favorite_outline, color: expanded ? Colors.white : tokens.primary, size: 14),
+            const SizedBox(width: 4),
+            Text(
+              '취향 추천',
+              style: TextStyle(
+                color: expanded ? Colors.white : tokens.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────
+// 선호도 추천 섹션
+// ─────────────────────────────────────────
+
+class _RecommendSection extends ConsumerWidget {
+  final bool expanded;
+  final AppColorTokens tokens;
+
+  const _RecommendSection({
+    required this.expanded,
+    required this.tokens,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(recommendationProvider);
+
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      child: !expanded
+          ? const SizedBox.shrink()
+          : Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Text(
+                '취향 기반 추천',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: tokens.textSub,
+                ),
+              ),
+              const SizedBox(width: 6),
+              if (!state.isLoading && state.menus.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: tokens.primaryBg,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    state.isPersonal ? '내 기록 기반' : '인기 메뉴',
+                    style: TextStyle(fontSize: 10, color: tokens.textMuted),
+                  ),
+                ),
+              const Spacer(),
+              GestureDetector(
+                onTap: state.isLoading
+                    ? null
+                    : () => ref.read(recommendationProvider.notifier).fetch(),
+                child: Icon(Icons.refresh, size: 16, color: tokens.textMuted),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (state.isLoading)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: tokens.primary,
+                  ),
+                ),
+              ),
+            )
+          else if (state.error != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                '추천 중 오류가 발생했어요',
+                style: TextStyle(fontSize: 12, color: tokens.textMuted),
+              ),
+            )
+          else
+            ...state.menus.take(5).map(
+                  (menu) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: tokens.listItemBg,
+                    borderRadius:
+                    BorderRadius.circular(tokens.rItem),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              menu.name,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: tokens.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              '${_categoryLabel(menu.category)} · ${menu.defaultCalories.toInt()}kcal',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: tokens.textMuted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => context.go(
+                          '/meal-record',
+                          extra: {
+                            'menuId': menu.id,
+                            'menuName': menu.name,
+                            'category': menu.category,
+                            'calories': menu.defaultCalories,
+                            'carbs': menu.defaultCarbs,
+                            'protein': menu.defaultProtein,
+                            'fat': menu.defaultFat,
+                          },
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: tokens.primaryBg,
+                            borderRadius:
+                            BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '기록',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: tokens.primary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

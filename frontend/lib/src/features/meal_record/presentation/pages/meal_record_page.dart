@@ -74,10 +74,10 @@ class MealCreateNotifier extends StateNotifier<MealCreateState> {
         created: result.meal,
         sideEffects: result.sideEffects,
       );
-      
+
       // 퀘스트 정보 갱신
       _ref.read(questProvider.notifier).fetchQuests();
-      
+
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -203,6 +203,7 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
   late TextEditingController _menuController;
   late MealType _selectedMealType;
   MenuModel? _initialMenu;
+  Map<String, dynamic>? _lastExtra;
 
   @override
   void initState() {
@@ -216,13 +217,16 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
   void didChangeDependencies() {
     super.didChangeDependencies();
     final extra = GoRouterState.of(context).extra as Map<String, dynamic>?;
-    if (extra != null && _initialMenu == null) {
+
+    if (extra != null && extra != _lastExtra) {
+      _lastExtra = extra;
       final menuName = extra['menuName'] as String?;
       final menuId = extra['menuId'] as String?;
       if (menuName != null) {
         _menuController.text = menuName;
-        if (menuId != null) {
-          _initialMenu = MenuModel(
+        setState(() {
+          _initialMenu = menuId != null
+              ? MenuModel(
             id: menuId,
             name: menuName,
             category: extra['category'] as String? ?? 'KOREAN',
@@ -233,8 +237,12 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
             defaultFat: (extra['fat'] as num?)?.toDouble() ?? 0,
             defaultFiber: 0,
             defaultVitaminScore: 0,
-          );
-        }
+          )
+              : null;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _tabController.animateTo(0);
+        });
       }
     }
   }
