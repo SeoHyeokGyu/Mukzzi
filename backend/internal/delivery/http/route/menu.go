@@ -14,6 +14,7 @@ func MenuRoute(
 	preferenceHandler *handler.PreferenceHandler,
 	rouletteHandler *handler.RouletteHandler,
 	filterHandler *handler.MenuFilterHandler,
+	recHandler *handler.MenuRecommendationHandler,
 ) {
 	menus := rg.Group("/menus")
 	menus.Use(middleware.AuthMiddleware())
@@ -27,6 +28,8 @@ func MenuRoute(
 		menus.POST("/roulette", rouletteHandler.Spin)
 		// 상황별 필터
 		menus.GET("/filter", filterHandler.Filter)
+		// 선호도 기반 추천
+		menus.GET("/recommendations", recHandler.GetRecommendations)
 		menus.GET("/:id", menuHandler.FindByID)
 
 		// 즐겨찾기
