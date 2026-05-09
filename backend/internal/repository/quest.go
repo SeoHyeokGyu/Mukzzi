@@ -64,10 +64,20 @@ func (r *questRepository) GetAvailableDailyQuests(ctx context.Context, limit int
 	return quests, nil
 }
 
-func (r *questRepository) DeleteDailyQuestsByUserID(ctx context.Context, userID int64) error {
-	// GORM Unscoped로 물리 삭제 (새로운 일일 퀘스트 할당을 위해)
+func (r *questRepository) GetAvailableQuestsByType(ctx context.Context, qType domain.QuestType) ([]domain.QuestDefinition, error) {
+	var quests []domain.QuestDefinition
+	if err := r.db.WithContext(ctx).
+		Where("type = ? AND is_active = ?", qType, true).
+		Find(&quests).Error; err != nil {
+		return nil, err
+	}
+	return quests, nil
+}
+
+func (r *questRepository) DeleteQuestsByUserIDAndType(ctx context.Context, userID int64, qType domain.QuestType) error {
+	// GORM Unscoped로 물리 삭제 (새로운 퀘스트 할당을 위해)
 	return r.db.WithContext(ctx).Unscoped().
-		Where("user_id = ? AND quest_id IN (SELECT id FROM quests WHERE type = ?)", userID, domain.QuestTypeDaily).
+		Where("user_id = ? AND quest_id IN (SELECT id FROM quests WHERE type = ?)", userID, qType).
 		Delete(&domain.UserQuest{}).Error
 }
 

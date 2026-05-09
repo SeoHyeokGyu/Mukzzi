@@ -18,6 +18,7 @@ const (
 	NotificationTypeMealTag         NotificationType = "MEAL_TAG"
 	NotificationTypeMealTagAccepted NotificationType = "MEAL_TAG_ACCEPTED"
 	NotificationTypePenaltyChanged  NotificationType = "PENALTY_CHANGED"
+	NotificationTypeQuestCompleted  NotificationType = "QUEST_COMPLETED"
 )
 
 type Notification struct {
