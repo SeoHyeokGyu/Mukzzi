@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 import '../../../../core/providers/common_providers.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -8,6 +9,7 @@ import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../../core/widgets/shimmer_card.dart';
 import '../../../quest/data/models/quest_model.dart';
+import '../../../quest/domain/entities/quest.dart';
 import '../../../quest/presentation/providers/quest_provider.dart';
 import '../../data/models/meal_model.dart';
 import '../../data/models/menu_model.dart';
@@ -278,12 +280,14 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
         controller: _tabController,
         children: [
           _MealInputTab(
+            tabController: _tabController,
             menuController: _menuController,
             initialMenu: _initialMenu,
             selectedMealType: _selectedMealType,
             onMealTypeChanged: (v) => setState(() => _selectedMealType = v),
             onSaved: () {
               ref.read(mealListProvider.notifier).refresh();
+              ref.read(questProvider.notifier).fetchQuests();
               _tabController.animateTo(1);
               _menuController.clear();
               setState(() => _initialMenu = null);
@@ -301,6 +305,7 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
 // ─────────────────────────────────────────
 
 class _MealInputTab extends ConsumerStatefulWidget {
+  final TabController tabController;
   final TextEditingController menuController;
   final MenuModel? initialMenu;
   final MealType selectedMealType;
@@ -308,6 +313,7 @@ class _MealInputTab extends ConsumerStatefulWidget {
   final VoidCallback onSaved;
 
   const _MealInputTab({
+    required this.tabController,
     required this.menuController,
     this.initialMenu,
     required this.selectedMealType,
@@ -320,6 +326,11 @@ class _MealInputTab extends ConsumerStatefulWidget {
 }
 
 class _MealInputTabState extends ConsumerState<_MealInputTab> {
+  final GlobalKey _searchKey = GlobalKey();
+  final GlobalKey _submitKey = GlobalKey();
+  final ScrollController _scrollController = ScrollController();
+  bool _tutorialStarted = false;
+
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
   double _servingSize = 1.0;
@@ -332,10 +343,64 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
   @override
   void initState() {
     super.initState();
+    widget.tabController.addListener(_onTabChanged);
+    widget.menuController.addListener(_onMenuTextChanged);
     // 룰렛/필터에서 넘어온 메뉴 초기값 세팅
     if (widget.initialMenu != null) {
       _selectedMenu = widget.initialMenu;
       _wantFavorite = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.tabController.removeListener(_onTabChanged);
+    widget.menuController.removeListener(_onMenuTextChanged);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onMenuTextChanged() {
+    setState(() {}); // Rebuild to update submit button state
+  }
+
+  void _scrollToSubmit() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  void _onTabChanged() {
+    if (widget.tabController.index == 0) {
+      final quests = ref.read(questProvider).quests;
+      if (quests.isNotEmpty) {
+        _checkTutorial(quests);
+      }
+    }
+  }
+
+  void _checkTutorial(List<Quest> quests) {
+    if (_tutorialStarted) return;
+    if (widget.tabController.index != 0) return;
+
+    final hasTutorialQuest = quests.any(
+      (q) => q.code == 'TUTORIAL_FIRST_MEAL' && q.status == QuestStatus.progress,
+    );
+
+    if (hasTutorialQuest) {
+      _tutorialStarted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // 약간의 딜레이를 주어 탭 애니메이션 완료 후 시작 (더 정밀함)
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (mounted && widget.tabController.index == 0) {
+            ShowcaseView.get().startShowCase([_searchKey, _submitKey]);
+          }
+        });
+      });
     }
   }
 
@@ -415,8 +480,15 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
 
       final sideEffects = ref.read(mealCreateProvider).sideEffects;
       if (sideEffects != null && mounted) {
+        // 튜토리얼 중이라면 종료
+        if (_tutorialStarted) {
+          ShowcaseView.get().dismiss();
+        }
         _showSideEffectsOverlay(sideEffects);
       } else if (mounted) {
+        if (_tutorialStarted) {
+          ShowcaseView.get().dismiss();
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('식사 기록이 저장되었습니다')),
         );
@@ -447,7 +519,20 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
     final warning = _getMealTypeMismatchWarning();
 
+    ref.listen(questProvider, (previous, next) {
+      if (!next.isLoading && next.quests.isNotEmpty) {
+        _checkTutorial(next.quests);
+      }
+    });
+
+    // 초기 로드 시 체크
+    final questState = ref.watch(questProvider);
+    if (!questState.isLoading && questState.quests.isNotEmpty) {
+      _checkTutorial(questState.quests);
+    }
+
     return SingleChildScrollView(
+      controller: _scrollController,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -463,14 +548,37 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
             ],
           ),
           const SizedBox(height: 10),
-          MenuSearchField(
-            controller: widget.menuController,
-            onMenuSelected: (menu) => setState(() {
-              _selectedMenu = menu;
-              _wantFavorite = menu != null
-                  ? ref.read(favoriteListProvider).isFavorite(menu.id)
-                  : false;
-            }),
+          Showcase(
+            key: _searchKey,
+            title: '음식 검색',
+            description: '오늘 드신 음식을 검색하거나 직접 입력해보세요.',
+            disableDefaultTargetGestures: true,
+            child: MenuSearchField(
+              controller: widget.menuController,
+              onMenuSelected: (menu) {
+                setState(() {
+                  _selectedMenu = menu;
+                  _wantFavorite = menu != null
+                      ? ref.read(favoriteListProvider).isFavorite(menu.id)
+                      : false;
+                });
+                if (menu != null) {
+                  // 메뉴가 선택되면 다음 튜토리얼 단계로 이동
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      // 하단 버튼이 보이도록 스크롤 이동
+                      _scrollToSubmit();
+                      // 스크롤 애니메이션 시간을 고려하여 약간의 지연 후 다음 단계 표시
+                      Future.delayed(const Duration(milliseconds: 600), () {
+                        if (mounted) {
+                          ShowcaseView.get().next();
+                        }
+                      });
+                    }
+                  });
+                }
+              },
+            ),
           ),
 
           if (_selectedMenu != null) ...[
@@ -550,34 +658,42 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
           ),
           const SizedBox(height: 20),
 
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: tokens.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(tokens.rCard)),
-                elevation: 0,
-              ),
-              onPressed: createState.isLoading ? null : _submit,
-              child: createState.isLoading
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.favorite, size: 18, color: Colors.white),
-                  const SizedBox(width: 8),
-                  const Text('먹찌에게 주기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(99),
+          Showcase(
+            key: _submitKey,
+            title: '기록 완료',
+            description: '모두 입력했다면 먹찌에게 음식을 주세요! 먹찌가 성장합니다.',
+            disableDefaultTargetGestures: true,
+            child: SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: tokens.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(tokens.rCard)),
+                  elevation: 0,
+                ),
+                onPressed: (createState.isLoading || widget.menuController.text.trim().isEmpty)
+                    ? null
+                    : _submit,
+                child: createState.isLoading
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.favorite, size: 18, color: Colors.white),
+                    const SizedBox(width: 8),
+                    const Text('먹찌에게 주기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: const Text('+XP', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
                     ),
-                    child: const Text('+XP', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -1367,6 +1483,27 @@ class _SideEffectsBottomSheet extends StatelessWidget {
 
   const _SideEffectsBottomSheet({required this.sideEffects});
 
+  Widget _buildSectionHeader(String title, IconData icon, AppColorTokens tokens) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: tokens.textMuted),
+          const SizedBox(width: 6),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: tokens.textMuted,
+              letterSpacing: -0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
@@ -1377,79 +1514,154 @@ class _SideEffectsBottomSheet extends StatelessWidget {
         color: tokens.card,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: tokens.textMuted.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            '기록 완료!',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '+${sideEffects.expGained} XP 획득',
-            style: TextStyle(fontSize: 14, color: tokens.primary, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 24),
-          if (sideEffects.questsProgressed.isNotEmpty) ...[
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '퀘스트 진행도',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 12),
-            ...sideEffects.questsProgressed.map((q) => _QuestProgressOverlayItem(q: q, tokens: tokens)),
-            const SizedBox(height: 12),
-          ],
-          if (sideEffects.grantedTitle != null) ...[
+      child: SingleChildScrollView( // 긴 목록 대비 스크롤 추가
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
-                color: tokens.primaryBg,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: tokens.primary.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.stars, color: Colors.orange),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('새로운 칭호 획득!', style: TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.bold)),
-                        Text(sideEffects.grantedTitle!.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                ],
+                color: tokens.textMuted.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 24),
-          ],
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: tokens.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            const Text(
+              '기록 완료!',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '+${sideEffects.expGained} XP 획득',
+              style: TextStyle(fontSize: 15, color: tokens.primary, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 24),
+            if (sideEffects.questsProgressed.isNotEmpty || (sideEffects.grantedBadges.isNotEmpty)) ...[
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '이번 식사로 얻은 성과',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
               ),
-              child: const Text('확인', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              
+              // 1. 일일 퀘스트 섹션
+              if (sideEffects.questsProgressed.any((q) => q.questType.toUpperCase() == 'DAILY')) ...[
+                _buildSectionHeader('오늘의 목표', Icons.today_rounded, tokens),
+                ...sideEffects.questsProgressed
+                    .where((q) => q.questType.toUpperCase() == 'DAILY')
+                    .map((q) => _QuestProgressOverlayItem(q: q, tokens: tokens)),
+                const SizedBox(height: 12),
+              ],
+
+              // 2. 주간 퀘스트 섹션
+              if (sideEffects.questsProgressed.any((q) => q.questType.toUpperCase() == 'WEEKLY')) ...[
+                _buildSectionHeader('이번 주 도전', Icons.date_range_rounded, tokens),
+                ...sideEffects.questsProgressed
+                    .where((q) => q.questType.toUpperCase() == 'WEEKLY')
+                    .map((q) => _QuestProgressOverlayItem(q: q, tokens: tokens)),
+                const SizedBox(height: 12),
+              ],
+
+              // 3. 업적 섹션
+              if (sideEffects.questsProgressed.any((q) => q.questType.toUpperCase() == 'ACHIEVEMENT')) ...[
+                _buildSectionHeader('나의 기록들', Icons.stars_rounded, tokens),
+                ...sideEffects.questsProgressed
+                    .where((q) => q.questType.toUpperCase() == 'ACHIEVEMENT')
+                    .map((q) => _QuestProgressOverlayItem(q: q, tokens: tokens)),
+                const SizedBox(height: 12),
+              ],
+
+              // 4. 획득 뱃지 섹션
+              if (sideEffects.grantedBadges.isNotEmpty) ...[
+                _buildSectionHeader('새로운 뱃지', Icons.military_tech_rounded, tokens),
+                ...sideEffects.grantedBadges.map((b) => _BadgeOverlayItem(badge: b, tokens: tokens)),
+                const SizedBox(height: 12),
+              ],
+            ],
+            if (sideEffects.grantedTitle != null) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: tokens.primary.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.stars, color: Colors.orange, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('새로운 칭호 획득!', style: TextStyle(fontSize: 11, color: Colors.orange, fontWeight: FontWeight.w900)),
+                          Text(sideEffects.grantedTitle!.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: tokens.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text('확인', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BadgeOverlayItem extends StatelessWidget {
+  final dynamic badge;
+  final AppColorTokens tokens;
+
+  const _BadgeOverlayItem({required this.badge, required this.tokens});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: tokens.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: tokens.primary.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.verified_rounded, color: Colors.blue, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              badge.name,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
             ),
           ),
+          const Text('획득!', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12)),
         ],
       ),
     );
@@ -1462,25 +1674,60 @@ class _QuestProgressOverlayItem extends StatelessWidget {
 
   const _QuestProgressOverlayItem({required this.q, required this.tokens});
 
+  String _getLocalizedType(String type) {
+    switch (type.toUpperCase()) {
+      case 'DAILY': return '일일';
+      case 'WEEKLY': return '주간';
+      case 'ACHIEVEMENT': return '업적';
+      default: return '퀘스트';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: tokens.listItemBg.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(q.questType, style: const TextStyle(fontSize: 12)),
-              Text('${q.progress} / ${q.target}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: tokens.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  _getLocalizedType(q.questType),
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: tokens.primary),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  q.questTitle,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                '${q.progress}/${q.target}',
+                style: TextStyle(fontSize: 12, color: tokens.textSub, fontWeight: FontWeight.w500),
+              ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
-              value: q.progress / q.target,
+              value: q.target > 0 ? q.progress / q.target : 0,
               minHeight: 4,
               backgroundColor: tokens.primaryBg,
               valueColor: AlwaysStoppedAnimation<Color>(q.completed ? Colors.green : tokens.primary),

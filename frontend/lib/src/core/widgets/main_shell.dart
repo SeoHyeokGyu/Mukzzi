@@ -2,25 +2,45 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mukzzi/src/features/notification/presentation/providers/notification_provider.dart';
+import 'package:showcaseview/showcaseview.dart';
 
-class MainShell extends ConsumerWidget {
+class MainShell extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   const MainShell({super.key, required this.navigationShell});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends ConsumerState<MainShell> {
+  @override
+  void initState() {
+    super.initState();
+    // 앱 전역에서 사용할 쇼케이스 컨트롤러 등록
+    ShowcaseView.register();
+  }
+
+  @override
+  void dispose() {
+    // 앱 종료 시 쇼케이스 컨트롤러 해제
+    ShowcaseView.get().unregister();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final notificationState = ref.watch(notificationProvider);
     final unreadCount = notificationState.unreadCount;
 
     return Scaffold(
-      body: navigationShell,
+      body: widget.navigationShell,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
+        selectedIndex: widget.navigationShell.currentIndex,
         onDestinationSelected: (index) {
-          navigationShell.goBranch(
+          widget.navigationShell.goBranch(
             index,
-            initialLocation: index == navigationShell.currentIndex,
+            initialLocation: index == widget.navigationShell.currentIndex,
           );
         },
         destinations: [
