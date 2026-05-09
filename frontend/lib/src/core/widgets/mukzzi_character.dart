@@ -75,7 +75,7 @@ extension CharacterStateLabel on CharacterState {
   }
 }
 
-class MukzziCharacter extends StatelessWidget {
+class MukzziCharacter extends StatefulWidget {
   final CharacterState state;
   final double size;
   final int level;
@@ -83,45 +83,55 @@ class MukzziCharacter extends StatelessWidget {
   const MukzziCharacter({
     super.key,
     this.state = CharacterState.normal,
-    this.size = 160, // 기본 사이즈 상향 (120 -> 160)
+    this.size = 160,
     this.level = 1,
   }) : assert(size >= 60, 'MukzziCharacter: size < 60 renders detail-loss. Use at least 80 for best results.');
 
   @override
+  State<MukzziCharacter> createState() => _MukzziCharacterState();
+}
+
+class _MukzziCharacterState extends State<MukzziCharacter> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final stage = level.stage.name.toLowerCase();
-    final stateKey = state.key;
+    final stage = widget.level.stage.name.toLowerCase();
+    final stateKey = widget.state.key;
     final assetPath = 'assets/animations/mukzzi_${stage}_$stateKey.json';
 
     return SizedBox(
-      width: size,
-      height: size,
+      width: widget.size,
+      height: widget.size,
       child: Lottie.asset(
         assetPath,
+        controller: _controller,
         fit: BoxFit.contain,
-        delegates: LottieDelegates(
-          values: [
-            ValueDelegate.color(
-              const ['HeadGroup', 'Crown', 'Fill'],
-              value: state.crownColor,
-            ),
-          ],
-        ),
+        onLoaded: (composition) {
+          _controller
+            ..duration = composition.duration
+            ..value = 1.0;
+        },
         errorBuilder: (context, error, stackTrace) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.pets,
-                  size: size * 0.4,
-                  color: const Color(0xFF2D6BFF),
-                ),
+                Icon(Icons.pets, size: widget.size * 0.4, color: const Color(0xFF2D6BFF)),
                 const SizedBox(height: 4),
-                Text(
-                  'Load Failed: $assetPath',
-                  style: const TextStyle(fontSize: 8, color: Colors.red),
-                ),
+                Text('Load Failed: $assetPath', style: const TextStyle(fontSize: 8, color: Colors.red)),
               ],
             ),
           );

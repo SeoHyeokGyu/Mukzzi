@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../data/models/meal_model.dart';
-import '../../data/repositories/meal_repository.dart';
 import '../../../meal_record/presentation/pages/meal_record_page.dart';
 
 // ─────────────────────────────────────────

@@ -18,7 +18,6 @@ import '../../data/repositories/meal_repository.dart';
 import '../../data/repositories/preference_repository.dart';
 import '../widgets/menu_search_field.dart';
 import '../providers/favorite_provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 // ─────────────────────────────────────────
 // Providers
@@ -916,7 +915,7 @@ class _FavoriteToggle extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           const Text('내 즐겨찾기에 추가', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-          Switch(value: value, onChanged: onChanged, activeColor: tokens.primary),
+          Switch(value: value, onChanged: onChanged, activeThumbColor: tokens.primary),
         ],
       ),
     );
