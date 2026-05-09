@@ -9,6 +9,7 @@ enum NotificationType {
   badgeAcquired,
   mealTag,
   mealTagAccepted,
+  questCompleted,
   unknown;
 
   static NotificationType fromString(String? value) {
@@ -22,6 +23,7 @@ enum NotificationType {
       'BADGE_ACQUIRED' => NotificationType.badgeAcquired,
       'MEAL_TAG' => NotificationType.mealTag,
       'MEAL_TAG_ACCEPTED' => NotificationType.mealTagAccepted,
+      'QUEST_COMPLETED' => NotificationType.questCompleted,
       _ => NotificationType.unknown,
     };
   }
@@ -88,6 +90,8 @@ class NotificationModel {
         return '/character';
       case NotificationType.badgeAcquired:
         return '/profile/badges';
+      case NotificationType.questCompleted:
+        return '/home/quests';
       default:
         return '/home';
     }

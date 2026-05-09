@@ -79,11 +79,11 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   void _subscribe() {
     _subscription?.cancel();
     _subscription = _repository.subscribeToNotifications().listen(
-      (newNotification) {
+      (NotificationModel newNotification) {
         if (!mounted) return;
         debugPrint('[$_now][NotificationNotifier] 알림 수신: ${newNotification.title}');
         state = state.copyWith(
-          notifications: [newNotification, ...state.notifications],
+          notifications: <NotificationModel>[newNotification, ...state.notifications],
         );
       },
       onError: (e) {
