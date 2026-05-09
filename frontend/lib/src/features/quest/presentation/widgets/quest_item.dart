@@ -24,6 +24,7 @@ class QuestItem extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 카테고리 태그 및 상태 표시 (수령 완료/완료)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -55,6 +56,7 @@ class QuestItem extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
+            // 퀘스트 제목 및 설명
             Text(
               quest.title,
               style: TextStyle(
@@ -69,6 +71,7 @@ class QuestItem extends ConsumerWidget {
               style: TextStyle(fontSize: 13, color: tokens.textSub),
             ),
             const SizedBox(height: 16),
+            // 진행도 인디케이터
             Row(
               children: [
                 Expanded(
@@ -91,6 +94,44 @@ class QuestItem extends ConsumerWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+            // 퀘스트 보상 목록 (포인트, EXP, 뱃지, 칭호, 아이템)
+            Wrap(
+              spacing: 8,
+              children: [
+                if (quest.rewardPoint > 0)
+                  _RewardBadge(
+                    icon: Icons.monetization_on,
+                    label: '${quest.rewardPoint} P',
+                    color: Colors.amber,
+                  ),
+                if (quest.rewardExp > 0)
+                  _RewardBadge(
+                    icon: Icons.bolt,
+                    label: '${quest.rewardExp} EXP',
+                    color: Colors.blue,
+                  ),
+                if (quest.rewardBadgeId != null)
+                  const _RewardBadge(
+                    icon: Icons.verified,
+                    label: '뱃지 획득',
+                    color: Colors.orange,
+                  ),
+                if (quest.rewardTitleId != null)
+                  const _RewardBadge(
+                    icon: Icons.title,
+                    label: '칭호 획득',
+                    color: Colors.purple,
+                  ),
+                if (quest.rewardItemId != null)
+                  const _RewardBadge(
+                    icon: Icons.card_giftcard,
+                    label: '아이템 획득',
+                    color: Colors.pink,
+                  ),
+              ],
+            ),
+            // 완료되었으나 수령하지 않은 경우 보상 받기 버튼 표시
             if (isCompleted && !isClaimed) ...[
               const SizedBox(height: 16),
               SizedBox(
@@ -130,5 +171,44 @@ class QuestItem extends ConsumerWidget {
       default:
         return Colors.grey;
     }
+  }
+}
+
+class _RewardBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _RewardBadge({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
