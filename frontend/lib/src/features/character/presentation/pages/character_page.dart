@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 // import 'package:lottie/lottie.dart'; // mukzzi.json 추가 시 활성화
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
@@ -20,7 +21,7 @@ class CharacterPage extends ConsumerWidget {
 
     final level = char?.level ?? 1;
     final xp = char?.exp.toDouble() ?? 0.0;
-    const xpGoal = 100.0;
+    const xpGoal = AppConstants.xpGoalPerLevel;
     final state = char?.state ?? CharacterState.normal;
     final evolutionLabel = char?.evolutionLabel ?? '부화 단계';
 
@@ -104,25 +105,6 @@ class CharacterPage extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-
-            // 스탯 그리드
-            Text('스탯', style: _sectionStyle(context, tokens)),
-            const SizedBox(height: 10),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 1.6,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              children: [
-                _StatProgressTile(label: '포만감',    value: 68, color: tokens.primary,      icon: Icons.restaurant_outlined, tokens: tokens),
-                _StatProgressTile(label: '활력',     value: 82, color: const Color(0xFF3DD68C), icon: Icons.bolt_outlined,       tokens: tokens),
-                _StatProgressTile(label: '영양균형',  value: 74, color: const Color(0xFF7BD3FF), icon: Icons.favorite_outline,    tokens: tokens),
-                _StatProgressTile(label: '친밀도',   value: 91, color: const Color(0xFFFF8FA3), icon: Icons.star_outline,         tokens: tokens),
-              ],
-            ),
             const SizedBox(height: 24),
 
             // 진화 단계
@@ -162,9 +144,19 @@ class CharacterPage extends ConsumerWidget {
                     tokens: tokens,
                   ),
                   Divider(height: 1, color: tokens.primary.withValues(alpha: 0.08)),
-                  _EquipmentItem(label: '배경',    value: '빈 방', onTap: () => context.push('/character/rewards'), tokens: tokens),
+                  _EquipmentItem(
+                    label: '배경',
+                    value: char?.equippedBackground?.name ?? '기본 배경',
+                    onTap: () => context.push('/character/rewards'),
+                    tokens: tokens,
+                  ),
                   Divider(height: 1, color: tokens.primary.withValues(alpha: 0.08)),
-                  _EquipmentItem(label: '악세서리', value: '없음',  onTap: () => context.push('/character/rewards'), tokens: tokens),
+                  _EquipmentItem(
+                    label: '악세서리',
+                    value: char?.equippedAccessory?.name ?? '없음',
+                    onTap: () => context.push('/character/rewards'),
+                    tokens: tokens,
+                  ),
                 ],
               ),
             ),
@@ -227,78 +219,6 @@ class CharacterPage extends ConsumerWidget {
       child: Text(
         state.label,
         style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A)),
-      ),
-    );
-  }
-}
-
-class _StatProgressTile extends StatelessWidget {
-  final String label;
-  final int value;
-  final Color color;
-  final IconData icon;
-  final AppColorTokens tokens;
-
-  const _StatProgressTile({
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.icon,
-    required this.tokens,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return BentoCard(
-      borderRadius: BorderRadius.circular(tokens.rCard),
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 14, color: color),
-              ),
-              const SizedBox(width: 8),
-              Text(label, style: TextStyle(fontSize: 12, color: tokens.textSub, fontWeight: FontWeight.w500)),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              RichText(
-                text: TextSpan(children: [
-                  TextSpan(
-                    text: '$value',
-                    style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w800, color: tokens.textPrimary),
-                  ),
-                  TextSpan(
-                    text: '/100',
-                    style: TextStyle(fontSize: 11, color: tokens.textMuted),
-                  ),
-                ]),
-              ),
-              const SizedBox(height: 6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(3),
-                child: LinearProgressIndicator(
-                  value: value / 100,
-                  minHeight: 4,
-                  backgroundColor: tokens.primary.withValues(alpha: 0.1),
-                  valueColor: AlwaysStoppedAnimation<Color>(color),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

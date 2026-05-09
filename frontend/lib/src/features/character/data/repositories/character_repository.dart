@@ -8,6 +8,9 @@ class CharacterRepository {
 
   Future<CharacterModel> getMyCharacter() async {
     final response = await _apiClient.get('/users/me/character');
+    if (response == null || response['data'] == null) {
+      throw Exception('캐릭터 정보를 불러올 수 없습니다.');
+    }
     return CharacterModel.fromJson(response['data'] as Map<String, dynamic>);
   }
 
