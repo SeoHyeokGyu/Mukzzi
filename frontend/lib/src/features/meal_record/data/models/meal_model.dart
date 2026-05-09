@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mukzzi/src/features/character/domain/models/badge_model.dart';
 import 'package:mukzzi/src/features/quest/data/models/quest_model.dart';
 
 // ─────────────────────────────────────────
@@ -179,6 +180,7 @@ class GrantedTitleInfo {
 
 class MealSideEffects {
   final List<QuestProgressInfoModel> questsProgressed;
+  final List<BadgeModel> grantedBadges;
   final GrantedTitleInfo? grantedTitle;
   final int expGained;
   final Map<String, dynamic>? levelUp;
@@ -186,6 +188,7 @@ class MealSideEffects {
 
   const MealSideEffects({
     this.questsProgressed = const [],
+    this.grantedBadges = const [],
     this.grantedTitle,
     this.expGained = 0,
     this.levelUp,
@@ -196,9 +199,13 @@ class MealSideEffects {
     final quests = (json['quests_progressed'] as List?)
         ?.map((q) => QuestProgressInfoModel.fromJson(q))
         .toList();
+    final badges = (json['granted_badges'] as List?)
+        ?.map((b) => BadgeModel.fromJson(b as Map<String, dynamic>))
+        .toList();
 
     return MealSideEffects(
       questsProgressed: quests ?? [],
+      grantedBadges: badges ?? [],
       grantedTitle: json['granted_title'] != null
           ? GrantedTitleInfo.fromJson(json['granted_title'] as Map<String, dynamic>)
           : null,

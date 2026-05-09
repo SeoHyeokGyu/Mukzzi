@@ -75,6 +75,7 @@ class QuestModel extends Quest {
 class QuestProgressInfoModel extends QuestProgressInfo {
   const QuestProgressInfoModel({
     required super.questType,
+    required super.questTitle,
     required super.progress,
     required super.target,
     required super.completed,
@@ -83,6 +84,7 @@ class QuestProgressInfoModel extends QuestProgressInfo {
   factory QuestProgressInfoModel.fromJson(Map<String, dynamic> json) {
     return QuestProgressInfoModel(
       questType: json['quest_type'] as String? ?? '',
+      questTitle: json['quest_title'] as String? ?? '',
       progress: json['progress'] as int? ?? 0,
       target: json['target'] as int? ?? 0,
       completed: json['completed'] as bool? ?? false,

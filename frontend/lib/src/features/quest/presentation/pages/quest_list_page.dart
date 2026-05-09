@@ -21,7 +21,7 @@ class _QuestListPageState extends ConsumerState<QuestListPage> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     Future.microtask(() => ref.read(questProvider.notifier).fetchQuests());
   }
 
@@ -51,7 +51,6 @@ class _QuestListPageState extends ConsumerState<QuestListPage> with SingleTicker
           tabs: const [
             Tab(text: '일일'),
             Tab(text: '주간'),
-            Tab(text: '업적'),
           ],
         ),
       ),
@@ -69,7 +68,6 @@ class _QuestListPageState extends ConsumerState<QuestListPage> with SingleTicker
               children: [
                 _QuestList(questsProvider: dailyQuestsProvider),
                 _QuestList(questsProvider: weeklyQuestsProvider),
-                _QuestList(questsProvider: achievementQuestsProvider),
               ],
             ),
     );
