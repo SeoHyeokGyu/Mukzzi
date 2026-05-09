@@ -481,11 +481,12 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
               isFavorite: _wantFavorite,
               onFavoriteToggle: () => setState(() => _wantFavorite = !_wantFavorite),
               onDecrement: () => setState(() {
-                _servingSize = (_servingSize - 0.5).clamp(0.5, 3.0);
+                _servingSize = (_servingSize - 0.5).clamp(0.5, 10.0);
               }),
               onIncrement: () => setState(() {
-                _servingSize = (_servingSize + 0.5).clamp(0.5, 3.0);
+                _servingSize = (_servingSize + 0.5).clamp(0.5, 10.0);
               }),
+              onServingChanged: (val) => setState(() => _servingSize = val),
               tokens: tokens,
             ),
             const SizedBox(height: 12),
@@ -656,6 +657,7 @@ class _FoodItemRow extends StatelessWidget {
   final VoidCallback onFavoriteToggle;
   final VoidCallback onDecrement;
   final VoidCallback onIncrement;
+  final ValueChanged<double> onServingChanged;
   final AppColorTokens tokens;
 
   const _FoodItemRow({
@@ -665,8 +667,66 @@ class _FoodItemRow extends StatelessWidget {
     required this.onFavoriteToggle,
     required this.onDecrement,
     required this.onIncrement,
+    required this.onServingChanged,
     required this.tokens,
   });
+
+  void _showServingInputDialog(BuildContext context) {
+    final controller = TextEditingController(text: servingSize.toStringAsFixed(1));
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('수량 직접 입력'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              autofocus: true,
+              decoration: const InputDecoration(
+                suffix: Text('인분'),
+                hintText: '예: 1.5',
+              ),
+            ),
+            const SizedBox(height: 12),
+            // 빠른 선택 칩
+            Wrap(
+              spacing: 8,
+              children: [0.5, 1.0, 1.5, 2.0, 3.0].map((v) {
+                return ActionChip(
+                  label: Text('${v}인분'),
+                  onPressed: () {
+                    controller.text = v.toStringAsFixed(1);
+                  },
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final val = double.tryParse(controller.text);
+              if (val != null && val >= 0.5 && val <= 10.0) {
+                onServingChanged(val);
+                Navigator.pop(ctx);
+              } else {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('0.5 ~ 10 사이로 입력해주세요')),
+                );
+              }
+            },
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -729,16 +789,29 @@ class _FoodItemRow extends StatelessWidget {
                       child: Icon(Icons.remove, size: 14, color: tokens.textSub),
                     ),
                   ),
-                  SizedBox(
-                    width: 36,
-                    child: Text(
-                      servingSize.toStringAsFixed(1),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: tokens.textPrimary,
+                  // 숫자 탭 시 직접 입력 다이얼로그
+                  GestureDetector(
+                    onTap: () => _showServingInputDialog(context),
+                    child: SizedBox(
+                      width: 40,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            servingSize.toStringAsFixed(1),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: tokens.textPrimary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          Text(
+                            '탭',
+                            style: TextStyle(fontSize: 8, color: tokens.textMuted),
+                          ),
+                        ],
                       ),
-                      textAlign: TextAlign.center,
                     ),
                   ),
                   GestureDetector(
