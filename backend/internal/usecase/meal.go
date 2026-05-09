@@ -95,7 +95,6 @@ type mealUsecase struct {
 	tagRepo             repository.MealFriendTagRepository
 	menuRepo            repository.MenuRepository
 	userUc              UserUsecase
-	badgeGranter        BadgeGranter
 	masteryTracker      MasteryTracker
 	titleGranter        TitleGranter
 	notificationUsecase NotificationUsecase
@@ -110,7 +109,6 @@ func NewMealUsecase(
 	tagRepo repository.MealFriendTagRepository,
 	menuRepo repository.MenuRepository,
 	userUc UserUsecase,
-	badgeGranter BadgeGranter,
 	masteryTracker MasteryTracker,
 	titleGranter TitleGranter,
 	notificationUsecase NotificationUsecase,
@@ -124,7 +122,6 @@ func NewMealUsecase(
 		tagRepo:             tagRepo,
 		menuRepo:            menuRepo,
 		userUc:              userUc,
-		badgeGranter:        badgeGranter,
 		masteryTracker:      masteryTracker,
 		titleGranter:        titleGranter,
 		notificationUsecase: notificationUsecase,
@@ -197,22 +194,8 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 
 	ctx := context.Background()
 
-	grantedBadges, err := u.badgeGranter.CheckAndGrant(ctx, input.UserID, EventMealCreated)
-	if err != nil {
-		slog.Error("뱃지 체크 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
-		grantedBadges = nil
-	}
-	for i := range grantedBadges {
-		badge := &grantedBadges[i]
-		_ = u.notificationUsecase.CreateNotification(&domain.Notification{
-			UserID:  input.UserID,
-			Type:    domain.NotificationTypeBadgeAcquired,
-			Title:   "새 뱃지 획득!",
-			Content: badge.Name + "을(를) 획득했습니다.",
-		})
-	}
-
 	var masteryUpdate *domain.MasteryUpdate
+	// 칭호 부여 체크
 	var grantedTitle *domain.Title
 	var menuID int64
 	if input.MenuID != nil {
@@ -269,6 +252,10 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 		Payload: map[string]interface{}{
 			"meal_id":   output.Meal.ID,
 			"meal_type": string(output.Meal.MealType),
+			"calories":  output.Meal.Nutrition.Calories,
+			"carbs":     output.Meal.Nutrition.Carbs,
+			"protein":   output.Meal.Nutrition.Protein,
+			"fat":       output.Meal.Nutrition.Fat,
 		},
 	}
 	u.eventBus.Publish(event)
@@ -281,7 +268,6 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 	output.SideEffects = &domain.MealSideEffects{
 		QuestsProgressed: progressedQuests,
 		MasteryUpdated:   masteryUpdate,
-		GrantedBadges:    grantedBadges,
 		GrantedTitle:     grantedTitle,
 		ExpGained:        expAmount,
 		LevelUp:          levelUpEvent,

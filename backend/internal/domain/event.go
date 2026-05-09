@@ -9,6 +9,9 @@ const (
 	EventFriendNudged    EventType = "FRIEND_NUDGED"
 	EventGuestbookPosted EventType = "GUESTBOOK_POSTED"
 	EventUserOnboarded   EventType = "USER_ONBOARDED"
+	EventBadgeAcquired   EventType = "BADGE_ACQUIRED"
+	EventLevelUp         EventType = "LEVEL_UP"
+	EventQuestCompleted  EventType = "QUEST_COMPLETED"
 )
 
 type Event struct {

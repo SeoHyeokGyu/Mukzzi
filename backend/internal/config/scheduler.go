@@ -67,6 +67,15 @@ func runQuestReset(questUsecase usecase.QuestUsecase) {
 	}
 }
 
+func runWeeklyQuestReset(questUsecase usecase.QuestUsecase) {
+	slog.Info("주간 퀘스트 초기화 및 할당 작업 시작")
+	if err := questUsecase.AssignAllUsersWeeklyQuests(context.Background()); err != nil {
+		slog.Error("주간 퀘스트 초기화 중 오류 발생", slog.Any("error", err))
+	} else {
+		slog.Info("주간 퀘스트 초기화 및 할당 작업 완료")
+	}
+}
+
 func runStreakReconciliation(userUsecase usecase.UserUsecase) {
 	slog.Info("전체 유저 스트릭 재계산 및 보정 작업 시작")
 	if err := userUsecase.RecalculateAllUsersStreak(); err != nil {

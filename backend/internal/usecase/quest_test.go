@@ -49,8 +49,17 @@ func (m *MockQuestRepository) GetAvailableDailyQuests(ctx context.Context, limit
 	return args.Get(0).([]domain.QuestDefinition), args.Error(1)
 }
 
-func (m *MockQuestRepository) DeleteDailyQuestsByUserID(ctx context.Context, userID int64) error {
+func (m *MockQuestRepository) GetAvailableQuestsByType(ctx context.Context, qType domain.QuestType) ([]domain.QuestDefinition, error) {
+	args := m.Called(ctx, qType)
+	return args.Get(0).([]domain.QuestDefinition), args.Error(1)
+}
+
+func (m *MockQuestRepository) AssignTutorialQuest(ctx context.Context, userID int64) error {
 	return m.Called(ctx, userID).Error(0)
+}
+
+func (m *MockQuestRepository) DeleteQuestsByUserIDAndType(ctx context.Context, userID int64, qType domain.QuestType) error {
+	return m.Called(ctx, userID, qType).Error(0)
 }
 
 func (m *MockQuestRepository) GetUserQuestByID(ctx context.Context, id int64) (*domain.UserQuest, error) {
@@ -60,6 +69,38 @@ func (m *MockQuestRepository) GetUserQuestByID(ctx context.Context, id int64) (*
 	}
 	return args.Get(0).(*domain.UserQuest), args.Error(1)
 }
+
+// MockMealRepository 는 MealRepository 의 목 객체입니다.
+type MockMealRepository struct {
+	mock.Mock
+}
+
+func (m *MockMealRepository) CountByUserID(userID int64) (int64, error) {
+	args := m.Called(userID)
+	return args.Get(0).(int64), args.Error(1)
+}
+func (m *MockMealRepository) CountDistinctMenuByUserID(userID int64) (int64, error) {
+	args := m.Called(userID)
+	return args.Get(0).(int64), args.Error(1)
+}
+func (m *MockMealRepository) Create(meal *domain.MealRecord) error { return m.Called(meal).Error(0) }
+func (m *MockMealRepository) FindByID(id int64) (*domain.MealRecord, error) {
+	args := m.Called(id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.MealRecord), args.Error(1)
+}
+func (m *MockMealRepository) FindByUserID(userID int64, filter domain.MealListFilter) ([]domain.MealRecord, int64, error) {
+	args := m.Called(userID, filter)
+	return args.Get(0).([]domain.MealRecord), args.Get(1).(int64), args.Error(2)
+}
+func (m *MockMealRepository) FindFriendMeals(friendIDs []int64, filter domain.MealListFilter) ([]domain.MealRecord, int64, error) {
+	args := m.Called(friendIDs, filter)
+	return args.Get(0).([]domain.MealRecord), args.Get(1).(int64), args.Error(2)
+}
+func (m *MockMealRepository) Update(meal *domain.MealRecord) error { return m.Called(meal).Error(0) }
+func (m *MockMealRepository) Delete(id int64, userID int64) error { return m.Called(id, userID).Error(0) }
 
 // MockUserUsecase 는 UserUsecase 의 목 객체입니다.
 type MockUserUsecase struct {
@@ -140,7 +181,8 @@ func TestQuestUsecase_HandleEvent(t *testing.T) {
 	t.Run("식사 기록 이벤트 시 관련 퀘스트 진행도 증가", func(t *testing.T) {
 		mockRepo := new(MockQuestRepository)
 		mockCharRepo := new(MockCharacterRepository)
-		uc := NewQuestUsecase(mockRepo, nil, mockCharRepo, nil, nil)
+		mockMealRepo := new(MockMealRepository)
+		uc := NewQuestUsecase(mockRepo, nil, mockCharRepo, mockMealRepo, nil, nil, nil, nil)
 
 		event := domain.Event{
 			Type:   domain.EventMealCreated,
@@ -177,7 +219,8 @@ func TestQuestUsecase_HandleEvent(t *testing.T) {
 	t.Run("퀘스트 목표 달성 시 상태 변경", func(t *testing.T) {
 		mockRepo := new(MockQuestRepository)
 		mockCharRepo := new(MockCharacterRepository)
-		uc := NewQuestUsecase(mockRepo, nil, mockCharRepo, nil, nil)
+		mockMealRepo := new(MockMealRepository)
+		uc := NewQuestUsecase(mockRepo, nil, mockCharRepo, mockMealRepo, nil, nil, nil, nil)
 
 		event := domain.Event{
 			Type:   domain.EventMealCreated,
@@ -224,7 +267,7 @@ func TestQuestUsecase_AssignDailyQuests(t *testing.T) {
 
 	t.Run("일일 퀘스트 할당 성공", func(t *testing.T) {
 		mockRepo := new(MockQuestRepository)
-		uc := NewQuestUsecase(mockRepo, nil, nil, nil, nil)
+		uc := NewQuestUsecase(mockRepo, nil, nil, nil, nil, nil, nil, nil)
 
 		pool := []domain.QuestDefinition{
 			{BaseDomain: domain.BaseDomain{ID: 1}, Code: "Q1"},
@@ -232,11 +275,62 @@ func TestQuestUsecase_AssignDailyQuests(t *testing.T) {
 			{BaseDomain: domain.BaseDomain{ID: 3}, Code: "Q3"},
 		}
 
-		mockRepo.On("DeleteDailyQuestsByUserID", ctx, userID).Return(nil)
+		mockRepo.On("DeleteQuestsByUserIDAndType", ctx, userID, domain.QuestTypeDaily).Return(nil)
 		mockRepo.On("GetAvailableDailyQuests", ctx, 3).Return(pool, nil)
 		mockRepo.On("CreateUserQuest", ctx, mock.Anything).Return(nil).Times(3)
 
 		err := uc.AssignDailyQuests(ctx, userID)
+
+		assert.NoError(t, err)
+		mockRepo.AssertExpectations(t)
+	})
+}
+
+func TestQuestUsecase_AssignWeeklyQuests(t *testing.T) {
+	ctx := context.Background()
+	userID := int64(1)
+
+	t.Run("주간 퀘스트 할당 성공", func(t *testing.T) {
+		mockRepo := new(MockQuestRepository)
+		uc := NewQuestUsecase(mockRepo, nil, nil, nil, nil, nil, nil, nil)
+
+		pool := []domain.QuestDefinition{
+			{BaseDomain: domain.BaseDomain{ID: 10}, Code: "WEEKLY_1", Type: domain.QuestTypeWeekly},
+		}
+
+		mockRepo.On("DeleteQuestsByUserIDAndType", ctx, userID, domain.QuestTypeWeekly).Return(nil)
+		mockRepo.On("GetAvailableQuestsByType", ctx, domain.QuestTypeWeekly).Return(pool, nil)
+		mockRepo.On("CreateUserQuest", ctx, mock.MatchedBy(func(uq *domain.UserQuest) bool {
+			return uq.QuestID == 10 && uq.ExpiresAt.After(time.Now())
+		})).Return(nil)
+
+		err := uc.AssignWeeklyQuests(ctx, userID)
+
+		assert.NoError(t, err)
+		mockRepo.AssertExpectations(t)
+	})
+}
+
+func TestQuestUsecase_AssignAchievementQuests(t *testing.T) {
+	ctx := context.Background()
+	userID := int64(1)
+
+	t.Run("업적 퀘스트 할당 성공 - 초기 달성 체크 포함", func(t *testing.T) {
+		mockRepo := new(MockQuestRepository)
+		mockMealRepo := new(MockMealRepository)
+		uc := NewQuestUsecase(mockRepo, nil, nil, mockMealRepo, nil, nil, nil, nil)
+
+		pool := []domain.QuestDefinition{
+			{BaseDomain: domain.BaseDomain{ID: 20}, Code: "ACHIEVE_1", Type: domain.QuestTypeAchievement, TargetCount: 10},
+		}
+
+		mockMealRepo.On("CountByUserID", userID).Return(int64(15), nil) // 이미 15끼 먹음
+		mockRepo.On("GetAvailableQuestsByType", ctx, domain.QuestTypeAchievement).Return(pool, nil)
+		mockRepo.On("CreateUserQuest", ctx, mock.MatchedBy(func(uq *domain.UserQuest) bool {
+			return uq.QuestID == 20 && uq.Status == domain.QuestStatusCompleted && uq.CurrentCount == 15
+		})).Return(nil)
+
+		err := uc.AssignAchievementQuests(ctx, userID)
 
 		assert.NoError(t, err)
 		mockRepo.AssertExpectations(t)

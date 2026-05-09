@@ -82,6 +82,18 @@ func SeedQuests(db *gorm.DB) {
 			RewardExp:   1000,
 			IsActive:    true,
 		},
+		// 튜토리얼 (TUTORIAL)
+		{
+			Code:        "TUTORIAL_FIRST_MEAL",
+			Type:        domain.QuestTypeAchievement,
+			Category:    domain.QuestCategoryMeal,
+			Title:       "첫 식사를 기록해보세요!",
+			Description: "먹찌가 배고파요. 첫 번째 식사를 기록하고 성장을 시작하세요.",
+			TargetCount: 1,
+			RewardPoint: 100,
+			RewardExp:   200,
+			IsActive:    true,
+		},
 	}
 
 	result := db.Clauses(clause.OnConflict{

@@ -16,6 +16,7 @@ class Quest {
   final int rewardExp;
   final String? rewardTitleId;
   final String? rewardBadgeId;
+  final String? rewardItemId;
   final DateTime assignedAt;
   final DateTime expiresAt;
 
@@ -33,6 +34,7 @@ class Quest {
     required this.rewardExp,
     this.rewardTitleId,
     this.rewardBadgeId,
+    this.rewardItemId,
     required this.assignedAt,
     required this.expiresAt,
   });

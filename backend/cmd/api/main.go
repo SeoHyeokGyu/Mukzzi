@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 
@@ -78,7 +79,7 @@ func main() {
 	notificationHandler := handler.NewNotificationHandler(notificationUsecase)
 
 	// Quest 도메인
-	questUsecase := usecase.NewQuestUsecase(questRepo, userRepo, characterRepo, eventBus, db)
+	questUsecase := usecase.NewQuestUsecase(questRepo, userRepo, characterRepo, mealRepo, badgeRepo, titleRepo, eventBus, db)
 	questHandler := handler.NewQuestHandler(questUsecase)
 
 	// User 도메인
@@ -88,16 +89,36 @@ func main() {
 	// 이벤트 구독 설정
 	eventBus.Subscribe(domain.EventUserOnboarded, func(ev domain.Event) {
 		slog.Info("유저 온보딩 이벤트 수신, 퀘스트 할당 시작", slog.Int64("user_id", ev.UserID))
-		if err := questUsecase.AssignDailyQuests(context.Background(), ev.UserID); err != nil {
-			slog.Error("온보딩 퀘스트 할당 실패", slog.Int64("user_id", ev.UserID), slog.Any("error", err))
+		ctx := context.Background()
+		if err := questUsecase.AssignDailyQuests(ctx, ev.UserID); err != nil {
+			slog.Error("온보딩 일일 퀘스트 할당 실패", slog.Int64("user_id", ev.UserID), slog.Any("error", err))
 		}
+		if err := questUsecase.AssignWeeklyQuests(ctx, ev.UserID); err != nil {
+			slog.Error("온보딩 주간 퀘스트 할당 실패", slog.Int64("user_id", ev.UserID), slog.Any("error", err))
+		}
+		if err := questUsecase.AssignAchievementQuests(ctx, ev.UserID); err != nil {
+			slog.Error("온보딩 업적 퀘스트 할당 실패", slog.Int64("user_id", ev.UserID), slog.Any("error", err))
+		}
+		if err := questUsecase.AssignTutorialQuest(ctx, ev.UserID); err != nil {
+			slog.Error("온보딩 튜토리얼 퀘스트 할당 실패", slog.Int64("user_id", ev.UserID), slog.Any("error", err))
+		}
+	})
+
+	eventBus.Subscribe(domain.EventQuestCompleted, func(ev domain.Event) {
+		slog.Info("퀘스트 완료 이벤트 수신, 알림 생성", slog.Int64("user_id", ev.UserID))
+		title := ev.Payload["quest_title"].(string)
+		_ = notificationUsecase.CreateNotification(&domain.Notification{
+			UserID:  ev.UserID,
+			Type:    domain.NotificationTypeQuestCompleted,
+			Title:   "퀘스트 완료!",
+			Content: fmt.Sprintf("[%s] 퀘스트를 달성했습니다! 보상을 받으러 오세요.", title),
+		})
 	})
 
 	// 스케줄러 시작
 	config.StartScheduler(userUsecase, questUsecase)
 
 	// Collection 도메인
-	badgeGranter := usecase.NewBadgeGranter(badgeRepo, mealRepo, dailyIntakeRepo, charCollectionRepo)
 	badgeUsecase := usecase.NewBadgeUsecase(badgeRepo)
 	charCollectionUsecase := usecase.NewCharacterCollectionUsecase(charCollectionRepo)
 	masteryUsecase := usecase.NewMasteryUsecase(masteryRepo)
@@ -130,7 +151,7 @@ func main() {
 	// Meal 도메인
 	masteryTracker := usecase.NewMasteryTracker(masteryRepo)
 	titleGranter := usecase.NewTitleGranter(titleRepo)
-	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, userUsecase, badgeGranter, masteryTracker, titleGranter, notificationUsecase, eventBus, questUsecase, db)
+	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, userUsecase, masteryTracker, titleGranter, notificationUsecase, eventBus, questUsecase, db)
 	mealHandler := handler.NewMealHandler(mealUsecase)
 
 	// Roulette 도메인

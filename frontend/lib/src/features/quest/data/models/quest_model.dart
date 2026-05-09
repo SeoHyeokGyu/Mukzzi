@@ -15,28 +15,31 @@ class QuestModel extends Quest {
     required super.rewardExp,
     super.rewardTitleId,
     super.rewardBadgeId,
+    super.rewardItemId,
     required super.assignedAt,
     required super.expiresAt,
   });
 
   factory QuestModel.fromJson(Map<String, dynamic> json) {
-    // 퀘스트 상세 정보는 중첩된 'Quest' 필드에 있을 수 있음 (백엔드 UserQuest 구조 참고)
-    final definition = json['Quest'] as Map<String, dynamic>? ?? json;
+    // 백엔드의 UserQuestResponse DTO 구조를 따름
+    final definition = json['Quest'] as Map<String, dynamic>?;
     
+    // ID는 백엔드에서 string으로 넘어옴
     return QuestModel(
-      id: json['id'].toString(),
-      code: definition['code'] as String? ?? '',
-      type: _parseQuestType(definition['type'] as String? ?? 'DAILY'),
-      category: definition['category'] as String? ?? '',
-      title: definition['title'] as String? ?? '',
-      description: definition['description'] as String? ?? '',
-      targetCount: definition['target_count'] as int? ?? 0,
+      id: json['id'] as String,
+      code: definition?['code'] as String? ?? '',
+      type: _parseQuestType(definition?['type'] as String? ?? 'DAILY'),
+      category: definition?['category'] as String? ?? '',
+      title: definition?['title'] as String? ?? '',
+      description: definition?['description'] as String? ?? '',
+      targetCount: definition?['target_count'] as int? ?? 0,
       currentCount: json['current_count'] as int? ?? 0,
       status: _parseQuestStatus(json['status'] as String? ?? 'PROGRESS'),
-      rewardPoint: definition['reward_point'] as int? ?? 0,
-      rewardExp: definition['reward_exp'] as int? ?? 0,
-      rewardTitleId: definition['reward_title_id']?.toString(),
-      rewardBadgeId: definition['reward_badge_id']?.toString(),
+      rewardPoint: definition?['reward_point'] as int? ?? 0,
+      rewardExp: definition?['reward_exp'] as int? ?? 0,
+      rewardTitleId: definition?['reward_title_id']?.toString(),
+      rewardBadgeId: definition?['reward_badge_id']?.toString(),
+      rewardItemId: definition?['reward_item_id']?.toString(),
       assignedAt: DateTime.parse(json['assigned_at'] as String).toLocal(),
       expiresAt: DateTime.parse(json['expires_at'] as String).toLocal(),
     );
