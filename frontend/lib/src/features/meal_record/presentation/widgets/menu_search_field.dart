@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/menu_model.dart';
 import '../providers/favorite_provider.dart';
 import '../providers/menu_search_provider.dart';
+import 'menu_register_sheet.dart';
 
 class MenuSearchField extends ConsumerStatefulWidget {
   final TextEditingController controller;
@@ -23,7 +24,6 @@ class MenuSearchField extends ConsumerStatefulWidget {
 
 class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
   bool _showDropdown = false;
-  bool _isRegistering = false;
 
   void _onChanged(String value) {
     setState(() => _showDropdown = value.isNotEmpty);
@@ -43,35 +43,18 @@ class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
     setState(() => _showDropdown = false);
   }
 
-  Future<void> _onSelectNew(String name) async {
-    if (_isRegistering) return;
-    setState(() => _isRegistering = true);
-    try {
-      final menu = await ref
-          .read(menuRepositoryProvider)
-          .create(name: name, category: 'OTHER');
-      if (!mounted) return;
-      widget.controller.text = menu.name;
-      widget.controller.selection =
-          TextSelection.collapsed(offset: menu.name.length);
-      ref.read(menuSearchProvider.notifier).clear();
-      widget.onMenuSelected(menu);
-      setState(() {
-        _showDropdown = false;
-        _isRegistering = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      widget.controller.text = name;
-      widget.controller.selection =
-          TextSelection.collapsed(offset: name.length);
-      ref.read(menuSearchProvider.notifier).clear();
-      widget.onMenuSelected(null);
-      setState(() {
-        _showDropdown = false;
-        _isRegistering = false;
-      });
-    }
+  void _onSelectNew(String name) {
+    setState(() => _showDropdown = false);
+    MenuRegisterSheet.show(
+      context,
+      name,
+          (menu) {
+        widget.controller.text = menu.name;
+        widget.controller.selection =
+            TextSelection.collapsed(offset: menu.name.length);
+        widget.onMenuSelected(menu);
+      },
+    );
   }
 
   void _clear() {
@@ -199,7 +182,7 @@ class _MenuSearchFieldState extends ConsumerState<MenuSearchField> {
                 ),
               ],
             ),
-            child: (searchState.isLoading || _isRegistering)
+            child: searchState.isLoading
                 ? const Padding(
               padding: EdgeInsets.all(16),
               child: Center(

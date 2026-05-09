@@ -20,6 +20,7 @@ import '../features/profile/presentation/pages/onboarding_page.dart';
 import '../features/profile/presentation/pages/profile_page.dart';
 import '../features/profile/presentation/pages/edit_profile_page.dart';
 import '../features/meal_record/presentation/pages/meal_record_page.dart';
+import '../features/meal_record/presentation/pages/meal_calendar_page.dart';
 import '../features/social/presentation/pages/social_page.dart';
 import '../features/social/presentation/pages/other_profile_page.dart';
 import '../features/social/presentation/pages/guestbook_list_page.dart';
@@ -153,6 +154,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   path: 'masteries',
                   name: 'meal-masteries',
                   builder: (context, state) => const MasteryListPage(),
+                ),
+                GoRoute(
+                  path: 'calendar',
+                  name: 'meal-calendar',
+                  builder: (context, state) => const MealCalendarPage(),
                 ),
               ],
             ),

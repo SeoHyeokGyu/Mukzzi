@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:intl/intl.dart';
 
@@ -238,10 +239,19 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
   Widget build(BuildContext context) {
     return GradientScaffold(
       appBar: AppBar(
-        title: Text(
-          '식사 기록',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
-        ),
+        title: const Text('식사 기록'),
+        actions: [
+          IconButton(
+            tooltip: '먹부림 캘린더',
+            icon: const Icon(Icons.calendar_month_outlined),
+            onPressed: () => context.push('/meal-record/calendar'),
+          ),
+          IconButton(
+            tooltip: '먹부림 도감',
+            icon: const Icon(Icons.menu_book_outlined),
+            onPressed: () => context.push('/meal-record/masteries'),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Theme.of(context).primaryColor,
