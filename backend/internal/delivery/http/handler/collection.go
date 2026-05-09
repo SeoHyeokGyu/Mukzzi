@@ -101,14 +101,16 @@ func (h *CollectionHandler) GetBadges(c *gin.Context) {
 	}
 
 	responses := make([]dto.BadgeResponse, len(result.Badges))
-	for i, badge := range result.Badges {
-		userBadge, isAcquired := result.AcquiredMap[badge.ID]
+	for i, bp := range result.Badges {
+		userBadge, isAcquired := result.AcquiredMap[bp.ID]
 		responses[i] = dto.BadgeResponse{
-			ID:          badge.ID,
-			Code:        badge.Code,
-			Name:        badge.Name,
-			Description: badge.Description,
-			IconURL:     badge.IconURL,
+			ID:          bp.ID,
+			Code:        bp.Code,
+			Name:        bp.Name,
+			Description: bp.Description,
+			IconURL:     bp.IconURL,
+			Progress:    bp.Progress,
+			Target:      bp.Target,
 			Acquired:    isAcquired,
 		}
 		if isAcquired && userBadge != nil {

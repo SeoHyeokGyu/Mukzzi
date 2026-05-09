@@ -13,6 +13,8 @@ type BadgeResponse struct {
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
 	IconURL     string     `json:"icon_url"`
+	Progress    int        `json:"progress"`
+	Target      int        `json:"target"`
 	Acquired    bool       `json:"acquired"`
 	AcquiredAt  *time.Time `json:"acquired_at,omitempty"`
 }

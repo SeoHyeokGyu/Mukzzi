@@ -78,6 +78,11 @@ func SeedBadges(db *gorm.DB) {
 			Name:        "완전 도감",
 			Description: "먹찌 도감 625종을 모두 달성했습니다.",
 		},
+		{
+			Code:        "ACHIEVE_MEAL_100",
+			Name:        "백 끼의 장인",
+			Description: "누적 100번의 식사를 기록했습니다.",
+		},
 	}
 
 	result := db.Clauses(clause.OnConflict{
