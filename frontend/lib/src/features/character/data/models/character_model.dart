@@ -1,4 +1,5 @@
 import '../../../../core/widgets/mukzzi_character.dart';
+import '../../domain/models/reward_model.dart';
 
 class CharacterModel {
   final String id;
@@ -13,6 +14,8 @@ class CharacterModel {
   final int muscle;
   final int skinTone;
   final int expression;
+  final RewardModel? equippedBackground;
+  final RewardModel? equippedAccessory;
 
   CharacterModel({
     required this.id,
@@ -27,6 +30,8 @@ class CharacterModel {
     required this.muscle,
     required this.skinTone,
     required this.expression,
+    this.equippedBackground,
+    this.equippedAccessory,
   });
 
   factory CharacterModel.fromJson(Map<String, dynamic> json) {
@@ -34,6 +39,7 @@ class CharacterModel {
     final penalty = json['penalty_status'] as String? ?? 'NORMAL';
     if (penalty == 'HUNGRY') status = CharacterState.hungry;
     if (penalty == 'STARVING') status = CharacterState.starving;
+    // 'WEAKENED' is mapped to 'sleeping' state as a visual fallback
     if (penalty == 'WEAKENED') status = CharacterState.sleeping;
 
     return CharacterModel(
@@ -49,6 +55,12 @@ class CharacterModel {
       muscle: json['muscle'] as int? ?? 0,
       skinTone: json['skin_tone'] as int? ?? 0,
       expression: json['expression'] as int? ?? 0,
+      equippedBackground: json['equipped_background'] != null
+          ? RewardModel.fromJson(json['equipped_background'] as Map<String, dynamic>)
+          : null,
+      equippedAccessory: json['equipped_accessory'] != null
+          ? RewardModel.fromJson(json['equipped_accessory'] as Map<String, dynamic>)
+          : null,
     );
   }
 

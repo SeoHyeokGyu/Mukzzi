@@ -37,6 +37,8 @@ class AppConstants {
   static const int maxFriendsCount = 100;
   static const double minServingSize = 0.5;
   static const double maxServingSize = 3.0;
+  static const double xpGoalPerLevel = 100.0;
+  static const double defaultDailyCalorieGoal = 2000.0;
 
   // App Info
   static const String appVersion = '1.0.0';

@@ -8,5 +8,5 @@ final characterRepositoryProvider = Provider<CharacterRepository>((ref) {
 });
 
 final characterProvider = FutureProvider.autoDispose<CharacterModel>((ref) async {
-  return ref.watch(characterRepositoryProvider).getMyCharacter();
+  return ref.read(characterRepositoryProvider).getMyCharacter();
 });

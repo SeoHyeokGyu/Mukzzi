@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:mukzzi/src/core/constants/app_constants.dart';
 import 'package:mukzzi/src/core/theme/app_theme.dart';
 import 'package:mukzzi/src/core/widgets/bento_card.dart';
 import 'package:mukzzi/src/core/widgets/gradient_scaffold.dart';
@@ -17,26 +18,12 @@ import 'package:mukzzi/src/features/character/data/models/character_model.dart';
 import 'package:mukzzi/src/features/character/presentation/providers/character_provider.dart';
 import 'package:mukzzi/src/features/profile/presentation/providers/user_provider.dart';
 import 'package:mukzzi/src/features/home/presentation/widgets/menu_decision_section.dart';
+import 'package:mukzzi/src/features/home/data/models/nutrition_model.dart';
+import 'package:mukzzi/src/features/home/presentation/providers/nutrition_provider.dart';
+import 'package:mukzzi/src/features/meal_record/data/models/meal_model.dart';
+import 'package:mukzzi/src/features/meal_record/presentation/providers/meal_provider.dart';
 import 'package:mukzzi/src/features/quest/domain/entities/quest.dart';
 import 'package:mukzzi/src/features/quest/presentation/providers/quest_provider.dart';
-import 'package:showcaseview/showcaseview.dart';
-
-// Mock 데이터 - 추후 API로 교체
-const double _caloriesConsumed = 1200;
-const double _caloriesGoal = 2000;
-const double _proteinConsumed = 45;
-const double _proteinGoal = 60;
-const double _carbsConsumed = 150;
-const double _carbsGoal = 300;
-const double _fatConsumed = 30;
-const double _fatGoal = 60;
-const int _mockStreakDays = 3;
-
-const _mockMeals = [
-  (emoji: '🍚', time: '오전 8:30', name: '아침밥', kcal: 350),
-  (emoji: '🍜', time: '오후 12:00', name: '점심 국수', kcal: 520),
-  (emoji: '🍎', time: '오후 3:00', name: '간식', kcal: 80),
-];
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -311,6 +298,9 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     final characterAsync = ref.watch(characterProvider);
     final dailyQuests = ref.watch(dailyQuestsProvider);
+    final nutritionAsync = ref.watch(todayNutritionProvider);
+    final weeklyNutritionAsync = ref.watch(weeklyNutritionProvider);
+    final mealsAsync = ref.watch(todayMealsProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -323,19 +313,101 @@ class _HomePageState extends ConsumerState<HomePage> {
             error: (_, __) => _buildHeroCard(tokens, null),
           ),
           const SizedBox(height: 12),
-          _buildStreakQuestRow(tokens, dailyQuests),
+          _buildStreakQuestRow(tokens, dailyQuests, characterAsync.asData?.value.streakDays ?? 0),
           const SizedBox(height: 12),
           _buildQuickCTAs(tokens),
           const SizedBox(height: 12),
-          _buildNutritionCard(tokens),
+          nutritionAsync.when(
+            data: (nutrition) => _buildNutritionCard(tokens, nutrition),
+            loading: () => const ShimmerCard(height: 280),
+            error: (_, __) => _buildNutritionCard(tokens, null),
+          ),
+          const SizedBox(height: 12),
+          weeklyNutritionAsync.when(
+            data: (weekly) => _buildWeeklyTrendChart(tokens, weekly),
+            loading: () => const ShimmerCard(height: 200),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
           const SizedBox(height: 12),
           _animated(const MenuDecisionSection(), delay: 200.ms, slideY: true),
           const SizedBox(height: 24),
-          _buildRecentMeals(tokens),
+          mealsAsync.when(
+            data: (meals) => _buildRecentMeals(tokens, meals),
+            loading: () => const ShimmerCard(height: 100),
+            error: (_, __) => _buildRecentMeals(tokens, []),
+          ),
           const SizedBox(height: 16),
         ],
       ),
     );
+  }
+
+  Widget _buildWeeklyTrendChart(AppColorTokens tokens, List<WeeklyNutritionItemModel> weekly) {
+    if (weekly.isEmpty) return const SizedBox.shrink();
+
+    final chart = BentoCard(
+      borderRadius: BorderRadius.circular(tokens.rCard),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '주간 영양 트렌드',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: tokens.textPrimary),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 120,
+            child: LineChart(
+              LineChartData(
+                gridData: const FlGridData(show: false),
+                titlesData: FlTitlesData(
+                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        final index = value.toInt();
+                        if (index < 0 || index >= weekly.length) return const SizedBox.shrink();
+                        final date = DateTime.parse(weekly[index].date);
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            DateFormat('E', 'ko').format(date),
+                            style: TextStyle(fontSize: 10, color: tokens.textMuted),
+                          ),
+                        );
+                      },
+                      reservedSize: 22,
+                    ),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: weekly.asMap().entries.map((e) {
+                      return FlSpot(e.key.toDouble(), e.value.calories);
+                    }).toList(),
+                    isCurved: true,
+                    color: tokens.primary,
+                    barWidth: 3,
+                    isStrokeCapRound: true,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: tokens.primary.withValues(alpha: 0.1),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    return _animated(chart, delay: 180.ms, slideY: true);
   }
 
   Widget _buildHeroCard(AppColorTokens tokens, CharacterModel? char) {
@@ -343,7 +415,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final level = char?.level ?? 1;
     final name = char?.name ?? '먹찌';
     final xp = char?.exp.toDouble() ?? 0;
-    const xpGoal = 100.0;
+    const xpGoal = AppConstants.xpGoalPerLevel;
 
     final card = BentoCard(
       showPaperTexture: true,
@@ -460,7 +532,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     return _animated(card, slideY: true);
   }
 
-  Widget _buildStreakQuestRow(AppColorTokens tokens, List<Quest> quests) {
+  Widget _buildStreakQuestRow(AppColorTokens tokens, List<Quest> quests, int streakDays) {
     final row = BentoCard(
       borderRadius: BorderRadius.circular(tokens.rCard),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -470,7 +542,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           Icon(Icons.local_fire_department, color: tokens.primary, size: 18),
           const SizedBox(width: 4),
           Text(
-            '연속 $_mockStreakDays일',
+            '연속 $streakDays일',
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: tokens.primary),
           ),
           const SizedBox(width: 12),
@@ -613,8 +685,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     return _animated(row, delay: 80.ms, slideY: true);
   }
 
-  Widget _buildNutritionCard(AppColorTokens tokens) {
-    const remaining = _caloriesGoal - _caloriesConsumed;
+  Widget _buildNutritionCard(AppColorTokens tokens, DailyNutritionModel? nutrition) {
+    final consumed = nutrition?.totalCalories ?? 0;
+    final goal = nutrition?.nutritionGoal?.calorieGoal ?? AppConstants.defaultDailyCalorieGoal;
+    final remaining = (goal - consumed).clamp(0.0, goal);
 
     return BentoCard(
       borderRadius: BorderRadius.circular(tokens.rCard),
@@ -629,7 +703,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: tokens.textPrimary),
               ),
               Text(
-                '${_caloriesConsumed.toInt()} / ${_caloriesGoal.toInt()} kcal',
+                '${consumed.toInt()} / ${goal.toInt()} kcal',
                 style: TextStyle(fontSize: 11, color: tokens.textSub),
               ),
             ],
@@ -648,7 +722,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     startDegreeOffset: -90,
                     sections: [
                       PieChartSectionData(
-                        value: _caloriesConsumed,
+                        value: consumed,
                         color: tokens.primary,
                         radius: 18,
                         showTitle: false,
@@ -666,7 +740,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '${_caloriesConsumed.toInt()}',
+                      '${consumed.toInt()}',
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -684,18 +758,36 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
           ),
           const SizedBox(height: 16),
-          _MacroBar(label: '탄수', consumed: _carbsConsumed, goal: _carbsGoal, color: AppColors.carbsColor, tokens: tokens),
+          _MacroBar(
+            label: '탄수',
+            consumed: nutrition?.totalCarbs ?? 0,
+            goal: nutrition?.nutritionGoal?.carbGoal ?? 300,
+            color: AppColors.carbsColor,
+            tokens: tokens,
+          ),
           const SizedBox(height: 8),
-          _MacroBar(label: '단백', consumed: _proteinConsumed, goal: _proteinGoal, color: AppColors.proteinColor, tokens: tokens),
+          _MacroBar(
+            label: '단백',
+            consumed: nutrition?.totalProtein ?? 0,
+            goal: nutrition?.nutritionGoal?.proteinGoal ?? 60,
+            color: AppColors.proteinColor,
+            tokens: tokens,
+          ),
           const SizedBox(height: 8),
-          _MacroBar(label: '지방', consumed: _fatConsumed, goal: _fatGoal, color: AppColors.fatColor, tokens: tokens),
+          _MacroBar(
+            label: '지방',
+            consumed: nutrition?.totalFat ?? 0,
+            goal: nutrition?.nutritionGoal?.fatGoal ?? 60,
+            color: AppColors.fatColor,
+            tokens: tokens,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildRecentMeals(AppColorTokens tokens) {
-    return Column(
+  Widget _buildRecentMeals(AppColorTokens tokens, List<MealRecord> meals) {
+    final col = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
@@ -723,65 +815,82 @@ class _HomePageState extends ConsumerState<HomePage> {
           ],
         ),
         const SizedBox(height: 10),
-        ...(_mockMeals.indexed.map((entry) {
-          final (i, meal) = entry;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: BentoCard(
-              borderRadius: BorderRadius.circular(tokens.rItem),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: tokens.listItemBg,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Center(
-                      child: Text(meal.emoji, style: const TextStyle(fontSize: 20)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(meal.name, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: tokens.textPrimary)),
-                        Text(meal.time, style: TextStyle(fontSize: 11, color: tokens.textMuted)),
-                      ],
-                    ),
-                  ),
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '${meal.kcal}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: tokens.textPrimary,
-                          ),
-                        ),
-                        TextSpan(
-                          text: ' kcal',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                            color: tokens.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+        if (meals.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Center(
+              child: Text(
+                '아직 오늘 기록한 식사가 없어요.',
+                style: TextStyle(fontSize: 13, color: tokens.textMuted),
               ),
-            ).animate(delay: Duration(milliseconds: 240 + i * 60)).fadeIn(duration: 250.ms),
-          );
-        })),
+            ),
+          )
+        else
+          ...(meals.indexed.map((entry) {
+            final (i, meal) = entry;
+            final mealType = MealTypeHelper.fromString(meal.mealType);
+            final timeStr = DateFormat('a h:mm', 'ko').format(meal.recordedAt);
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: BentoCard(
+                borderRadius: BorderRadius.circular(tokens.rItem),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: tokens.listItemBg,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Center(
+                        child: Icon(mealType.icon, color: tokens.primary, size: 20),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(meal.menuName,
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 14, color: tokens.textPrimary)),
+                          Text(timeStr, style: TextStyle(fontSize: 11, color: tokens.textMuted)),
+                        ],
+                      ),
+                    ),
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '${meal.calories?.toInt() ?? 0}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: tokens.textPrimary,
+                            ),
+                          ),
+                          TextSpan(
+                            text: ' kcal',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: tokens.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate(delay: Duration(milliseconds: 240 + i * 60)).fadeIn(duration: 250.ms),
+            );
+          })),
       ],
     );
+    return _animated(col, delay: 240.ms);
   }
 }
 
