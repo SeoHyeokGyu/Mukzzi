@@ -100,6 +100,7 @@ type mealUsecase struct {
 	notificationUsecase NotificationUsecase
 	eventBus            domain.EventBus
 	questUc             QuestUsecase
+	badgeGranter        BadgeGranter
 	db                  *gorm.DB
 }
 
@@ -114,6 +115,7 @@ func NewMealUsecase(
 	notificationUsecase NotificationUsecase,
 	eventBus domain.EventBus,
 	questUc QuestUsecase,
+	badgeGranter BadgeGranter,
 	db *gorm.DB,
 ) MealUsecase {
 	return &mealUsecase{
@@ -127,6 +129,7 @@ func NewMealUsecase(
 		notificationUsecase: notificationUsecase,
 		eventBus:            eventBus,
 		questUc:             questUc,
+		badgeGranter:        badgeGranter,
 		db:                  db,
 	}
 }
@@ -237,6 +240,20 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 			Title:   "레벨 업!",
 			Content: fmt.Sprintf("먹찌가 레벨 %d이 되었습니다!", expResult.NewLevel),
 		})
+
+		// 레벨업 이벤트 발행
+		go u.eventBus.Publish(domain.Event{
+			Type:      domain.EventLevelUp,
+			UserID:    input.UserID,
+			CreatedAt: time.Now(),
+			Payload:   map[string]interface{}{"new_level": expResult.NewLevel},
+		})
+		// 레벨업 퀘스트 즉시 처리
+		_, _ = u.questUc.HandleEvent(ctx, domain.Event{
+			Type:    domain.EventLevelUp,
+			UserID:  input.UserID,
+			Payload: map[string]interface{}{"new_level": expResult.NewLevel},
+		})
 	}
 
 	// streak 갱신
@@ -258,19 +275,44 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 			"fat":       output.Meal.Nutrition.Fat,
 		},
 	}
-	u.eventBus.Publish(event)
+	
+	// 이벤트 발행은 비동기로 처리 (성능 향상)
+	go u.eventBus.Publish(event)
+
 	progressedQuests, err := u.questUc.HandleEvent(ctx, event)
 	if err != nil {
 		slog.Error("퀘스트 업데이트 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
 		progressedQuests = []domain.QuestProgress{}
 	}
 
+	// 뱃지 부여 체크 및 알림 생성도 비동기로 처리 (응답 속도 개선)
+	go func() {
+		bgCtx := context.Background()
+		grantedBadges, err := u.badgeGranter.CheckAndGrant(bgCtx, input.UserID, EventMealCreated)
+		if err != nil {
+			slog.Error("뱃지 부여 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
+			return
+		}
+		
+		for _, b := range grantedBadges {
+			_ = u.notificationUsecase.CreateNotification(&domain.Notification{
+				UserID:  input.UserID,
+				Type:    domain.NotificationTypeBadgeAcquired,
+				Title:   "새로운 뱃지 획득!",
+				Content: fmt.Sprintf("[%s] 뱃지를 획득했습니다!", b.Name),
+				LinkURL: "/profile/badges",
+			})
+		}
+	}()
+
 	output.SideEffects = &domain.MealSideEffects{
 		QuestsProgressed: progressedQuests,
-		MasteryUpdated:   masteryUpdate,
-		GrantedTitle:     grantedTitle,
-		ExpGained:        expAmount,
-		LevelUp:          levelUpEvent,
+		// GrantedBadges는 이제 비동기로 처리되므로 응답에서는 즉시 확인 불가 (알림으로 대체)
+		GrantedBadges:  []domain.Badge{}, 
+		MasteryUpdated: masteryUpdate,
+		GrantedTitle:   grantedTitle,
+		ExpGained:      expAmount,
+		LevelUp:        levelUpEvent,
 	}
 
 	return &output, nil

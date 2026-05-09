@@ -112,6 +112,7 @@ func main() {
 			Type:    domain.NotificationTypeQuestCompleted,
 			Title:   "퀘스트 완료!",
 			Content: fmt.Sprintf("[%s] 퀘스트를 달성했습니다! 보상을 받으러 오세요.", title),
+			LinkURL: "/home/quests",
 		})
 	})
 
@@ -151,7 +152,8 @@ func main() {
 	// Meal 도메인
 	masteryTracker := usecase.NewMasteryTracker(masteryRepo)
 	titleGranter := usecase.NewTitleGranter(titleRepo)
-	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, userUsecase, masteryTracker, titleGranter, notificationUsecase, eventBus, questUsecase, db)
+	badgeGranter := usecase.NewBadgeGranter(badgeRepo, mealRepo, dailyIntakeRepo, charCollectionRepo)
+	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, userUsecase, masteryTracker, titleGranter, notificationUsecase, eventBus, questUsecase, badgeGranter, db)
 	mealHandler := handler.NewMealHandler(mealUsecase)
 
 	// Roulette 도메인

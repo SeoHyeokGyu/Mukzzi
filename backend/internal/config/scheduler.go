@@ -25,6 +25,7 @@ func StartScheduler(userUsecase usecase.UserUsecase, questUsecase usecase.QuestU
 		{"0 0 * * *", func() { runPhysicalDeletion(userUsecase) }, "탈퇴 회원 물리 삭제"},
 		{"0 5 * * *", func() { runInactivityPenalty(userUsecase) }, "패널티 상태 갱신"},
 		{"0 5 * * *", func() { runQuestReset(questUsecase) }, "일일 퀘스트 초기화"},
+		{"0 5 * * 1", func() { runWeeklyQuestReset(questUsecase) }, "주간 퀘스트 초기화"},
 		{"0 5 * * *", func() { runStreakReconciliation(userUsecase) }, "전체 유저 스트릭 보정"},
 	}
 
