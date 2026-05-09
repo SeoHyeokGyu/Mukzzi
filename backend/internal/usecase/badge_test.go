@@ -69,9 +69,25 @@ func (m *MockBadgeRepository) CountUserAcquiredBadges(userID int64) (int64, erro
 	return args.Get(0).(int64), args.Error(1)
 }
 
+// MockBadgeGranter 는 BadgeGranter 인터페이스의 모킹 객체입니다.
+type MockBadgeGranter struct {
+	mock.Mock
+}
+
+func (m *MockBadgeGranter) CheckAndGrant(ctx context.Context, userID int64, event BadgeGrantEvent) ([]domain.Badge, error) {
+	args := m.Called(ctx, userID, event)
+	return args.Get(0).([]domain.Badge), args.Error(1)
+}
+
+func (m *MockBadgeGranter) GetProgress(ctx context.Context, userID int64, code string) (int, int, error) {
+	args := m.Called(ctx, userID, code)
+	return args.Int(0), args.Int(1), args.Error(2)
+}
+
 func TestBadgeUsecase_GetBadges(t *testing.T) {
 	mockRepo := new(MockBadgeRepository)
-	uc := NewBadgeUsecase(mockRepo)
+	mockGranter := new(MockBadgeGranter)
+	uc := NewBadgeUsecase(mockRepo, mockGranter)
 
 	now := time.Now()
 	allBadges := []domain.Badge{
@@ -87,6 +103,8 @@ func TestBadgeUsecase_GetBadges(t *testing.T) {
 
 		mockRepo.On("FindAllBadges", 21, 0).Return(allBadges, nil)
 		mockRepo.On("FindUserAcquiredBadges", userID).Return(acquiredBadges, nil)
+		mockGranter.On("GetProgress", mock.Anything, userID, "BADGE_1").Return(1, 1, nil)
+		mockGranter.On("GetProgress", mock.Anything, userID, "BADGE_2").Return(0, 1, nil)
 
 		result, err := uc.GetBadges(context.Background(), domain.GetBadgesQuery{
 			UserID:          userID,
@@ -99,6 +117,7 @@ func TestBadgeUsecase_GetBadges(t *testing.T) {
 		assert.Contains(t, result.AcquiredMap, int64(1))
 		assert.NotContains(t, result.AcquiredMap, int64(2))
 		mockRepo.AssertExpectations(t)
+		mockGranter.AssertExpectations(t)
 	})
 
 	t.Run("미획득 뱃지만 필터링하여 조회", func(t *testing.T) {
@@ -107,6 +126,7 @@ func TestBadgeUsecase_GetBadges(t *testing.T) {
 		// 획득하지 않은 뱃지만 반환하도록 모킹
 		unacquiredBadges := []domain.Badge{allBadges[1]}
 		mockRepo.On("FindUnacquiredBadges", userID, 21, 0).Return(unacquiredBadges, nil)
+		mockGranter.On("GetProgress", mock.Anything, userID, "BADGE_2").Return(0, 1, nil)
 
 		result, err := uc.GetBadges(context.Background(), domain.GetBadgesQuery{
 			UserID:          userID,
@@ -118,5 +138,6 @@ func TestBadgeUsecase_GetBadges(t *testing.T) {
 		assert.Len(t, result.Badges, 1)
 		assert.Equal(t, int64(2), result.Badges[0].ID)
 		mockRepo.AssertExpectations(t)
+		mockGranter.AssertExpectations(t)
 	})
 }
