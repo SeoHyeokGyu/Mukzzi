@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>먹찌 캐릭터 프리뷰</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #111;
+      color: #fff;
+      font-family: -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      padding: 32px;
+    }
+    h1 { font-size: 20px; font-weight: 700; color: #fff; }
+    #player {
+      width: 280px;
+      height: 280px;
+      background: #f5f5f5;
+      border-radius: 24px;
+    }
+    .selectors {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .group { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+    .group label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+    .btn-row { display: flex; gap: 6px; }
+    button {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1.5px solid #333;
+      background: #1e1e1e;
+      color: #ccc;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.15s;
+    }
+    button:hover { background: #2a2a2a; }
+    button.active { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+    #info {
+      font-size: 13px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>먹찌 캐릭터 프리뷰</h1>
+  <div id="player"></div>
+
+  <div class="selectors">
+    <div class="group">
+      <label>단계</label>
+      <div class="btn-row" id="stage-btns">
+        <button class="active" onclick="setStage('baby')">아기</button>
+        <button onclick="setStage('teen')">청소년</button>
+        <button onclick="setStage('adult')">성체</button>
+      </div>
+    </div>
+    <div class="group">
+      <label>상태</label>
+      <div class="btn-row" id="state-btns">
+        <button class="active" onclick="setState('idle')">idle</button>
+        <button onclick="setState('happy')">happy</button>
+        <button onclick="setState('hungry')">hungry</button>
+        <button onclick="setState('starving')">starving</button>
+        <button onclick="setState('sleeping')">sleeping</button>
+      </div>
+    </div>
+    <div class="group">
+      <label>재생</label>
+      <div class="btn-row">
+        <button onclick="anim && anim.play()">Play</button>
+        <button onclick="anim && anim.pause()">Pause</button>
+        <button onclick="anim && anim.stop()">Stop</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="info">loading...</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+  <script>
+    var currentStage = 'baby';
+    var currentState = 'idle';
+    var anim = null;
+
+    function load() {
+      var path = 'frontend/assets/animations/mukzzi_' + currentStage + '_' + currentState + '.json';
+      document.getElementById('info').textContent = 'Loading: ' + path;
+      if (anim) anim.destroy();
+      anim = lottie.loadAnimation({
+        container: document.getElementById('player'),
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        path: path
+      });
+      anim.addEventListener('data_ready', function() {
+        document.getElementById('info').textContent =
+          path.split('/').pop() + '  |  ' + anim.totalFrames + ' frames';
+      });
+      anim.addEventListener('data_failed', function() {
+        document.getElementById('info').textContent = 'FAILED: ' + path;
+      });
+    }
+
+    function setStage(s) {
+      currentStage = s;
+      document.querySelectorAll('#stage-btns button').forEach(function(b) {
+        b.className = b.textContent.toLowerCase().replace('아기','baby').replace('청소년','teen').replace('성체','adult') === s ? 'active' : '';
+      });
+      document.querySelectorAll('#stage-btns button').forEach(function(b) {
+        if ((s === 'baby' && b.textContent === '아기') ||
+            (s === 'teen' && b.textContent === '청소년') ||
+            (s === 'adult' && b.textContent === '성체')) b.className = 'active';
+        else b.className = '';
+      });
+      load();
+    }
+
+    function setState(s) {
+      currentState = s;
+      document.querySelectorAll('#state-btns button').forEach(function(b) {
+        b.className = b.textContent === s ? 'active' : '';
+      });
+      load();
+    }
+
+    load();
+  </script>
+</body>
+</html>
