@@ -11,44 +11,45 @@ class BadgeGridItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
+    
     return Opacity(
-      opacity: badge.isUnlocked ? 1.0 : 0.6,
+      opacity: badge.isUnlocked ? 1.0 : 0.8,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(tokens.rItem),
         child: Material(
-          color: AppColors.surface,
+          color: tokens.card,
           child: InkWell(
             onTap: () => BadgeDetailBottomSheet.show(context, badge),
             child: Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(tokens.rItem),
                 border: Border.all(
                   color: badge.isUnlocked
-                      ? AppColors.orange.withValues(alpha: 0.4)
-                      : AppColors.divider,
-                  width: 1,
+                      ? tokens.primary.withValues(alpha: 0.4)
+                      : tokens.primary.withValues(alpha: 0.1),
+                  width: 1.5,
                 ),
-                boxShadow: AppColors.cardShadow,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 52,
-                    height: 52,
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
                       color: badge.isUnlocked
-                          ? AppColors.softPeach
-                          : AppColors.surfaceDark,
-                      borderRadius: BorderRadius.circular(14),
+                          ? tokens.primary.withValues(alpha: 0.12)
+                          : tokens.listItemBg.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       badge.iconData,
-                      size: 28,
+                      size: 24,
                       color: badge.isUnlocked
-                          ? AppColors.orange
-                          : AppColors.textTertiary,
+                          ? tokens.primary
+                          : tokens.textMuted,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -57,18 +58,18 @@ class BadgeGridItem extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11,
                       color: badge.isUnlocked
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary,
+                          ? tokens.textPrimary
+                          : tokens.textSub,
                       fontWeight: badge.isUnlocked
-                          ? FontWeight.w600
-                          : FontWeight.w400,
+                          ? FontWeight.w700
+                          : FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
-                  _buildSubtitle(),
+                  const SizedBox(height: 6),
+                  _buildProgressOrDate(tokens),
                 ],
               ),
             ),
@@ -78,7 +79,7 @@ class BadgeGridItem extends StatelessWidget {
     );
   }
 
-  Widget _buildSubtitle() {
+  Widget _buildProgressOrDate(AppColorTokens tokens) {
     if (badge.isUnlocked && badge.unlockedAt != null) {
       final date = DateTime.tryParse(badge.unlockedAt!);
       final formatted = date != null
@@ -87,15 +88,41 @@ class BadgeGridItem extends StatelessWidget {
 
       return Text(
         '$formatted 획득',
-        style: const TextStyle(fontSize: 9, color: AppColors.peach),
+        style: TextStyle(fontSize: 9, color: tokens.primary, fontWeight: FontWeight.bold),
         textAlign: TextAlign.center,
       );
     }
 
-    return const Icon(
+    // 진행도 표시 (미획득 시)
+    if (badge.target > 0) {
+      final double progressValue = (badge.progress / badge.target).clamp(0.0, 1.0);
+      return Column(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: SizedBox(
+              width: 40,
+              height: 3,
+              child: LinearProgressIndicator(
+                value: progressValue,
+                backgroundColor: tokens.primary.withValues(alpha: 0.1),
+                valueColor: AlwaysStoppedAnimation<Color>(tokens.primary.withValues(alpha: 0.6)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            '${badge.progress}/${badge.target}',
+            style: TextStyle(fontSize: 8, color: tokens.textMuted, fontWeight: FontWeight.w600),
+          ),
+        ],
+      );
+    }
+
+    return Icon(
       Icons.lock_outline,
       size: 10,
-      color: AppColors.textTertiary,
+      color: tokens.textMuted,
     );
   }
 }

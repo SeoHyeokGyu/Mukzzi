@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:showcaseview/showcaseview.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/providers/common_providers.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
-import '../../../../core/widgets/shimmer_card.dart';
+import '../../../character/domain/models/badge_model.dart';
 import '../../../quest/data/models/quest_model.dart';
 import '../../../quest/domain/entities/quest.dart';
 import '../../../quest/presentation/providers/quest_provider.dart';
@@ -15,8 +15,9 @@ import '../../data/models/meal_model.dart';
 import '../../data/models/menu_model.dart';
 import '../../data/repositories/meal_repository.dart';
 import '../../data/repositories/preference_repository.dart';
-import '../providers/favorite_provider.dart';
 import '../widgets/menu_search_field.dart';
+import '../providers/favorite_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // ─────────────────────────────────────────
 // Providers
@@ -30,70 +31,10 @@ final preferenceRepositoryProvider = Provider<PreferenceRepository>((ref) {
   return PreferenceRepository(ref.watch(apiClientProvider));
 });
 
-// --- Create ---
-
-class MealCreateState {
-  final bool isLoading;
-  final String? error;
-  final MealRecord? created;
-  final MealSideEffects? sideEffects;
-
-  const MealCreateState({
-    this.isLoading = false,
-    this.error,
-    this.created,
-    this.sideEffects,
-  });
-
-  MealCreateState copyWith({
-    bool? isLoading,
-    String? error,
-    MealRecord? created,
-    MealSideEffects? sideEffects,
-    bool clearError = false,
-    bool clearCreated = false,
-  }) =>
-      MealCreateState(
-        isLoading: isLoading ?? this.isLoading,
-        error: clearError ? null : error ?? this.error,
-        created: clearCreated ? null : created ?? this.created,
-        sideEffects: sideEffects ?? this.sideEffects,
-      );
-}
-
-class MealCreateNotifier extends StateNotifier<MealCreateState> {
-  final MealRepository _repo;
-  final Ref _ref;
-
-  MealCreateNotifier(this._repo, this._ref) : super(const MealCreateState());
-
-  Future<bool> submit(CreateMealRequest request) async {
-    state = state.copyWith(isLoading: true, clearError: true, clearCreated: true);
-    try {
-      final result = await _repo.create(request);
-      state = state.copyWith(
-        isLoading: false,
-        created: result.meal,
-        sideEffects: result.sideEffects,
-      );
-
-      // 퀘스트 정보 갱신
-      _ref.read(questProvider.notifier).fetchQuests();
-
-      return true;
-    } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
-      return false;
-    }
-  }
-}
-
-final mealCreateProvider =
-StateNotifierProvider.autoDispose<MealCreateNotifier, MealCreateState>(
-      (ref) => MealCreateNotifier(ref.watch(mealRepositoryProvider), ref),
-);
-
-// --- List ---
+final mealListProvider =
+    StateNotifierProvider<MealListNotifier, MealListState>((ref) {
+  return MealListNotifier(ref.watch(mealRepositoryProvider));
+});
 
 class MealListState {
   final List<MealRecord> records;
@@ -102,10 +43,10 @@ class MealListState {
   final String? nextCursor;
   final String? error;
 
-  const MealListState({
+  MealListState({
     this.records = const [],
     this.isLoading = false,
-    this.hasNext = false,
+    this.hasNext = true,
     this.nextCursor,
     this.error,
   });
@@ -123,40 +64,26 @@ class MealListState {
         isLoading: isLoading ?? this.isLoading,
         hasNext: hasNext ?? this.hasNext,
         nextCursor: nextCursor ?? this.nextCursor,
-        error: clearError ? null : error ?? this.error,
+        error: clearError ? null : (error ?? this.error),
       );
 }
 
 class MealListNotifier extends StateNotifier<MealListState> {
   final MealRepository _repo;
+  MealListNotifier(this._repo) : super(MealListState());
 
-  MealListNotifier(this._repo) : super(const MealListState()) {
-    load();
-  }
+  Future<void> fetch({bool refresh = false}) async {
+    if (state.isLoading || (!refresh && !state.hasNext)) return;
 
-  Future<void> load() async {
-    if (state.isLoading) return;
-    state = state.copyWith(isLoading: true, clearError: true);
-    try {
-      final result = await _repo.findAll(const MealListFilter());
-      state = state.copyWith(
-        records: result.meals,
-        isLoading: false,
-        hasNext: result.hasNext,
-        nextCursor: result.nextCursor,
-      );
-    } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
-    }
-  }
-
-  Future<void> loadMore() async {
-    if (!state.hasNext || state.isLoading || state.nextCursor == null) return;
     state = state.copyWith(isLoading: true);
     try {
-      final result = await _repo.findAll(MealListFilter(cursor: state.nextCursor));
+      final result = await _repo.findAll(MealListFilter(
+        cursor: refresh ? null : state.nextCursor,
+        limit: 20,
+      ));
+
       state = state.copyWith(
-        records: [...state.records, ...result.meals],
+        records: refresh ? result.meals : [...state.records, ...result.meals],
         isLoading: false,
         hasNext: result.hasNext,
         nextCursor: result.nextCursor,
@@ -166,34 +93,74 @@ class MealListNotifier extends StateNotifier<MealListState> {
     }
   }
 
-  Future<void> delete(String id) async {
-    try {
-      await _repo.delete(id);
-      state = state.copyWith(
-        records: state.records.where((r) => r.id != id).toList(),
-      );
-    } catch (e) {
-      state = state.copyWith(error: e.toString());
-    }
-  }
+  void refresh() => fetch(refresh: true);
+}
 
-  void refresh() {
-    state = const MealListState();
-    load();
+final mealCreateProvider =
+    StateNotifierProvider<MealCreateNotifier, MealCreateState>((ref) {
+  return MealCreateNotifier(ref.watch(mealRepositoryProvider));
+});
+
+class MealCreateState {
+  final bool isLoading;
+  final String? error;
+  final MealSideEffects? sideEffects;
+
+  MealCreateState({this.isLoading = false, this.error, this.sideEffects});
+
+  MealCreateState copyWith({
+    bool? isLoading,
+    String? error,
+    MealSideEffects? sideEffects,
+    bool clearError = false,
+  }) =>
+      MealCreateState(
+        isLoading: isLoading ?? this.isLoading,
+        error: clearError ? null : (error ?? this.error),
+        sideEffects: sideEffects ?? this.sideEffects,
+      );
+}
+
+class MealCreateNotifier extends StateNotifier<MealCreateState> {
+  final MealRepository _repo;
+  MealCreateNotifier(this._repo) : super(MealCreateState());
+
+  Future<bool> submit(CreateMealRequest request) async {
+    state = state.copyWith(isLoading: true, clearError: true, sideEffects: null);
+    try {
+      final result = await _repo.create(request);
+      state = state.copyWith(isLoading: false, sideEffects: result.sideEffects);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
   }
 }
 
-final mealListProvider =
-StateNotifierProvider<MealListNotifier, MealListState>(
-      (ref) => MealListNotifier(ref.watch(mealRepositoryProvider)),
-);
-
 // ─────────────────────────────────────────
-// Page
+// MealRecordPage
 // ─────────────────────────────────────────
 
 class MealRecordPage extends ConsumerStatefulWidget {
-  const MealRecordPage({super.key});
+  final String? initialMenuId;
+  final String? initialMenuName;
+  final String? initialCategory;
+  final double? initialCalories;
+  final double? initialCarbs;
+  final double? initialProtein;
+  final double? initialFat;
+
+  const MealRecordPage({
+    super.key,
+    this.initialMenuId,
+    this.initialMenuName,
+    this.initialCategory,
+    this.initialCalories,
+    this.initialCarbs,
+    this.initialProtein,
+    this.initialFat,
+  });
 
   @override
   ConsumerState<MealRecordPage> createState() => _MealRecordPageState();
@@ -216,40 +183,6 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final extra = GoRouterState.of(context).extra as Map<String, dynamic>?;
-
-    if (extra != null && extra != _lastExtra) {
-      _lastExtra = extra;
-      final menuName = extra['menuName'] as String?;
-      final menuId = extra['menuId'] as String?;
-      if (menuName != null) {
-        _menuController.text = menuName;
-        setState(() {
-          _initialMenu = menuId != null
-              ? MenuModel(
-            id: menuId,
-            name: menuName,
-            category: extra['category'] as String? ?? 'KOREAN',
-            source: '',
-            defaultCalories: (extra['calories'] as num?)?.toDouble() ?? 0,
-            defaultCarbs: (extra['carbs'] as num?)?.toDouble() ?? 0,
-            defaultProtein: (extra['protein'] as num?)?.toDouble() ?? 0,
-            defaultFat: (extra['fat'] as num?)?.toDouble() ?? 0,
-            defaultFiber: 0,
-            defaultVitaminScore: 0,
-          )
-              : null;
-        });
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _tabController.animateTo(0);
-        });
-      }
-    }
-  }
-
-  @override
   void dispose() {
     _tabController.dispose();
     _menuController.dispose();
@@ -257,19 +190,64 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
   }
 
   @override
+  void didUpdateWidget(covariant MealRecordPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialMenuName != null &&
+        widget.initialMenuName != oldWidget.initialMenuName) {
+      _processInitialMenu();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _processInitialMenu();
+  }
+
+  void _processInitialMenu() {
+    if (widget.initialMenuName != null) {
+      final currentExtra = {
+        'id': widget.initialMenuId,
+        'name': widget.initialMenuName,
+      };
+      if (_lastExtra != null &&
+          _lastExtra!['id'] == currentExtra['id'] &&
+          _lastExtra!['name'] == currentExtra['name']) {
+        return;
+      }
+      _lastExtra = currentExtra;
+
+      _menuController.text = widget.initialMenuName!;
+      _initialMenu = MenuModel(
+        id: widget.initialMenuId ?? '',
+        name: widget.initialMenuName!,
+        category: widget.initialCategory ?? 'OTHER',
+        defaultCalories: widget.initialCalories ?? 0,
+        defaultCarbs: widget.initialCarbs ?? 0,
+        defaultProtein: widget.initialProtein ?? 0,
+        defaultFat: widget.initialFat ?? 0,
+        defaultFiber: 0,
+        defaultVitaminScore: 0,
+        source: 'manual',
+      );
+      setState(() {});
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GradientScaffold(
       appBar: AppBar(
-        title: const Text('식사 기록'),
-        actions: [
-          IconButton(
-            tooltip: '먹부림 도감',
-            icon: const Icon(Icons.menu_book_outlined),
-            onPressed: () => context.push('/meal-record/masteries'),
-          ),
-        ],
+        title: Text(
+          '식사 기록',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+        ),
         bottom: TabBar(
           controller: _tabController,
+          indicatorColor: Theme.of(context).primaryColor,
+          labelColor: Theme.of(context).primaryColor,
+          unselectedLabelColor: Colors.grey,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold),
           tabs: const [
             Tab(text: '기록 추가'),
             Tab(text: '기록 목록'),
@@ -336,7 +314,6 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
   double _servingSize = 1.0;
   String? _selectedWeather;
   String? _selectedMood;
-  String? _selectedPreference;
   bool _wantFavorite = false;
   MenuModel? _selectedMenu;
 
@@ -345,7 +322,6 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
     super.initState();
     widget.tabController.addListener(_onTabChanged);
     widget.menuController.addListener(_onMenuTextChanged);
-    // 룰렛/필터에서 넘어온 메뉴 초기값 세팅
     if (widget.initialMenu != null) {
       _selectedMenu = widget.initialMenu;
       _wantFavorite = false;
@@ -361,7 +337,7 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
   }
 
   void _onMenuTextChanged() {
-    setState(() {}); // Rebuild to update submit button state
+    if (mounted) setState(() {});
   }
 
   void _scrollToSubmit() {
@@ -394,7 +370,6 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
     if (hasTutorialQuest) {
       _tutorialStarted = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        // 약간의 딜레이를 주어 탭 애니메이션 완료 후 시작 (더 정밀함)
         Future.delayed(const Duration(milliseconds: 400), () {
           if (mounted && widget.tabController.index == 0) {
             ShowcaseView.get().startShowCase([_searchKey, _submitKey]);
@@ -411,20 +386,9 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
       MealType.breakfast: '아침 (06:00~10:59)',
       MealType.lunch: '점심 (12:00~13:59)',
       MealType.dinner: '저녁 (18:00~21:59)',
-      MealType.snack: '간식',
+      MealType.snack: '간식 (그 외)',
     };
-    return '선택한 시간은 ${labels[expected]} 시간대예요';
-  }
-
-  void _showSideEffectsOverlay(MealSideEffects? sideEffects) {
-    if (sideEffects == null) return;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _SideEffectsBottomSheet(sideEffects: sideEffects),
-    );
+    return '현재 시간은 ${labels[expected]}입니다. 계속할까요?';
   }
 
   Future<void> _submit() async {
@@ -447,40 +411,24 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
     final request = CreateMealRequest(
       menuId: _selectedMenu?.id,
       menuName: menuName,
-      category: _selectedMenu?.category ?? '기타',
+      category: _selectedMenu?.category ?? 'OTHER',
       mealType: widget.selectedMealType.apiValue,
       servingSize: _servingSize,
       recordedAt: recordedAt,
       isManual: _selectedMenu == null,
       weatherTag: _selectedWeather,
       moodTag: _selectedMood,
+      friendTags: [],
     );
 
     final success = await ref.read(mealCreateProvider.notifier).submit(request);
-    if (!mounted) return;
-
-    if (success) {
-      final savedMenu = _selectedMenu;
-      if (savedMenu != null) {
-        final isFav = ref.read(favoriteListProvider).isFavorite(savedMenu.id);
-        if (_wantFavorite != isFav) {
-          try {
-            await ref.read(favoriteListProvider.notifier).toggle(savedMenu);
-          } catch (_) {}
-        }
-
-        if (_selectedPreference != null) {
-          try {
-            await ref
-                .read(preferenceRepositoryProvider)
-                .set(savedMenu.id, _selectedPreference!);
-          } catch (_) {}
-        }
+    if (success && mounted) {
+      if (_wantFavorite && _selectedMenu != null) {
+        ref.read(favoriteListProvider.notifier).toggle(_selectedMenu!);
       }
 
       final sideEffects = ref.read(mealCreateProvider).sideEffects;
       if (sideEffects != null && mounted) {
-        // 튜토리얼 중이라면 종료
         if (_tutorialStarted) {
           ShowcaseView.get().dismiss();
         }
@@ -493,24 +441,33 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
           const SnackBar(content: Text('식사 기록이 저장되었습니다')),
         );
       }
-
-      setState(() {
-        _selectedMenu = null;
-        _servingSize = 1.0;
-        _selectedWeather = null;
-        _selectedMood = null;
-        _selectedPreference = null;
-        _wantFavorite = false;
-        _selectedDate = DateTime.now();
-        _selectedTime = TimeOfDay.now();
-      });
       widget.onSaved();
-    } else {
-      final error = ref.read(mealCreateProvider).error;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error ?? '저장에 실패했습니다')),
-      );
     }
+  }
+
+  void _showSideEffectsOverlay(MealSideEffects sideEffects) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (context) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => Navigator.pop(context),
+        child: Stack(
+          children: [
+            const SizedBox.expand(),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: GestureDetector(
+                onTap: () {}, // 바텀시트 내부 클릭 시 닫히지 않도록
+                child: _SideEffectsBottomSheet(sideEffects: sideEffects),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -518,18 +475,6 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
     final createState = ref.watch(mealCreateProvider);
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
     final warning = _getMealTypeMismatchWarning();
-
-    ref.listen(questProvider, (previous, next) {
-      if (!next.isLoading && next.quests.isNotEmpty) {
-        _checkTutorial(next.quests);
-      }
-    });
-
-    // 초기 로드 시 체크
-    final questState = ref.watch(questProvider);
-    if (!questState.isLoading && questState.quests.isNotEmpty) {
-      _checkTutorial(questState.quests);
-    }
 
     return SingleChildScrollView(
       controller: _scrollController,
@@ -539,7 +484,6 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
         children: [
           _PhotoArea(tokens: tokens),
           const SizedBox(height: 16),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -563,12 +507,9 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
                       : false;
                 });
                 if (menu != null) {
-                  // 메뉴가 선택되면 다음 튜토리얼 단계로 이동
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (mounted) {
-                      // 하단 버튼이 보이도록 스크롤 이동
                       _scrollToSubmit();
-                      // 스크롤 애니메이션 시간을 고려하여 약간의 지연 후 다음 단계 표시
                       Future.delayed(const Duration(milliseconds: 600), () {
                         if (mounted) {
                           ShowcaseView.get().next();
@@ -580,84 +521,57 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
               },
             ),
           ),
-
           if (_selectedMenu != null) ...[
             const SizedBox(height: 8),
             _FoodItemRow(
               menu: _selectedMenu!,
-              servingSize: _servingSize,
-              isFavorite: _wantFavorite,
-              onFavoriteToggle: () => setState(() => _wantFavorite = !_wantFavorite),
-              onDecrement: () => setState(() {
-                _servingSize = (_servingSize - 0.5).clamp(0.5, 3.0);
-              }),
-              onIncrement: () => setState(() {
-                _servingSize = (_servingSize + 0.5).clamp(0.5, 3.0);
-              }),
               tokens: tokens,
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-              decoration: BoxDecoration(
-                color: tokens.primaryBg,
-                borderRadius: BorderRadius.circular(tokens.rCard),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('총 칼로리', style: TextStyle(fontSize: 11, color: tokens.textSub, height: 1.4)),
-                      RichText(
-                        text: TextSpan(children: [
-                          TextSpan(
-                            text: (_selectedMenu!.defaultCalories * _servingSize).toStringAsFixed(0),
-                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: tokens.textPrimary),
-                          ),
-                          TextSpan(
-                            text: ' kcal',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: tokens.textSub),
-                          ),
-                        ]),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      _MacroStat(label: '탄수', value: '${(_selectedMenu!.defaultCarbs * _servingSize).toStringAsFixed(0)}g', tokens: tokens),
-                      const SizedBox(width: 14),
-                      _MacroStat(label: '단백', value: '${(_selectedMenu!.defaultProtein * _servingSize).toStringAsFixed(0)}g', tokens: tokens),
-                      const SizedBox(width: 14),
-                      _MacroStat(label: '지방', value: '${(_selectedMenu!.defaultFat * _servingSize).toStringAsFixed(0)}g', tokens: tokens),
-                    ],
-                  ),
-                ],
-              ),
+              onClear: () => setState(() {
+                _selectedMenu = null;
+                widget.menuController.clear();
+              }),
             ),
           ],
-          const SizedBox(height: 20),
-
-          _MealOptionsSection(
-            selectedMealType: widget.selectedMealType,
-            onMealTypeChanged: widget.onMealTypeChanged,
-            selectedDate: _selectedDate,
-            selectedTime: _selectedTime,
-            onDateChanged: (d) => setState(() => _selectedDate = d),
-            onTimeChanged: (t) => setState(() => _selectedTime = t),
-            selectedWeather: _selectedWeather,
-            onWeatherChanged: (v) => setState(() => _selectedWeather = v),
-            selectedMood: _selectedMood,
-            onMoodChanged: (v) => setState(() => _selectedMood = v),
-            selectedPreference: _selectedPreference,
-            onPreferenceChanged: (v) => setState(() => _selectedPreference = v),
-            hasMenu: _selectedMenu != null,
+          const SizedBox(height: 24),
+          Text('식사 시간', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: tokens.textPrimary)),
+          const SizedBox(height: 10),
+          _InternalMealTypeSelector(
+            selectedType: widget.selectedMealType,
+            onChanged: widget.onMealTypeChanged,
             warning: warning,
             tokens: tokens,
           ),
+          const SizedBox(height: 12),
+          _DateTimePicker(
+            date: _selectedDate,
+            time: _selectedTime,
+            onDateChanged: (d) => setState(() => _selectedDate = d),
+            onTimeChanged: (t) => setState(() => _selectedTime = t),
+            tokens: tokens,
+          ),
+          const SizedBox(height: 24),
+          Text('기록 디테일', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: tokens.textPrimary)),
+          const SizedBox(height: 10),
+          _PortionControl(
+            servingSize: _servingSize,
+            onChanged: (v) => setState(() => _servingSize = v),
+            tokens: tokens,
+          ),
+          const SizedBox(height: 16),
+          _TagsArea(
+            selectedWeather: _selectedWeather,
+            selectedMood: _selectedMood,
+            onWeatherChanged: (v) => setState(() => _selectedWeather = v),
+            onMoodChanged: (v) => setState(() => _selectedMood = v),
+            tokens: tokens,
+          ),
+          const SizedBox(height: 16),
+          _FavoriteToggle(
+            value: _wantFavorite,
+            onChanged: (v) => setState(() => _wantFavorite = v),
+            tokens: tokens,
+          ),
           const SizedBox(height: 20),
-
           Showcase(
             key: _submitKey,
             title: '기록 완료',
@@ -678,28 +592,71 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
                 child: createState.isLoading
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                     : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.favorite, size: 18, color: Colors.white),
-                    const SizedBox(width: 8),
-                    const Text('먹찌에게 주기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(99),
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.favorite, size: 18, color: Colors.white),
+                          const SizedBox(width: 8),
+                          const Text('먹찌에게 주기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(99),
+                            ),
+                            child: const Text('+XP', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+                          ),
+                        ],
                       ),
-                      child: const Text('+XP', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
-                    ),
-                  ],
-                ),
               ),
             ),
           ),
           const SizedBox(height: 32),
         ],
       ),
+    );
+  }
+}
+
+class _InternalMealTypeSelector extends StatelessWidget {
+  final MealType selectedType;
+  final ValueChanged<MealType> onChanged;
+  final String? warning;
+  final AppColorTokens tokens;
+
+  const _InternalMealTypeSelector({
+    required this.selectedType,
+    required this.onChanged,
+    this.warning,
+    required this.tokens,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: MealType.values.map((type) {
+            final isSelected = selectedType == type;
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: ChoiceChip(
+                  label: Text(type.label),
+                  selected: isSelected,
+                  onSelected: (val) => val ? onChanged(type) : null,
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        if (warning != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 4),
+            child: Text(warning!, style: const TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.w500)),
+          ),
+      ],
     );
   }
 }
@@ -714,51 +671,18 @@ class _PhotoArea extends StatelessWidget {
       width: double.infinity,
       height: 200,
       decoration: BoxDecoration(
-        color: tokens.card,
+        color: tokens.listItemBg.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(tokens.rCard),
-        border: Border.all(color: tokens.primary.withValues(alpha: 0.15), width: 1.5),
+        border: Border.all(color: tokens.primary.withValues(alpha: 0.1), width: 1.5),
       ),
-      child: Stack(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: tokens.primaryBg,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.camera_alt_outlined, color: tokens.primary, size: 26),
-                ),
-                const SizedBox(height: 10),
-                Text('사진으로 음식 분석', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: tokens.textPrimary)),
-                const SizedBox(height: 4),
-                Text('촬영하거나 갤러리에서 선택하세요', style: TextStyle(fontSize: 12, color: tokens.textMuted)),
-              ],
-            ),
-          ),
-          Positioned(
-            bottom: 12,
-            right: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: tokens.primaryBg,
-                borderRadius: BorderRadius.circular(99),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.auto_awesome, size: 12, color: tokens.primary),
-                  const SizedBox(width: 4),
-                  Text('AI 분석', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: tokens.primary)),
-                ],
-              ),
-            ),
-          ),
+          Icon(Icons.camera_alt_outlined, size: 48, color: tokens.primary.withValues(alpha: 0.5)),
+          const SizedBox(height: 12),
+          Text('음식 사진을 추가해보세요', style: TextStyle(color: tokens.textMuted, fontSize: 13, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 4),
+          Text('(AI가 영양소를 자동 분석해드려요)', style: TextStyle(color: tokens.primary.withValues(alpha: 0.5), fontSize: 11)),
         ],
       ),
     );
@@ -767,430 +691,243 @@ class _PhotoArea extends StatelessWidget {
 
 class _FoodItemRow extends StatelessWidget {
   final MenuModel menu;
-  final double servingSize;
-  final bool isFavorite;
-  final VoidCallback onFavoriteToggle;
-  final VoidCallback onDecrement;
-  final VoidCallback onIncrement;
   final AppColorTokens tokens;
+  final VoidCallback onClear;
 
-  const _FoodItemRow({
-    required this.menu,
-    required this.servingSize,
-    required this.isFavorite,
-    required this.onFavoriteToggle,
-    required this.onDecrement,
-    required this.onIncrement,
-    required this.tokens,
-  });
+  const _FoodItemRow({required this.menu, required this.tokens, required this.onClear});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: tokens.card,
-        borderRadius: BorderRadius.circular(tokens.rCard),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            GestureDetector(
-              onTap: onFavoriteToggle,
-              child: Icon(
-                isFavorite ? Icons.star : Icons.star_border,
-                size: 22,
-                color: isFavorite ? Colors.amber : tokens.textMuted,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    menu.name,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: tokens.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${servingSize.toStringAsFixed(1)}인분 · '
-                        '${(menu.defaultCalories * servingSize).toStringAsFixed(0)} kcal',
-                    style: TextStyle(fontSize: 11, color: tokens.textMuted),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                color: tokens.listItemBg,
-                borderRadius: BorderRadius.circular(99),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  GestureDetector(
-                    onTap: onDecrement,
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: tokens.primary.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.remove, size: 14, color: tokens.textSub),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 36,
-                    child: Text(
-                      servingSize.toStringAsFixed(1),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: tokens.textPrimary,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: onIncrement,
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: tokens.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.add, size: 14, color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MacroStat extends StatelessWidget {
-  final String label;
-  final String value;
-  final AppColorTokens tokens;
-
-  const _MacroStat({required this.label, required this.value, required this.tokens});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: tokens.textPrimary)),
-        const SizedBox(height: 2),
-        Text(label, style: TextStyle(fontSize: 10, color: tokens.textSub)),
-      ],
-    );
-  }
-}
-
-class _MealOptionsSection extends StatefulWidget {
-  final MealType selectedMealType;
-  final ValueChanged<MealType> onMealTypeChanged;
-  final DateTime selectedDate;
-  final TimeOfDay selectedTime;
-  final ValueChanged<DateTime> onDateChanged;
-  final ValueChanged<TimeOfDay> onTimeChanged;
-  final String? selectedWeather;
-  final ValueChanged<String?> onWeatherChanged;
-  final String? selectedMood;
-  final ValueChanged<String?> onMoodChanged;
-  final String? selectedPreference;
-  final ValueChanged<String?> onPreferenceChanged;
-  final bool hasMenu;
-  final String? warning;
-  final AppColorTokens tokens;
-
-  const _MealOptionsSection({
-    required this.selectedMealType,
-    required this.onMealTypeChanged,
-    required this.selectedDate,
-    required this.selectedTime,
-    required this.onDateChanged,
-    required this.onTimeChanged,
-    required this.selectedWeather,
-    required this.onWeatherChanged,
-    required this.selectedMood,
-    required this.onMoodChanged,
-    required this.selectedPreference,
-    required this.onPreferenceChanged,
-    required this.hasMenu,
-    required this.warning,
-    required this.tokens,
-  });
-
-  @override
-  State<_MealOptionsSection> createState() => _MealOptionsSectionState();
-}
-
-class _MealOptionsSectionState extends State<_MealOptionsSection> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = widget.tokens;
-    return Container(
-      decoration: BoxDecoration(
-        color: t.card,
-        borderRadius: BorderRadius.circular(t.rCard),
-      ),
-      child: Column(
+    return BentoCard(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      borderRadius: BorderRadius.circular(tokens.rItem),
+      child: Row(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: tokens.primaryBg, borderRadius: BorderRadius.circular(10)),
+            child: Icon(Icons.restaurant_menu, color: tokens.primary, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: MealType.values.map((type) {
-                    final selected = type == widget.selectedMealType;
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () => widget.onMealTypeChanged(type),
-                        child: Container(
-                          margin: EdgeInsets.only(right: type != MealType.values.last ? 6 : 0),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: selected ? t.primary : t.listItemBg,
-                            borderRadius: BorderRadius.circular(t.rItem),
-                          ),
-                          child: Text(
-                            type.label,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: selected ? Colors.white : t.textSub,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: widget.selectedDate,
-                            firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                            lastDate: DateTime.now(),
-                          );
-                          if (picked != null) widget.onDateChanged(picked);
-                        },
-                        child: Text(
-                          '${widget.selectedDate.month}/${widget.selectedDate.day}',
-                          style: TextStyle(fontSize: 13, color: t.textPrimary),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () async {
-                          final picked = await showTimePicker(
-                            context: context,
-                            initialTime: widget.selectedTime,
-                          );
-                          if (picked != null) widget.onTimeChanged(picked);
-                        },
-                        child: Text(
-                          '${widget.selectedTime.hour.toString().padLeft(2, '0')}:${widget.selectedTime.minute.toString().padLeft(2, '0')}',
-                          style: TextStyle(fontSize: 13, color: t.textPrimary),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (widget.warning != null) ...[
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Icon(Icons.info_outline, size: 13, color: t.textMuted),
-                      const SizedBox(width: 4),
-                      Text(widget.warning!, style: TextStyle(fontSize: 11, color: t.textMuted)),
-                    ],
-                  ),
-                ],
+                Text(menu.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                Text('${menu.defaultCalories.toInt()} kcal', style: TextStyle(fontSize: 11, color: tokens.textMuted)),
               ],
             ),
           ),
-          GestureDetector(
-            onTap: () => setState(() => _expanded = !_expanded),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('날씨 / 기분 / 선호도', style: TextStyle(fontSize: 12, color: t.textMuted, fontWeight: FontWeight.w500)),
-                  const SizedBox(width: 4),
-                  Icon(_expanded ? Icons.expand_less : Icons.expand_more, size: 16, color: t.textMuted),
-                ],
-              ),
-            ),
-          ),
-          if (_expanded) ...[
-            Divider(height: 1, color: t.primary.withValues(alpha: 0.08)),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownMenu<String>(
-                          label: const Text('날씨'),
-                          initialSelection: widget.selectedWeather,
-                          expandedInsets: EdgeInsets.zero,
-                          onSelected: widget.onWeatherChanged,
-                          dropdownMenuEntries: const [
-                            DropdownMenuEntry(value: 'SUNNY', label: '☀️ 맑음'),
-                            DropdownMenuEntry(value: 'CLOUDY', label: '☁️ 흐림'),
-                            DropdownMenuEntry(value: 'RAINY', label: '🌧️ 비'),
-                            DropdownMenuEntry(value: 'SNOWY', label: '❄️ 눈'),
-                            DropdownMenuEntry(value: 'HOT', label: '🥵 더움'),
-                            DropdownMenuEntry(value: 'COLD', label: '🥶 추움'),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: DropdownMenu<String>(
-                          label: const Text('기분'),
-                          initialSelection: widget.selectedMood,
-                          expandedInsets: EdgeInsets.zero,
-                          onSelected: widget.onMoodChanged,
-                          dropdownMenuEntries: const [
-                            DropdownMenuEntry(value: 'GOOD', label: '😊 좋음'),
-                            DropdownMenuEntry(value: 'TIRED', label: '😴 피곤'),
-                            DropdownMenuEntry(value: 'STRESSED', label: '😤 스트레스'),
-                            DropdownMenuEntry(value: 'HUNGRY', label: '😋 배고픔'),
-                            DropdownMenuEntry(value: 'EXCITED', label: '🤩 설렘'),
-                            DropdownMenuEntry(value: 'NORMAL', label: '😐 보통'),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (widget.hasMenu) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _PreferenceButton(
-                            label: '👍 좋아요',
-                            value: 'LIKE',
-                            selected: widget.selectedPreference == 'LIKE',
-                            tokens: t,
-                            onTap: () => widget.onPreferenceChanged(
-                              widget.selectedPreference == 'LIKE' ? null : 'LIKE',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _PreferenceButton(
-                            label: '👎 싫어요',
-                            value: 'DISLIKE',
-                            selected: widget.selectedPreference == 'DISLIKE',
-                            tokens: t,
-                            onTap: () => widget.onPreferenceChanged(
-                              widget.selectedPreference == 'DISLIKE' ? null : 'DISLIKE',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
+          IconButton(onPressed: onClear, icon: const Icon(Icons.close, size: 18), visualDensity: VisualDensity.compact),
         ],
       ),
     );
   }
 }
 
-class _PreferenceButton extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool selected;
+class _DateTimePicker extends StatelessWidget {
+  final DateTime date;
+  final TimeOfDay time;
+  final ValueChanged<DateTime> onDateChanged;
+  final ValueChanged<TimeOfDay> onTimeChanged;
   final AppColorTokens tokens;
-  final VoidCallback onTap;
 
-  const _PreferenceButton({
-    required this.label,
-    required this.value,
-    required this.selected,
-    required this.tokens,
-    required this.onTap,
-  });
+  const _DateTimePicker({required this.date, required this.time, required this.onDateChanged, required this.onTimeChanged, required this.tokens});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? tokens.primary : tokens.listItemBg,
-          borderRadius: BorderRadius.circular(tokens.rItem),
-          border: selected
-              ? null
-              : Border.all(color: tokens.primary.withValues(alpha: 0.15)),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: selected ? Colors.white : tokens.textSub,
+    final dateStr = DateFormat('yyyy.MM.dd').format(date);
+    final timeStr = time.format(context);
+
+    return Row(
+      children: [
+        Expanded(
+          child: _PickerTile(
+            icon: Icons.calendar_today_outlined,
+            label: dateStr,
+            onTap: () async {
+              final d = await showDatePicker(context: context, initialDate: date, firstDate: DateTime(2024), lastDate: DateTime.now());
+              if (d != null) onDateChanged(d);
+            },
+            tokens: tokens,
           ),
-          textAlign: TextAlign.center,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _PickerTile(
+            icon: Icons.access_time,
+            label: timeStr,
+            onTap: () async {
+              final t = await showTimePicker(context: context, initialTime: time);
+              if (t != null) onTimeChanged(t);
+            },
+            tokens: tokens,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PickerTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final AppColorTokens tokens;
+
+  const _PickerTile({required this.icon, required this.label, required this.onTap, required this.tokens});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(tokens.rItem),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+        decoration: BoxDecoration(color: tokens.listItemBg.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(tokens.rItem)),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: tokens.textMuted),
+            const SizedBox(width: 8),
+            Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          ],
         ),
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────
-// 기록 목록 탭
-// ─────────────────────────────────────────
+class _PortionControl extends StatelessWidget {
+  final double servingSize;
+  final ValueChanged<double> onChanged;
+  final AppColorTokens tokens;
+
+  const _PortionControl({required this.servingSize, required this.onChanged, required this.tokens});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: tokens.listItemBg.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(tokens.rItem)),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('분량', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              Text('${servingSize.toStringAsFixed(1)} 인분', style: TextStyle(color: tokens.primary, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          Slider(value: servingSize, min: 0.5, max: 3.0, divisions: 5, activeColor: tokens.primary, inactiveColor: tokens.primary.withValues(alpha: 0.1), onChanged: onChanged),
+        ],
+      ),
+    );
+  }
+}
+
+class _TagsArea extends StatelessWidget {
+  final String? selectedWeather;
+  final String? selectedMood;
+  final ValueChanged<String?> onWeatherChanged;
+  final ValueChanged<String?> onMoodChanged;
+  final AppColorTokens tokens;
+
+  const _TagsArea({this.selectedWeather, this.selectedMood, required this.onWeatherChanged, required this.onMoodChanged, required this.tokens});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _TagRow(title: '날씨', options: const ['SUNNY', 'CLOUDY', 'RAINY', 'HOT', 'COLD'], selected: selectedWeather, onChanged: onWeatherChanged, tokens: tokens),
+        const SizedBox(height: 10),
+        _TagRow(title: '기분', options: const ['GOOD', 'TIRED', 'STRESSED', 'HUNGRY', 'EXCITED'], selected: selectedMood, onChanged: onMoodChanged, tokens: tokens),
+      ],
+    );
+  }
+}
+
+class _TagRow extends StatelessWidget {
+  final String title;
+  final List<String> options;
+  final String? selected;
+  final ValueChanged<String?> onChanged;
+  final AppColorTokens tokens;
+
+  const _TagRow({required this.title, required this.options, required this.selected, required this.onChanged, required this.tokens});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(width: 36, child: Text(title, style: TextStyle(fontSize: 12, color: tokens.textMuted))),
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: options.map((opt) {
+                final isSelected = selected == opt;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ChoiceChip(
+                    label: Text(opt, style: const TextStyle(fontSize: 11)),
+                    selected: isSelected,
+                    onSelected: (val) => onChanged(val ? opt : null),
+                    selectedColor: tokens.primary.withValues(alpha: 0.2),
+                    backgroundColor: tokens.listItemBg.withValues(alpha: 0.5),
+                    labelStyle: TextStyle(color: isSelected ? tokens.primary : tokens.textSub, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+                    padding: EdgeInsets.zero,
+                    side: BorderSide(color: isSelected ? tokens.primary.withValues(alpha: 0.5) : Colors.transparent),
+                    showCheckmark: false,
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FavoriteToggle extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final AppColorTokens tokens;
+
+  const _FavoriteToggle({required this.value, required this.onChanged, required this.tokens});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(color: tokens.listItemBg.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(tokens.rItem)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text('내 즐겨찾기에 추가', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          Switch(value: value, onChanged: onChanged, activeColor: tokens.primary),
+        ],
+      ),
+    );
+  }
+}
 
 class _MealListTab extends ConsumerStatefulWidget {
-  final VoidCallback? onAddTap;
-
-  const _MealListTab({this.onAddTap});
+  final VoidCallback onAddTap;
+  const _MealListTab({required this.onAddTap});
 
   @override
   ConsumerState<_MealListTab> createState() => _MealListTabState();
 }
 
 class _MealListTabState extends ConsumerState<_MealListTab> {
-  final _scrollController = ScrollController();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    Future.microtask(() => ref.read(mealListProvider.notifier).fetch(refresh: true));
     _scrollController.addListener(_onScroll);
   }
 
@@ -1201,61 +938,32 @@ class _MealListTabState extends ConsumerState<_MealListTab> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      ref.read(mealListProvider.notifier).loadMore();
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent * 0.8) {
+      ref.read(mealListProvider.notifier).fetch();
     }
   }
 
-  String _formatDate(DateTime dt) =>
-      '${dt.year}-${dt.month.toString().padLeft(2, '0')}-'
-          '${dt.day.toString().padLeft(2, '0')} '
-          '${dt.hour.toString().padLeft(2, '0')}:'
-          '${dt.minute.toString().padLeft(2, '0')}';
-
   @override
   Widget build(BuildContext context) {
-    final listState = ref.watch(mealListProvider);
+    final state = ref.watch(mealListProvider);
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
 
-    if (listState.isLoading && listState.records.isEmpty) {
-      return ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: 5,
-        itemBuilder: (context, index) => const Padding(
-          padding: EdgeInsets.only(bottom: 12),
-          child: ShimmerListItem(),
-        ),
-      );
+    if (state.isLoading && state.records.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
     }
 
-    if (listState.error != null && listState.records.isEmpty) {
-      final tokens = Theme.of(context).extension<AppColorTokens>()!;
+    if (state.records.isEmpty) {
       return Center(
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 48, color: tokens.primary),
-            const SizedBox(height: 12),
-            Text(listState.error!,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: tokens.textSub)),
+            Icon(Icons.restaurant_outlined, size: 64, color: tokens.textMuted.withValues(alpha: 0.3)),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () => ref.read(mealListProvider.notifier).refresh(),
-              child: const Text('다시 시도'),
-            ),
+            const Text('아직 기록된 식사가 없어요', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 24),
+            ElevatedButton(onPressed: widget.onAddTap, style: ElevatedButton.styleFrom(backgroundColor: tokens.primary, foregroundColor: Colors.white), child: const Text('첫 식사 기록하기')),
           ],
         ),
-      );
-    }
-
-    if (listState.records.isEmpty) {
-      return _EmptyState(
-        icon: Icons.restaurant_outlined,
-        message: '아직 기록된 식사가 없어요',
-        sub: '첫 번째 식사를 기록해보세요',
-        actionLabel: '기록 추가',
-        onAction: widget.onAddTap,
       );
     }
 
@@ -1264,215 +972,47 @@ class _MealListTabState extends ConsumerState<_MealListTab> {
       child: ListView.builder(
         controller: _scrollController,
         padding: const EdgeInsets.all(16),
-        itemCount: listState.records.length + (listState.hasNext ? 1 : 0),
+        itemCount: state.records.length + (state.hasNext ? 1 : 0),
         itemBuilder: (context, index) {
-          if (index == listState.records.length) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-            );
+          if (index == state.records.length) {
+            return const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()));
           }
-
-          final record = listState.records[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: BentoCard(
-              padding: EdgeInsets.zero,
-              child: ListTile(
-                leading: _MealTypeIcon(mealType: record.mealType),
-                title: Text(record.menuName),
-                subtitle: Text(
-                  '${MealTypeHelper.fromString(record.mealType).label} · ${_formatDate(record.recordedAt)}',
-                ),
-                trailing: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (record.calories != null)
-                      Text(
-                        '${record.calories!.toStringAsFixed(0)}kcal',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    Text(
-                      '${record.servingSize.toStringAsFixed(1)}인분',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).extension<AppColorTokens>()!.textMuted),
-                    ),
-                  ],
-                ),
-                onTap: () => _showDetailDialog(context, record),
-              ),
-            ),
-          );
+          final meal = state.records[index];
+          return _MealListItem(meal: meal, tokens: tokens);
         },
       ),
     );
   }
+}
 
-  void _showDetailDialog(BuildContext context, MealRecord record) {
-    final mealType = MealTypeHelper.fromString(record.mealType);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(record.menuName),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+class _MealListItem extends StatelessWidget {
+  final MealRecord meal;
+  final AppColorTokens tokens;
+
+  const _MealListItem({required this.meal, required this.tokens});
+
+  @override
+  Widget build(BuildContext context) {
+    final timeStr = DateFormat('HH:mm').format(meal.recordedAt);
+    final dateStr = DateFormat('M월 d일').format(meal.recordedAt);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: BentoCard(
+        padding: const EdgeInsets.all(16),
+        borderRadius: BorderRadius.circular(tokens.rCard),
+        onTap: () {},
+        child: Row(
           children: [
-            _DetailRow(label: '식사 종류', value: mealType.label),
-            _DetailRow(label: '기록 시간', value: _formatDate(record.recordedAt)),
-            _DetailRow(
-                label: '인분',
-                value: '${record.servingSize.toStringAsFixed(1)}인분'),
-            if (record.calories != null)
-              _DetailRow(
-                  label: '칼로리',
-                  value: '${record.calories!.toStringAsFixed(0)}kcal'),
-            if (record.carbs != null)
-              _DetailRow(
-                  label: '탄수화물',
-                  value: '${record.carbs!.toStringAsFixed(1)}g'),
-            if (record.protein != null)
-              _DetailRow(
-                  label: '단백질',
-                  value: '${record.protein!.toStringAsFixed(1)}g'),
-            if (record.fat != null)
-              _DetailRow(
-                  label: '지방',
-                  value: '${record.fat!.toStringAsFixed(1)}g'),
-            if (record.weatherTag != null)
-              _DetailRow(label: '날씨', value: record.weatherTag!),
-            if (record.moodTag != null)
-              _DetailRow(label: '기분', value: record.moodTag!),
-            if (record.review != null && record.review!.isNotEmpty)
-              _DetailRow(label: '메모', value: record.review!),
+            if (meal.imageUrl != null)
+              ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(meal.imageUrl!, width: 60, height: 60, fit: BoxFit.cover))
+            else
+              Container(width: 60, height: 60, decoration: BoxDecoration(color: tokens.listItemBg, borderRadius: BorderRadius.circular(8)), child: Icon(Icons.restaurant, color: tokens.primary.withValues(alpha: 0.5))),
+            const SizedBox(width: 16),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(meal.menuName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)), const SizedBox(height: 4), Text('$dateStr $timeStr · ${meal.calories?.toInt() ?? 0} kcal', style: TextStyle(fontSize: 12, color: tokens.textMuted))])),
+            Icon(Icons.arrow_forward_ios, size: 14, color: tokens.textMuted),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: ctx,
-                builder: (confirmCtx) => AlertDialog(
-                  title: const Text('식사 기록 삭제'),
-                  content: Text('${record.menuName} 기록을 삭제하시겠어요?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(confirmCtx, false),
-                      child: const Text('취소'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(confirmCtx, true),
-                      child: const Text('삭제', style: TextStyle(color: Colors.red)),
-                    ),
-                  ],
-                ),
-              );
-              if (confirm == true && ctx.mounted) {
-                Navigator.pop(ctx);
-                ref.read(mealListProvider.notifier).delete(record.id);
-              }
-            },
-            child: const Text('삭제', style: TextStyle(color: Colors.red)),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('닫기'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────
-// 공통 위젯
-// ─────────────────────────────────────────
-
-class _MealTypeIcon extends StatelessWidget {
-  final String mealType;
-  const _MealTypeIcon({required this.mealType});
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = Theme.of(context).extension<AppColorTokens>()!;
-    final type = MealTypeHelper.fromString(mealType);
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: tokens.primaryBg,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(type.icon, color: tokens.primary, size: 22),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-  const _DetailRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = Theme.of(context).extension<AppColorTokens>()!;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 72,
-            child: Text(label, style: TextStyle(color: tokens.textMuted)),
-          ),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  final IconData icon;
-  final String message;
-  final String sub;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  const _EmptyState({
-    required this.icon,
-    required this.message,
-    required this.sub,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = Theme.of(context).extension<AppColorTokens>()!;
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 64, color: tokens.textMuted),
-          const SizedBox(height: 16),
-          Text(message,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(color: tokens.textSub)),
-          const SizedBox(height: 6),
-          Text(sub,
-              style: TextStyle(fontSize: 13, color: tokens.textMuted)),
-          if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: onAction,
-              child: Text(actionLabel!),
-            ),
-          ],
-        ],
       ),
     );
   }
@@ -1484,24 +1024,7 @@ class _SideEffectsBottomSheet extends StatelessWidget {
   const _SideEffectsBottomSheet({required this.sideEffects});
 
   Widget _buildSectionHeader(String title, IconData icon, AppColorTokens tokens) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: tokens.textMuted),
-          const SizedBox(width: 6),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: tokens.textMuted,
-              letterSpacing: -0.2,
-            ),
-          ),
-        ],
-      ),
-    );
+    return Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(children: [Icon(icon, size: 16, color: tokens.textMuted), const SizedBox(width: 6), Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: tokens.textMuted, letterSpacing: -0.2))]));
   }
 
   @override
@@ -1510,124 +1033,26 @@ class _SideEffectsBottomSheet extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
-      decoration: BoxDecoration(
-        color: tokens.card,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SingleChildScrollView( // 긴 목록 대비 스크롤 추가
+      decoration: BoxDecoration(color: tokens.card, borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
+      child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: tokens.textMuted.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: tokens.textMuted.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 24),
-            const Text(
-              '기록 완료!',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-            ),
+            const Text('기록 완료!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
             const SizedBox(height: 8),
-            Text(
-              '+${sideEffects.expGained} XP 획득',
-              style: TextStyle(fontSize: 15, color: tokens.primary, fontWeight: FontWeight.w800),
-            ),
+            Text('+${sideEffects.expGained} XP 획득', style: TextStyle(fontSize: 15, color: tokens.primary, fontWeight: FontWeight.w800)),
             const SizedBox(height: 24),
             if (sideEffects.questsProgressed.isNotEmpty || (sideEffects.grantedBadges.isNotEmpty)) ...[
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '이번 식사로 얻은 성과',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                ),
-              ),
+              const Align(alignment: Alignment.centerLeft, child: Text('이번 식사로 얻은 성과', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
               const SizedBox(height: 16),
-              
-              // 1. 일일 퀘스트 섹션
-              if (sideEffects.questsProgressed.any((q) => q.questType.toUpperCase() == 'DAILY')) ...[
-                _buildSectionHeader('오늘의 목표', Icons.today_rounded, tokens),
-                ...sideEffects.questsProgressed
-                    .where((q) => q.questType.toUpperCase() == 'DAILY')
-                    .map((q) => _QuestProgressOverlayItem(q: q, tokens: tokens)),
-                const SizedBox(height: 12),
-              ],
-
-              // 2. 주간 퀘스트 섹션
-              if (sideEffects.questsProgressed.any((q) => q.questType.toUpperCase() == 'WEEKLY')) ...[
-                _buildSectionHeader('이번 주 도전', Icons.date_range_rounded, tokens),
-                ...sideEffects.questsProgressed
-                    .where((q) => q.questType.toUpperCase() == 'WEEKLY')
-                    .map((q) => _QuestProgressOverlayItem(q: q, tokens: tokens)),
-                const SizedBox(height: 12),
-              ],
-
-              // 3. 업적 섹션
-              if (sideEffects.questsProgressed.any((q) => q.questType.toUpperCase() == 'ACHIEVEMENT')) ...[
-                _buildSectionHeader('나의 기록들', Icons.stars_rounded, tokens),
-                ...sideEffects.questsProgressed
-                    .where((q) => q.questType.toUpperCase() == 'ACHIEVEMENT')
-                    .map((q) => _QuestProgressOverlayItem(q: q, tokens: tokens)),
-                const SizedBox(height: 12),
-              ],
-
-              // 4. 획득 뱃지 섹션
-              if (sideEffects.grantedBadges.isNotEmpty) ...[
-                _buildSectionHeader('새로운 뱃지', Icons.military_tech_rounded, tokens),
-                ...sideEffects.grantedBadges.map((b) => _BadgeOverlayItem(badge: b, tokens: tokens)),
-                const SizedBox(height: 12),
-              ],
+              if (sideEffects.questsProgressed.any((q) => q.questType.toUpperCase() == 'DAILY')) ...[_buildSectionHeader('오늘의 목표', Icons.today_rounded, tokens), ...sideEffects.questsProgressed.where((q) => q.questType.toUpperCase() == 'DAILY').map((q) => _QuestProgressOverlayItem(q: q, tokens: tokens)), const SizedBox(height: 12)],
+              if (sideEffects.questsProgressed.any((q) => q.questType.toUpperCase() == 'WEEKLY')) ...[_buildSectionHeader('이번 주 도전', Icons.date_range_rounded, tokens), ...sideEffects.questsProgressed.where((q) => q.questType.toUpperCase() == 'WEEKLY').map((q) => _QuestProgressOverlayItem(q: q, tokens: tokens)), const SizedBox(height: 12)],
+              if (sideEffects.grantedBadges.isNotEmpty) ...[_buildSectionHeader('새로운 뱃지', Icons.military_tech_rounded, tokens), ...sideEffects.grantedBadges.map((b) => _BadgeOverlayItem(badge: b, tokens: tokens)), const SizedBox(height: 12)],
             ],
-            if (sideEffects.grantedTitle != null) ...[
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: tokens.primary.withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.stars, color: Colors.orange, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('새로운 칭호 획득!', style: TextStyle(fontSize: 11, color: Colors.orange, fontWeight: FontWeight.w900)),
-                          Text(sideEffects.grantedTitle!.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-            ],
-            SizedBox(
-              width: double.infinity,
-              height: 54,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: tokens.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                child: const Text('확인', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-              ),
-            ),
+            if (sideEffects.grantedTitle != null) ...[Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(gradient: AppColors.primaryGradient.withOpacity(0.1), borderRadius: BorderRadius.circular(16), border: Border.all(color: tokens.primary.withValues(alpha: 0.3))), child: Row(children: [Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.2), shape: BoxShape.circle), child: const Icon(Icons.stars, color: Colors.orange, size: 20)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('새로운 칭호 획득!', style: TextStyle(fontSize: 11, color: Colors.orange, fontWeight: FontWeight.w900)), Text(sideEffects.grantedTitle!.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))]))])), const SizedBox(height: 24)],
+            SizedBox(width: double.infinity, height: 54, child: ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: tokens.primary, foregroundColor: Colors.white, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))), child: const Text('확인', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)))),
           ],
         ),
       ),
@@ -1636,44 +1061,19 @@ class _SideEffectsBottomSheet extends StatelessWidget {
 }
 
 class _BadgeOverlayItem extends StatelessWidget {
-  final dynamic badge;
+  final BadgeModel badge;
   final AppColorTokens tokens;
-
   const _BadgeOverlayItem({required this.badge, required this.tokens});
-
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: tokens.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: tokens.primary.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.verified_rounded, color: Colors.blue, size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              badge.name,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-            ),
-          ),
-          const Text('획득!', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12)),
-        ],
-      ),
-    );
+    return Container(margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), decoration: BoxDecoration(color: tokens.primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: tokens.primary.withValues(alpha: 0.2))), child: Row(children: [const Icon(Icons.verified_rounded, color: Colors.blue, size: 20), const SizedBox(width: 10), Expanded(child: Text(badge.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14))), const Text('획득!', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12))]));
   }
 }
 
 class _QuestProgressOverlayItem extends StatelessWidget {
   final QuestProgressInfoModel q;
   final AppColorTokens tokens;
-
   const _QuestProgressOverlayItem({required this.q, required this.tokens});
-
   String _getLocalizedType(String type) {
     switch (type.toUpperCase()) {
       case 'DAILY': return '일일';
@@ -1682,59 +1082,8 @@ class _QuestProgressOverlayItem extends StatelessWidget {
       default: return '퀘스트';
     }
   }
-
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: tokens.listItemBg.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: tokens.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  _getLocalizedType(q.questType),
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: tokens.primary),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  q.questTitle,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Text(
-                '${q.progress}/${q.target}',
-                style: TextStyle(fontSize: 12, color: tokens.textSub, fontWeight: FontWeight.w500),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: LinearProgressIndicator(
-              value: q.target > 0 ? q.progress / q.target : 0,
-              minHeight: 4,
-              backgroundColor: tokens.primaryBg,
-              valueColor: AlwaysStoppedAnimation<Color>(q.completed ? Colors.green : tokens.primary),
-            ),
-          ),
-        ],
-      ),
-    );
+    return Container(margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10), decoration: BoxDecoration(color: tokens.listItemBg.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: tokens.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Text(_getLocalizedType(q.questType), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: tokens.primary))), const SizedBox(width: 8), Expanded(child: Text(q.questTitle, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)), Text('${q.progress}/${q.target}', style: TextStyle(fontSize: 12, color: tokens.textSub, fontWeight: FontWeight.w500))]), const SizedBox(height: 8), ClipRRect(borderRadius: BorderRadius.circular(2), child: LinearProgressIndicator(value: q.target > 0 ? q.progress / q.target : 0, minHeight: 4, backgroundColor: tokens.primaryBg, valueColor: AlwaysStoppedAnimation<Color>(q.completed ? Colors.green : tokens.primary)))]));
   }
 }

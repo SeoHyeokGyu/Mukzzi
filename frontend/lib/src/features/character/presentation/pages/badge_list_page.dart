@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mukzzi/src/core/theme/app_theme.dart';
-import 'package:mukzzi/src/features/quest/presentation/providers/quest_provider.dart';
-import 'package:mukzzi/src/features/quest/presentation/widgets/quest_item.dart';
 import '../../../../core/widgets/collection_states.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../domain/models/badge_model.dart';
@@ -24,60 +22,20 @@ class _BadgeListPageState extends ConsumerState<BadgeListPage> {
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
     final badgesAsync = ref.watch(badgeListProvider);
-    final achievementQuests = ref.watch(achievementQuestsProvider);
 
-    return DefaultTabController(
-      length: 2,
-      child: GradientScaffold(
-        appBar: AppBar(
-          title: const Text('나의 기록'),
-          bottom: TabBar(
-            indicatorColor: tokens.primary,
-            labelColor: tokens.primary,
-            unselectedLabelColor: tokens.textMuted,
-            labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-            tabs: const [
-              Tab(text: '업적'),
-              Tab(text: '뱃지'),
-            ],
-          ),
-        ),
-        body: TabBarView(
-          children: [
-            // 1. 업적 탭
-            _buildAchievementTab(achievementQuests),
-            
-            // 2. 뱃지 탭
-            badgesAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => CollectionErrorState(onRetry: () => ref.invalidate(badgeListProvider)),
-              data: (badges) => _buildBadgeTab(badges, tokens),
-            ),
-          ],
-        ),
+    return GradientScaffold(
+      appBar: AppBar(
+        title: const Text('나의 기록'),
+      ),
+      body: badgesAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => CollectionErrorState(onRetry: () => ref.invalidate(badgeListProvider)),
+        data: (badges) => _buildBadgeContent(badges, tokens),
       ),
     );
   }
 
-  Widget _buildAchievementTab(List<dynamic> quests) {
-    if (quests.isEmpty) {
-      return const CollectionEmptyState(
-        icon: Icons.stars_rounded,
-        title: '진행 중인 업적이 없어요',
-        subtitle: '다양한 활동을 통해 업적을 쌓아보세요',
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: quests.length,
-      itemBuilder: (context, index) {
-        return QuestItem(quest: quests[index]);
-      },
-    );
-  }
-
-  Widget _buildBadgeTab(List<BadgeModel> badges, AppColorTokens tokens) {
+  Widget _buildBadgeContent(List<BadgeModel> badges, AppColorTokens tokens) {
     final filtered = _selectedBadgeCategory == 'all'
         ? badges
         : badges.where((b) => b.category == _selectedBadgeCategory).toList();
@@ -140,7 +98,7 @@ class _BadgeListPageState extends ConsumerState<BadgeListPage> {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              childAspectRatio: 0.82,
+              childAspectRatio: 0.72, // 진행 바 공간 확보를 위해 약간 높임
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
