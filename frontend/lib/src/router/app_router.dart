@@ -25,6 +25,7 @@ import '../features/social/presentation/pages/other_profile_page.dart';
 import '../features/social/presentation/pages/guestbook_list_page.dart';
 import '../features/settings/presentation/pages/privacy_policy_page.dart';
 import '../features/settings/presentation/pages/terms_page.dart';
+import '../features/splash/presentation/pages/splash_page.dart';
 import '../features/profile/presentation/providers/user_provider.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
 
@@ -34,6 +35,7 @@ class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(Ref ref) {
     ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
     ref.listen<UserState>(userProvider, (_, __) => notifyListeners());
+    ref.listen<bool>(isAppInitializedProvider, (_, __) => notifyListeners());
   }
 }
 
@@ -44,7 +46,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   ref.onDispose(notifier.dispose);
 
   return GoRouter(
-    initialLocation: '/home',
+    initialLocation: '/splash',
     refreshListenable: notifier,
     errorBuilder: (context, state) => Scaffold(
       body: Center(
@@ -67,6 +69,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ),
     redirect: (context, state) async {
+      final isInitialized = ref.read(isAppInitializedProvider);
+      final isSplashPath = state.matchedLocation == '/splash';
+
+      // 1. 앱이 아직 초기화되지 않았다면 무조건 스플래시 화면으로 이동
+      if (!isInitialized) {
+        return isSplashPath ? null : '/splash';
+      }
+
       final authState = ref.read(authProvider);
       final userState = ref.read(userProvider);
       final token = await tokenStorage.read(AppConstants.accessTokenKey);
@@ -76,6 +86,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = token != null || currentUser != null;
       final isAuthPath = state.matchedLocation == '/auth';
       final isOnboardingPath = state.matchedLocation == '/onboarding';
+
+      // 2. 초기화가 완료되었는데 여전히 스플래시 화면에 있다면 알맞은 곳으로 라우팅
+      if (isInitialized && isSplashPath) {
+        if (!isLoggedIn) return '/auth';
+        if (currentUser != null && !currentUser.isOnboarded) return '/onboarding';
+        return '/home';
+      }
 
       if (!isLoggedIn && !isAuthPath) return '/auth';
       if (isLoggedIn && isAuthPath) return '/home';
@@ -91,6 +108,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/splash',
+        name: 'splash',
+        builder: (context, state) => const SplashPage(),
+      ),
       GoRoute(
         path: '/auth',
         name: 'auth',
