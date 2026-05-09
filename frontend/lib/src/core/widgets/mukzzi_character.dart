@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'lottie_web_player_stub.dart' if (dart.library.js_interop) 'lottie_web_player_web.dart';
 
 enum CharacterState { normal, happy, hungry, starving, sleeping }
 
@@ -8,7 +10,7 @@ enum CharacterStage { baby, teen, adult }
 extension CharacterLevelExtension on int {
   CharacterStage get stage {
     if (this <= 2) return CharacterStage.baby;
-    if (this <= 6) return CharacterStage.teen;
+    if (this <= 14) return CharacterStage.teen;
     return CharacterStage.adult;
   }
 }
@@ -75,7 +77,7 @@ extension CharacterStateLabel on CharacterState {
   }
 }
 
-class MukzziCharacter extends StatefulWidget {
+class MukzziCharacter extends StatelessWidget {
   final CharacterState state;
   final double size;
   final int level;
@@ -88,48 +90,28 @@ class MukzziCharacter extends StatefulWidget {
   }) : assert(size >= 60, 'MukzziCharacter: size < 60 renders detail-loss. Use at least 80 for best results.');
 
   @override
-  State<MukzziCharacter> createState() => _MukzziCharacterState();
-}
-
-class _MukzziCharacterState extends State<MukzziCharacter> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final stage = widget.level.stage.name.toLowerCase();
-    final stateKey = widget.state.key;
+    final stage = level.stage.name.toLowerCase();
+    final stateKey = state.key;
     final assetPath = 'assets/animations/mukzzi_${stage}_$stateKey.json';
 
+    if (kIsWeb) {
+      return buildLottieWebPlayer('assets/$assetPath', size);
+    }
+
     return SizedBox(
-      width: widget.size,
-      height: widget.size,
+      width: size,
+      height: size,
       child: Lottie.asset(
         assetPath,
-        controller: _controller,
         fit: BoxFit.contain,
-        onLoaded: (composition) {
-          _controller
-            ..duration = composition.duration
-            ..value = 1.0;
-        },
+        repeat: true,
         errorBuilder: (context, error, stackTrace) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.pets, size: widget.size * 0.4, color: const Color(0xFF2D6BFF)),
+                Icon(Icons.pets, size: size * 0.4, color: const Color(0xFF2D6BFF)),
                 const SizedBox(height: 4),
                 Text('Load Failed: $assetPath', style: const TextStyle(fontSize: 8, color: Colors.red)),
               ],
