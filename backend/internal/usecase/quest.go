@@ -68,9 +68,9 @@ func (u *questUsecase) GetMyQuests(ctx context.Context, userID int64, period str
 		return quests, nil
 	}
 
-	var filtered []domain.UserQuest
+	filtered := []domain.UserQuest{}
 	for _, q := range quests {
-		if string(q.Quest.Type) == period {
+		if q.Quest != nil && string(q.Quest.Type) == period {
 			filtered = append(filtered, q)
 		}
 	}
@@ -93,42 +93,51 @@ func (u *questUsecase) HandleEvent(ctx context.Context, event domain.Event) ([]d
 			return err
 		}
 
+		slog.Info("HandleEvent: 진행 중인 퀘스트 조회 결과", slog.Int64("user_id", event.UserID), slog.Int("count", len(userQuests)))
+
 		for i := range userQuests {
 			uq := &userQuests[i]
 			shouldUpdate := false
 
+			if uq.Quest == nil {
+				slog.Warn("HandleEvent: Quest 정보가 Preload 되지 않음", slog.Int64("user_id", event.UserID), slog.Int64("user_quest_id", uq.ID))
+				continue
+			}
+
 			switch event.Type {
 			case domain.EventMealCreated:
 				if uq.Quest.Category == domain.QuestCategoryMeal {
+					slog.Info("HandleEvent: 식사 기록 이벤트 처리 중", slog.String("quest_code", uq.Quest.Code), slog.Int("current", uq.CurrentCount))
+					
 					if uq.Quest.Type == domain.QuestTypeWeekly && uq.Quest.Code == "WEEKLY_STEADY" {
-						// [주간 퀘스트 고도화] 7일 연속 기록 체크
-						// 단순히 카운트를 올리지 않고, 캐릭터의 실제 StreakDays를 동기화하여 하루 여러 번 기록 시에도 1회만 인정
+						// [주간 퀘스트] 캐릭터의 실제 StreakDays와 동기화
 						char, err := u.characterRepo.GetByUserID(event.UserID)
 						if err == nil && char != nil {
 							uq.CurrentCount = char.StreakDays
-							if uq.CurrentCount > uq.Quest.TargetCount {
-								uq.CurrentCount = uq.Quest.TargetCount
-							}
-							shouldUpdate = true
-						}
-					} else if uq.Quest.Code == "DAILY_BALANCED" {
-						// [영양소 퀘스트] 영양 밸런스 체크 로직 수행
-						if u.isMealBalanced(event.UserID, event.Payload) {
-							uq.CurrentCount++
-							shouldUpdate = true
 						}
 					} else if uq.Quest.Type == domain.QuestTypeAchievement {
-						// [업적 고도화] 누적 통계 기반 실시간 반영
+						// [업적] 누적 통계 기반 실시간 반영
 						count, err := u.mealRepo.CountByUserID(event.UserID)
 						if err == nil {
 							uq.CurrentCount = int(count)
-							shouldUpdate = true
+						}
+					} else if uq.Quest.Code == "DAILY_BALANCED" {
+						// [영양소 퀘스트] 영양 밸런스 체크
+						if u.isMealBalanced(event.UserID, event.Payload) {
+							uq.CurrentCount++
+						} else {
+							shouldUpdate = false // 밸런스 안 맞으면 업데이트 스킵
 						}
 					} else {
-						// 일반적인 횟수 기반 퀘스트 (예: 오늘의 첫 식사 등)
+						// 일반적인 횟수 기반 퀘스트 (오늘의 첫 식사, 삼시세끼 등)
 						uq.CurrentCount++
-						shouldUpdate = true
 					}
+
+					// 공통: 목표치 초과 방지 및 업데이트 플래그
+					if uq.CurrentCount > uq.Quest.TargetCount {
+						uq.CurrentCount = uq.Quest.TargetCount
+					}
+					shouldUpdate = true
 				}
 			case domain.EventFriendNudged:
 				if uq.Quest.Category == domain.QuestCategorySocial && uq.Quest.Code == "NUDGE_FRIEND" {
@@ -142,9 +151,15 @@ func (u *questUsecase) HandleEvent(ctx context.Context, event domain.Event) ([]d
 				}
 			case domain.EventLevelUp:
 				// [성장 퀘스트] 특정 레벨 달성 체크
-				if uq.Quest.Category == domain.QuestCategoryGrowth && uq.Quest.Code == "REACH_LEVEL" {
+				if uq.Quest != nil && uq.Quest.Category == domain.QuestCategoryGrowth && uq.Quest.Code == "REACH_LEVEL" {
 					newLevel, ok := event.Payload["new_level"].(int)
-					if ok {
+					if !ok {
+						// 페이로드 타입 처리 (JSON 숫자 등)
+						if val, ok := event.Payload["new_level"].(float64); ok {
+							newLevel = int(val)
+						}
+					}
+					if newLevel > 0 {
 						uq.CurrentCount = newLevel
 						shouldUpdate = true
 					}
@@ -152,10 +167,24 @@ func (u *questUsecase) HandleEvent(ctx context.Context, event domain.Event) ([]d
 			}
 
 			if shouldUpdate {
-				// 완료 상태 전환
+				// 완료 상태 전환 체크
+				isNowCompleted := false
 				if uq.CurrentCount >= uq.Quest.TargetCount {
 					uq.Status = domain.QuestStatusCompleted
-					// 실시간 성취감을 위해 완료 알림 이벤트 발행
+					isNowCompleted = true
+				}
+
+				// 결과 먼저 생성 (Preload된 정보를 사용해야 하므로)
+				progressResult := domain.QuestProgress{
+					QuestType:  string(uq.Quest.Type),
+					QuestTitle: uq.Quest.Title,
+					Progress:   uq.CurrentCount,
+					Target:     uq.Quest.TargetCount,
+					Completed:  uq.Status == domain.QuestStatusCompleted,
+				}
+
+				// 완료되었다면 이벤트 발행
+				if isNowCompleted {
 					u.eventBus.Publish(domain.Event{
 						Type:      domain.EventQuestCompleted,
 						UserID:    event.UserID,
@@ -168,16 +197,15 @@ func (u *questUsecase) HandleEvent(ctx context.Context, event domain.Event) ([]d
 					})
 				}
 
+				// Preload된 객체 제거 후 저장 (데이터 일관성 보장)
+				questDef := uq.Quest
+				uq.Quest = nil
 				if err := tx.Save(uq).Error; err != nil {
 					return err
 				}
+				uq.Quest = questDef // 리스트 순회를 위해 복구
 
-				progressed = append(progressed, domain.QuestProgress{
-					QuestType: string(uq.Quest.Type),
-					Progress:  uq.CurrentCount,
-					Target:    uq.Quest.TargetCount,
-					Completed: uq.Status == domain.QuestStatusCompleted,
-				})
+				progressed = append(progressed, progressResult)
 			}
 		}
 		return nil
@@ -292,6 +320,7 @@ func (u *questUsecase) ClaimReward(ctx context.Context, userID int64, userQuestI
 
 		// 3. 상태 변경 (CLAIMED)
 		uq.Status = domain.QuestStatusClaimed
+		uq.Quest = nil // Preload된 객체로 인한 사이드 이펙트(quests 테이블 업데이트 시도) 방지
 		return tx.Save(&uq).Error
 	})
 }

@@ -115,9 +115,9 @@ class _ProfileBody extends ConsumerWidget {
             const SizedBox(width: 8),
             Expanded(
               child: statsAsync.when(
-                data: (s) => _StatTile(label: '달성 뱃지', value: s.badgeCount.toString(), sub: '개', tokens: tokens),
-                loading: () => _StatTile(label: '달성 뱃지', value: '–', sub: '개', tokens: tokens),
-                error: (_, __) => _StatTile(label: '달성 뱃지', value: '–', sub: '개', tokens: tokens),
+                data: (s) => _StatTile(label: '뱃지', value: s.badgeCount.toString(), sub: '개', tokens: tokens),
+                loading: () => _StatTile(label: '뱃지', value: '–', sub: '개', tokens: tokens),
+                error: (_, __) => _StatTile(label: '뱃지', value: '–', sub: '개', tokens: tokens),
               ),
             ),
           ],
@@ -146,8 +146,8 @@ class _ProfileBody extends ConsumerWidget {
               ),
               _Divider(tokens: tokens),
               _MenuItem(
-                icon: Icons.military_tech_outlined,
-                label: '달성 뱃지',
+                icon: Icons.emoji_events_outlined,
+                label: '나의 기록',
                 onTap: () => context.push('/profile/badges'),
                 tokens: tokens,
               ),

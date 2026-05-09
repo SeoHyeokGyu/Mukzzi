@@ -46,12 +46,14 @@ class Quest {
 
 class QuestProgressInfo {
   final String questType;
+  final String questTitle;
   final int progress;
   final int target;
   final bool completed;
 
   const QuestProgressInfo({
     required this.questType,
+    required this.questTitle,
     required this.progress,
     required this.target,
     required this.completed,

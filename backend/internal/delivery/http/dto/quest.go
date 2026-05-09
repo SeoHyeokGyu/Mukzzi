@@ -30,18 +30,20 @@ type UserQuestResponse struct {
 }
 
 type QuestProgressResponse struct {
-	QuestType string `json:"quest_type"`
-	Progress  int    `json:"progress"`
-	Target    int    `json:"target"`
-	Completed bool   `json:"completed"`
+	QuestType  string `json:"quest_type"`
+	QuestTitle string `json:"quest_title"`
+	Progress   int    `json:"progress"`
+	Target     int    `json:"target"`
+	Completed  bool   `json:"completed"`
 }
 
 func ToQuestProgressResponse(qp domain.QuestProgress) QuestProgressResponse {
 	return QuestProgressResponse{
-		QuestType: qp.QuestType,
-		Progress:  qp.Progress,
-		Target:    qp.Target,
-		Completed: qp.Completed,
+		QuestType:  qp.QuestType,
+		QuestTitle: qp.QuestTitle,
+		Progress:   qp.Progress,
+		Target:     qp.Target,
+		Completed:  qp.Completed,
 	}
 }
 

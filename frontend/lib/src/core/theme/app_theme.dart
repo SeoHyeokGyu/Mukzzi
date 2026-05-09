@@ -419,10 +419,11 @@ class AppTheme {
       ),
 
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: isDark ? AppColors.surfaceElevated : const Color(0xFF3A2010),
-        contentTextStyle: const TextStyle(color: Colors.white),
+        backgroundColor: tokens.card,
+        contentTextStyle: TextStyle(color: tokens.textPrimary),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
+        elevation: 6,
       ),
 
       dropdownMenuTheme: DropdownMenuThemeData(

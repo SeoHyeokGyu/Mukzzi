@@ -21,9 +21,15 @@ class NotificationListPage extends ConsumerWidget {
         title: const Text('알림'),
         actions: [
           if (state.unreadCount > 0)
-            TextButton(
-              onPressed: () => notifier.markAllAsRead(),
-              child: const Text('전체 읽음'),
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: TextButton(
+                onPressed: () => notifier.markAllAsRead(),
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).extension<AppColorTokens>()!.primary,
+                ),
+                child: const Text('전체 읽음', style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
             ),
         ],
       ),
@@ -49,8 +55,12 @@ class NotificationListPage extends ConsumerWidget {
                           // 1. 읽음 처리
                           if (!n.isRead) notifier.markAsRead(n.id);
                           
-                          // 2. 관련 페이지로 이동
-                          context.push(n.navigationPath);
+                          // 2. 관련 페이지로 이동 (Navigator 키 충돌 방지를 위해 go 사용)
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (context.mounted) {
+                              context.go(n.navigationPath);
+                            }
+                          });
                         },
                       );
                     },
@@ -71,24 +81,37 @@ class _NotificationItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
+    
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
+      borderRadius: BorderRadius.circular(tokens.rItem),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: notification.isRead 
-              ? AppColors.surface.withValues(alpha: 0.5) 
-              : AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: notification.isRead 
-              ? null 
-              : Border.all(color: AppColors.orange.withValues(alpha: 0.3), width: 1),
+              ? tokens.listItemBg.withValues(alpha: 0.4) 
+              : tokens.card,
+          borderRadius: BorderRadius.circular(tokens.rItem),
+          border: Border.all(
+            color: notification.isRead 
+                ? Colors.transparent 
+                : tokens.primary.withValues(alpha: 0.2), 
+            width: 1.5,
+          ),
+          boxShadow: notification.isRead ? null : [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildIcon(),
+            _buildIcon(tokens),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -97,27 +120,30 @@ class _NotificationItem extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        notification.title,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: notification.isRead ? FontWeight.w500 : FontWeight.w700,
-                          color: notification.isRead ? AppColors.textSecondary : AppColors.textPrimary,
+                      Expanded(
+                        child: Text(
+                          notification.title,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: notification.isRead ? FontWeight.w600 : FontWeight.w800,
+                            color: notification.isRead ? tokens.textSub : tokens.textPrimary,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         _formatTime(notification.createdAt),
-                        style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                        style: TextStyle(fontSize: 11, color: tokens.textMuted, fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
                     notification.content,
                     style: TextStyle(
                       fontSize: 13,
-                      color: notification.isRead ? AppColors.textTertiary : AppColors.textSecondary,
-                      height: 1.4,
+                      color: notification.isRead ? tokens.textMuted : tokens.textSub,
+                      height: 1.5,
                     ),
                   ),
                 ],
@@ -125,12 +151,19 @@ class _NotificationItem extends StatelessWidget {
             ),
             if (!notification.isRead)
               Container(
-                margin: const EdgeInsets.only(left: 8, top: 4),
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: AppColors.orange,
+                margin: const EdgeInsets.only(left: 10, top: 4),
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: tokens.primary,
                   shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: tokens.primary.withValues(alpha: 0.4),
+                      blurRadius: 6,
+                      spreadRadius: 1,
+                    ),
+                  ],
                 ),
               ),
           ],
@@ -139,49 +172,53 @@ class _NotificationItem extends StatelessWidget {
     );
   }
 
-  Widget _buildIcon() {
+  Widget _buildIcon(AppColorTokens tokens) {
     IconData icon;
     Color color;
 
     switch (notification.type) {
       case NotificationType.friendRequest:
       case NotificationType.friendAccepted:
-        icon = Icons.person_add_outlined;
+        icon = Icons.person_add_rounded;
         color = Colors.blue;
         break;
       case NotificationType.nudge:
-        icon = Icons.favorite_border;
+        icon = Icons.favorite_rounded;
         color = Colors.pink;
         break;
       case NotificationType.guestbook:
-        icon = Icons.chat_bubble_outline;
+        icon = Icons.chat_bubble_rounded;
         color = Colors.green;
         break;
       case NotificationType.levelUp:
-        icon = Icons.auto_awesome;
+        icon = Icons.auto_awesome_rounded;
         color = Colors.amber;
         break;
       case NotificationType.badgeAcquired:
-        icon = Icons.military_tech_outlined;
-        color = AppColors.orange;
+        icon = Icons.military_tech_rounded;
+        color = tokens.primary;
+        break;
+      case NotificationType.questCompleted:
+        icon = Icons.emoji_events_rounded;
+        color = tokens.primary;
         break;
       case NotificationType.mealTag:
-        icon = Icons.restaurant_outlined;
+        icon = Icons.restaurant_rounded;
         color = Colors.deepPurple;
         break;
       default:
-        icon = Icons.notifications_outlined;
-        color = AppColors.textSecondary;
+        icon = Icons.notifications_rounded;
+        color = tokens.textSub;
     }
 
     return Container(
-      width: 40,
-      height: 40,
+      width: 44,
+      height: 44,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        shape: BoxShape.circle,
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Icon(icon, size: 20, color: color),
+      child: Icon(icon, size: 22, color: color),
     );
   }
 

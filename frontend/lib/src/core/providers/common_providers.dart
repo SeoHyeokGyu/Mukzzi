@@ -26,3 +26,6 @@ final tokenStorageProvider = Provider<TokenStorage>((ref) {
 final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient(ref.watch(tokenStorageProvider));
 });
+
+/// 앱 초기화 완료 여부 (스플래시 화면 종료 조건)
+final isAppInitializedProvider = StateProvider<bool>((ref) => false);

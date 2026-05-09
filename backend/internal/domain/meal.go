@@ -133,10 +133,11 @@ type MealListFilter struct {
 // ─────────────────────────────────────────
 
 type QuestProgress struct {
-	QuestType string `json:"quest_type"`
-	Progress  int    `json:"progress"`
-	Target    int    `json:"target"`
-	Completed bool   `json:"completed"`
+	QuestType  string `json:"quest_type"` // "DAILY", "WEEKLY", "ACHIEVEMENT"
+	QuestTitle string `json:"quest_title"`
+	Progress   int    `json:"progress"`
+	Target     int    `json:"target"`
+	Completed  bool   `json:"completed"`
 }
 
 type MasteryUpdate struct {

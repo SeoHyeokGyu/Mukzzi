@@ -7,6 +7,8 @@ class BadgeModel {
   final String description;
   final String category; // 'meal' | 'attendance' | 'social'
   final IconData iconData;
+  final int progress;
+  final int target;
   final bool isUnlocked;
   final String? unlockedAt; // ISO 8601
 
@@ -17,6 +19,8 @@ class BadgeModel {
     required this.description,
     required this.category,
     required this.iconData,
+    required this.progress,
+    required this.target,
     required this.isUnlocked,
     this.unlockedAt,
   });
@@ -33,6 +37,8 @@ class BadgeModel {
       description: json['description'] as String? ?? '',
       category: _categoryFromCode(code),
       iconData: _iconFromCode(code),
+      progress: json['progress'] as int? ?? 0,
+      target: json['target'] as int? ?? 0,
       isUnlocked: json['acquired'] as bool? ?? false,
       unlockedAt: json['acquired_at'] as String?,
     );

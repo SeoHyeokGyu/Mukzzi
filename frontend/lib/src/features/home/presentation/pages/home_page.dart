@@ -11,6 +11,7 @@ import 'package:mukzzi/src/core/widgets/gradient_scaffold.dart';
 import 'package:mukzzi/src/core/widgets/mukzzi_character.dart';
 import 'package:mukzzi/src/core/widgets/shimmer_card.dart';
 import 'package:mukzzi/src/features/auth/presentation/providers/auth_provider.dart';
+import 'package:mukzzi/src/features/notification/data/models/notification_model.dart';
 import 'package:mukzzi/src/features/notification/presentation/providers/notification_provider.dart';
 import 'package:mukzzi/src/features/character/data/models/character_model.dart';
 import 'package:mukzzi/src/features/character/presentation/providers/character_provider.dart';
@@ -18,7 +19,7 @@ import 'package:mukzzi/src/features/profile/presentation/providers/user_provider
 import 'package:mukzzi/src/features/home/presentation/widgets/menu_decision_section.dart';
 import 'package:mukzzi/src/features/quest/domain/entities/quest.dart';
 import 'package:mukzzi/src/features/quest/presentation/providers/quest_provider.dart';
-
+import 'package:showcaseview/showcaseview.dart';
 
 // Mock 데이터 - 추후 API로 교체
 const double _caloriesConsumed = 1200;
@@ -45,8 +46,41 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
+  final GlobalKey _feedMukzziKey = GlobalKey();
+  bool _tutorialStarted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 퀘스트 데이터 로드
+    Future.microtask(() => ref.read(questProvider.notifier).fetchQuests());
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  void _checkTutorial(List<Quest> quests) {
+    if (_tutorialStarted) return;
+
+    // 튜토리얼 퀘스트가 진행 중인지 확인
+    final hasTutorialQuest = quests.any(
+      (q) => q.code == 'TUTORIAL_FIRST_MEAL' && q.status == QuestStatus.progress,
+    );
+
+    if (hasTutorialQuest) {
+      _tutorialStarted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ShowcaseView.get().startShowCase([_feedMukzziKey]);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
+
     ref.listen(notificationProvider, (previous, next) {
       if (previous == null || (previous.notifications.isEmpty && next.notifications.isNotEmpty)) {
         return;
@@ -55,21 +89,95 @@ class _HomePageState extends ConsumerState<HomePage> {
         final newNotification = next.notifications.first;
         final isRecent = DateTime.now().difference(newNotification.createdAt).inMinutes < 1;
         if (!newNotification.isRead && isRecent) {
+          final isQuest = newNotification.type == NotificationType.questCompleted;
+          final isBadge = newNotification.type == NotificationType.badgeAcquired;
+          final isSpecial = isQuest || isBadge;
+          
+          if (!context.mounted) return;
+          
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+              content: Row(
                 children: [
-                  Text(newNotification.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  Text(newNotification.content, style: const TextStyle(fontSize: 12)),
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      gradient: isSpecial ? AppColors.primaryGradient : null,
+                      color: isSpecial ? null : tokens.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: isSpecial ? [
+                        BoxShadow(
+                          color: tokens.primary.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        )
+                      ] : null,
+                    ),
+                    child: Icon(
+                      isQuest ? Icons.emoji_events_rounded : (isBadge ? Icons.verified_rounded : Icons.notifications_rounded),
+                      color: isSpecial ? Colors.white : tokens.primary,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          newNotification.title,
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                            color: tokens.textPrimary,
+                            height: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          newNotification.content,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: tokens.textSub,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
+              backgroundColor: tokens.card,
               behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 4),
+              elevation: 8,
+              padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(tokens.rItem + 4),
+                side: BorderSide(
+                  color: isSpecial ? tokens.primary.withValues(alpha: 0.4) : tokens.textMuted.withValues(alpha: 0.1),
+                  width: 1.5,
+                ),
+              ),
+              duration: const Duration(seconds: 5),
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
               action: SnackBarAction(
-                label: '보기',
-                onPressed: () => context.push('/notifications'),
+                label: isSpecial ? '이동' : '확인',
+                textColor: tokens.primary,
+                onPressed: () {
+                  // 알림을 즉시 닫아 Navigator와의 키 충돌 방지
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  // 다음 프레임에서 안전하게 페이지 이동
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (context.mounted) {
+                      context.go(newNotification.navigationPath);
+                    }
+                  });
+                },
               ),
             ),
           );
@@ -90,10 +198,15 @@ class _HomePageState extends ConsumerState<HomePage> {
       }
     });
 
+    ref.listen(questProvider, (previous, next) {
+      if (!next.isLoading && next.quests.isNotEmpty) {
+        _checkTutorial(next.quests);
+      }
+    });
+
     final notificationState = ref.watch(notificationProvider);
     final userState = ref.watch(userProvider);
     final unreadCount = notificationState.unreadCount;
-    final tokens = Theme.of(context).extension<AppColorTokens>()!;
 
     final now = DateTime.now();
     final dateLabel = DateFormat('M월 d일 (E)', 'ko').format(now);
@@ -424,31 +537,45 @@ class _HomePageState extends ConsumerState<HomePage> {
       children: [
         Expanded(
           flex: 2,
-          child: Semantics(
-            label: '먹찌 밥 주기',
-            button: true,
-            child: BentoCard(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(tokens.rCard),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              shadows: [
-                BoxShadow(
-                  color: tokens.primary.withValues(alpha: 0.35),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-              onTap: () => context.go('/meal-record'),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.restaurant, color: Colors.white, size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    '먹찌 밥 주기',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
+          child: Showcase(
+            key: _feedMukzziKey,
+            title: '첫 식사 기록',
+            description: '먹찌가 배고파요! 첫 식사를 기록하고 성장을 시작하세요.',
+            targetPadding: const EdgeInsets.all(8),
+            tooltipBackgroundColor: tokens.primary,
+            textColor: Colors.white,
+            disableDefaultTargetGestures: true,
+            child: Semantics(
+              label: '먹찌 밥 주기',
+              button: true,
+              child: BentoCard(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.circular(tokens.rCard),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                shadows: [
+                  BoxShadow(
+                    color: tokens.primary.withValues(alpha: 0.35),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
                   ),
                 ],
+                onTap: () {
+                  if (_tutorialStarted) {
+                    ShowcaseView.get().dismiss();
+                  }
+                  context.go('/meal-record');
+                },
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.restaurant, color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      '먹찌 밥 주기',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -489,7 +616,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget _buildNutritionCard(AppColorTokens tokens) {
     const remaining = _caloriesGoal - _caloriesConsumed;
 
-    final card = BentoCard(
+    return BentoCard(
       borderRadius: BorderRadius.circular(tokens.rCard),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -565,11 +692,10 @@ class _HomePageState extends ConsumerState<HomePage> {
         ],
       ),
     );
-    return _animated(card, delay: 160.ms, slideY: true);
   }
 
   Widget _buildRecentMeals(AppColorTokens tokens) {
-    final col = Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
@@ -656,7 +782,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         })),
       ],
     );
-    return _animated(col, delay: 240.ms);
   }
 }
 

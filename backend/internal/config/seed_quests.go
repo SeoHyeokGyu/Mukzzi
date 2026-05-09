@@ -70,19 +70,8 @@ func SeedQuests(db *gorm.DB) {
 			IsActive:    true,
 		},
 
-		// 업적 (ACHIEVEMENT)
-		{
-			Code:        "ACHIEVE_MEAL_100",
-			Type:        domain.QuestTypeAchievement,
-			Category:    domain.QuestCategoryMeal,
-			Title:       "백 끼의 장인",
-			Description: "누적 100번의 식사를 기록했습니다.",
-			TargetCount: 100,
-			RewardPoint: 500,
-			RewardExp:   1000,
-			IsActive:    true,
-		},
-		// 튜토리얼 (TUTORIAL)
+		// 업적 (ACHIEVEMENT) - 이제 뱃지 시스템으로 통합됨
+		// TUTORIAL_FIRST_MEAL은 튜토리얼 플로우 제어를 위해 내부적으로 유지
 		{
 			Code:        "TUTORIAL_FIRST_MEAL",
 			Type:        domain.QuestTypeAchievement,

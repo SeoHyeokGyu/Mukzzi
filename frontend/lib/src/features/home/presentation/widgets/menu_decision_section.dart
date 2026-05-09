@@ -97,7 +97,7 @@ class _MenuDecisionSectionState extends ConsumerState<MenuDecisionSection> {
           const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(child: _RouletteButton()),
+              const Expanded(child: _RouletteButton()),
               const SizedBox(width: 6),
               Expanded(
                 child: _FilterToggleButton(
@@ -160,8 +160,6 @@ class _RouletteButton extends ConsumerWidget {
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
     final isSpinning = ref.watch(rouletteProvider.select((s) => s.isSpinning));
     final hasResult = ref.watch(rouletteProvider.select((s) => s.result != null));
-    final filterExpanded = ref.watch(filterExpandedProvider);
-    final recExpanded = ref.watch(recommendationExpandedProvider);
 
     final isActive = isSpinning || hasResult;
 
@@ -686,9 +684,9 @@ class _FilterSection extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 14),
-          Text(
+          const Text(
             '날씨',
-            style: TextStyle(fontSize: 12, color: tokens.textSub, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -705,9 +703,9 @@ class _FilterSection extends ConsumerWidget {
             }).toList(),
           ),
           const SizedBox(height: 12),
-          Text(
+          const Text(
             '기분',
-            style: TextStyle(fontSize: 12, color: tokens.textSub, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Wrap(
