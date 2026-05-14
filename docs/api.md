@@ -1,6 +1,6 @@
 # API 명세
 
-> 상태: 진행 중 (Auth 기본/User/Meal/Nutrition/Collection/Social/Notification/온보딩 구현, Character HTTP API/Quest/OAuth/메뉴관리 미구현)
+> 상태: 진행 중 (Auth 기본/User/Meal/Nutrition/Collection/Social/Notification/Quest/온보딩/Menu 검색·룰렛·필터·추천·즐겨찾기·선호 구현, Character HTTP API/OAuth/메뉴 관리(CRUD) 미구현)
 
 백엔드 REST API 엔드포인트 명세입니다. 기획 문서([planning.md](planning.md))와 ERD([erd.md](erd.md))를 기반으로 작성합니다. 상세한 Request/Response 스펙은 Swagger를 참조하세요.
 
@@ -91,6 +91,7 @@
 | PATCH | /users/me/settings | O | 설정 변경 (알림 on/off, 프라이버시 레벨, 식사 알림 시간) |
 | PATCH | /users/me/device | O | FCM 기기 토큰 등록/갱신 (푸시 알림 수신용) |
 | DELETE | /users/me | O | 회원 탈퇴 |
+| GET | /users/me/stats | O | 내 누적 통계 (총 식사 수, 스트릭, 레벨업 횟수 등) |
 | GET | /users/{id}/profile | O | 타인 프로필 정보 조회 (누적 기록 수, 연속 기록일 포함) |
 | GET | /users/search | O | 사용자 검색 (query: 닉네임 또는 고유 ID) |
 | GET | /users/recommendations | O | 추천 사용자 목록 (비슷한 식습관/먹찌/인기) |
@@ -257,12 +258,15 @@
 | POST | /users/{id}/block | O | 사용자 차단 |
 | DELETE | /users/{id}/block | O | 차단 해제 |
 | POST | /users/{id}/report | O | 사용자 신고 |
+| GET | /social/feed | O | 친구 활동 피드 (식사·레벨업·뱃지 등 타임라인) |
+| GET | /social/ranking | O | 사용자 랭킹 보드 (Redis ZSET 기반) |
 
 ### 11. 알림 (Notification)
 
 | Method | Endpoint | 인증 | 설명 |
 |--------|----------|------|------|
 | GET | /notifications | O | 알림 목록 조회 (cursor 기반 페이지네이션) |
+| GET | /notifications/stream | O | 실시간 알림 SSE 스트림 |
 | PATCH | /notifications/{id}/read | O | 알림 읽음 처리 |
 | POST | /notifications/read-all | O | 전체 알림 읽음 처리 |
 

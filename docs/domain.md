@@ -1,13 +1,13 @@
 # DDD 도메인 설계
 
-> 상태: 진행 중 (Auth 기본/User/Meal/Nutrition/Collection/Social/Notification/레벨·경험치·패널티 구현, Character HTTP API/Quest/OAuth 미구현)
+> 상태: 진행 중 (Auth 기본/User/Meal/Nutrition/Collection/Social/Notification/Quest/레벨·경험치·패널티 구현, Character HTTP API/OAuth 미구현)
 
 기획 문서([planning.md](planning.md))의 기능 정의를 기반으로 바운디드 컨텍스트를 정의하고, 도메인 간 관계를 설계합니다.
 
 **구현 현황:**
-- ✓ **구현 완료**: Auth (기본 register/login/refresh/logout), User, Meal, Nutrition (오늘/주간), Collection (전체), Social, Notification, 레벨/경험치 시스템, 패널티 시스템, 온보딩
+- ✓ **구현 완료**: Auth (기본 register/login/refresh/logout), User, Meal, Nutrition (오늘/주간), Collection (전체), Social, Notification, 레벨/경험치 시스템, 패널티 시스템, 온보딩, Quest (일일/주간/업적/튜토리얼)
 - ⚠️ **부분 구현**: Menu (검색만), Auth (OAuth 미구현), Character (도메인/유스케이스만, HTTP API 미구현)
-- ❌ **미구현**: Quest, Character HTTP API (GET /characters/me 등)
+- ❌ **미구현**: Character HTTP API (GET /characters/me 등), OAuth (Kakao/Google/Apple)
 
 ---
 
@@ -173,10 +173,10 @@ type BaseDomain struct {
 - ✓ 주간 영양 요약 (`GET /nutrition/weekly`)
 - ❌ 영양소 DB 연동 및 캐릭터 파츠 재계산 미구현
 
-### Quest (퀘스트) - ❌ 미구현
+### Quest (퀘스트) - ✓ 구현 완료
 
 **설계:**
-- 책임: 일일/주간/업적 퀘스트 관리, 보상 지급
+- 책임: 일일/주간/업적/튜토리얼 퀘스트 관리, 보상 지급
 - 핵심 엔티티: QuestDefinition, UserQuest, Reward, UserReward
 - 비즈니스 규칙:
   - 일일 퀘스트는 별도 보상 없이 진행 현황만 추적하며, 업적 퀘스트의 누적 조건으로 작동함. 상태는 ONGOING -> COMPLETED 2단계로 관리됨.
@@ -184,6 +184,14 @@ type BaseDomain struct {
   - 일일 퀘스트는 매일 새벽 5시에 초기화되며 신규 할당됨.
   - 주간 퀘스트는 매주 월요일 새벽 5시에 초기화됨.
   - 업적 퀘스트는 최초 달성 시 1회만 보상이 지급됨.
+
+**현재 구현:**
+- ✓ QuestUsecase (`AssignDailyQuests`, `AssignWeeklyQuests`, `AssignAchievementQuests`, `AssignTutorialQuest`, `ClaimReward`)
+- ✓ Quest API (`GET /quests`, `POST /quests/:id/claim`)
+- ✓ 퀘스트 시드 데이터 (`SeedQuests`)
+- ✓ 온보딩 이벤트(`EventUserOnboarded`) 구독으로 신규 유저 퀘스트 자동 할당
+- ✓ 식사 등록 이벤트로 퀘스트 진행 자동 갱신
+- ✓ 완료 알림(`EventQuestCompleted`) 발송
 
 ### Collection (도감/뱃지) - ✓ 구현 완료
 
