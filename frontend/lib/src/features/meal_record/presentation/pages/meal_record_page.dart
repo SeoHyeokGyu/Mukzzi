@@ -9,6 +9,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../character/domain/models/badge_model.dart';
+import '../../../character/presentation/providers/character_provider.dart';
 import '../../../quest/data/models/quest_model.dart';
 import '../../../quest/domain/entities/quest.dart';
 import '../../../quest/presentation/providers/quest_provider.dart';
@@ -126,7 +127,8 @@ class MealCreateNotifier extends StateNotifier<MealCreateState> {
   MealCreateNotifier(this._repo) : super(MealCreateState());
 
   Future<bool> submit(CreateMealRequest request) async {
-    state = state.copyWith(isLoading: true, clearError: true, sideEffects: null);
+    state =
+        state.copyWith(isLoading: true, clearError: true, sideEffects: null);
     try {
       final result = await _repo.create(request);
       state = state.copyWith(isLoading: false, sideEffects: result.sideEffects);
@@ -275,6 +277,7 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
             onSaved: () {
               ref.read(mealListProvider.notifier).refresh();
               ref.read(questProvider.notifier).fetchQuests();
+              ref.invalidate(characterProvider);
               _tabController.animateTo(1);
               _menuController.clear();
               setState(() => _initialMenu = null);
@@ -373,7 +376,8 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
     if (widget.tabController.index != 0) return;
 
     final hasTutorialQuest = quests.any(
-      (q) => q.code == 'TUTORIAL_FIRST_MEAL' && q.status == QuestStatus.progress,
+      (q) =>
+          q.code == 'TUTORIAL_FIRST_MEAL' && q.status == QuestStatus.progress,
     );
 
     if (hasTutorialQuest) {
@@ -496,8 +500,16 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('감지된 음식', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: tokens.textPrimary)),
-              Text('직접 입력', style: TextStyle(fontSize: 12, color: tokens.primary, fontWeight: FontWeight.w600)),
+              Text('감지된 음식',
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: tokens.textPrimary)),
+              Text('직접 입력',
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: tokens.primary,
+                      fontWeight: FontWeight.w600)),
             ],
           ),
           const SizedBox(height: 10),
@@ -542,7 +554,11 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
             ),
           ],
           const SizedBox(height: 24),
-          Text('식사 시간', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: tokens.textPrimary)),
+          Text('식사 시간',
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: tokens.textPrimary)),
           const SizedBox(height: 10),
           _InternalMealTypeSelector(
             selectedType: widget.selectedMealType,
@@ -559,7 +575,11 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
             tokens: tokens,
           ),
           const SizedBox(height: 24),
-          Text('기록 디테일', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: tokens.textPrimary)),
+          Text('기록 디테일',
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: tokens.textPrimary)),
           const SizedBox(height: 10),
           _PortionControl(
             servingSize: _servingSize,
@@ -592,28 +612,44 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
               child: FilledButton(
                 style: FilledButton.styleFrom(
                   backgroundColor: tokens.primary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(tokens.rCard)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(tokens.rCard)),
                   elevation: 0,
                 ),
-                onPressed: (createState.isLoading || widget.menuController.text.trim().isEmpty)
+                onPressed: (createState.isLoading ||
+                        widget.menuController.text.trim().isEmpty)
                     ? null
                     : _submit,
                 child: createState.isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2))
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.favorite, size: 18, color: Colors.white),
+                          const Icon(Icons.favorite,
+                              size: 18, color: Colors.white),
                           const SizedBox(width: 8),
-                          const Text('먹찌에게 주기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                          const Text('먹찌에게 주기',
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white)),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(99),
                             ),
-                            child: const Text('+XP', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+                            child: const Text('+XP',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white)),
                           ),
                         ],
                       ),
@@ -663,7 +699,11 @@ class _InternalMealTypeSelector extends StatelessWidget {
         if (warning != null)
           Padding(
             padding: const EdgeInsets.only(top: 8, left: 4),
-            child: Text(warning!, style: const TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.w500)),
+            child: Text(warning!,
+                style: const TextStyle(
+                    color: Colors.orange,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500)),
           ),
       ],
     );
@@ -682,16 +722,24 @@ class _PhotoArea extends StatelessWidget {
       decoration: BoxDecoration(
         color: tokens.listItemBg.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(tokens.rCard),
-        border: Border.all(color: tokens.primary.withValues(alpha: 0.1), width: 1.5),
+        border: Border.all(
+            color: tokens.primary.withValues(alpha: 0.1), width: 1.5),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.camera_alt_outlined, size: 48, color: tokens.primary.withValues(alpha: 0.5)),
+          Icon(Icons.camera_alt_outlined,
+              size: 48, color: tokens.primary.withValues(alpha: 0.5)),
           const SizedBox(height: 12),
-          Text('음식 사진을 추가해보세요', style: TextStyle(color: tokens.textMuted, fontSize: 13, fontWeight: FontWeight.w500)),
+          Text('음식 사진을 추가해보세요',
+              style: TextStyle(
+                  color: tokens.textMuted,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500)),
           const SizedBox(height: 4),
-          Text('(AI가 영양소를 자동 분석해드려요)', style: TextStyle(color: tokens.primary.withValues(alpha: 0.5), fontSize: 11)),
+          Text('(AI가 영양소를 자동 분석해드려요)',
+              style: TextStyle(
+                  color: tokens.primary.withValues(alpha: 0.5), fontSize: 11)),
         ],
       ),
     );
@@ -703,7 +751,8 @@ class _FoodItemRow extends StatelessWidget {
   final AppColorTokens tokens;
   final VoidCallback onClear;
 
-  const _FoodItemRow({required this.menu, required this.tokens, required this.onClear});
+  const _FoodItemRow(
+      {required this.menu, required this.tokens, required this.onClear});
 
   @override
   Widget build(BuildContext context) {
@@ -714,7 +763,9 @@ class _FoodItemRow extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: tokens.primaryBg, borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+                color: tokens.primaryBg,
+                borderRadius: BorderRadius.circular(10)),
             child: Icon(Icons.restaurant_menu, color: tokens.primary, size: 18),
           ),
           const SizedBox(width: 12),
@@ -722,12 +773,18 @@ class _FoodItemRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(menu.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                Text('${menu.defaultCalories.toInt()} kcal', style: TextStyle(fontSize: 11, color: tokens.textMuted)),
+                Text(menu.name,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 14)),
+                Text('${menu.defaultCalories.toInt()} kcal',
+                    style: TextStyle(fontSize: 11, color: tokens.textMuted)),
               ],
             ),
           ),
-          IconButton(onPressed: onClear, icon: const Icon(Icons.close, size: 18), visualDensity: VisualDensity.compact),
+          IconButton(
+              onPressed: onClear,
+              icon: const Icon(Icons.close, size: 18),
+              visualDensity: VisualDensity.compact),
         ],
       ),
     );
@@ -741,7 +798,12 @@ class _DateTimePicker extends StatelessWidget {
   final ValueChanged<TimeOfDay> onTimeChanged;
   final AppColorTokens tokens;
 
-  const _DateTimePicker({required this.date, required this.time, required this.onDateChanged, required this.onTimeChanged, required this.tokens});
+  const _DateTimePicker(
+      {required this.date,
+      required this.time,
+      required this.onDateChanged,
+      required this.onTimeChanged,
+      required this.tokens});
 
   @override
   Widget build(BuildContext context) {
@@ -755,7 +817,11 @@ class _DateTimePicker extends StatelessWidget {
             icon: Icons.calendar_today_outlined,
             label: dateStr,
             onTap: () async {
-              final d = await showDatePicker(context: context, initialDate: date, firstDate: DateTime(2024), lastDate: DateTime.now());
+              final d = await showDatePicker(
+                  context: context,
+                  initialDate: date,
+                  firstDate: DateTime(2024),
+                  lastDate: DateTime.now());
               if (d != null) onDateChanged(d);
             },
             tokens: tokens,
@@ -767,7 +833,8 @@ class _DateTimePicker extends StatelessWidget {
             icon: Icons.access_time,
             label: timeStr,
             onTap: () async {
-              final t = await showTimePicker(context: context, initialTime: time);
+              final t =
+                  await showTimePicker(context: context, initialTime: time);
               if (t != null) onTimeChanged(t);
             },
             tokens: tokens,
@@ -784,7 +851,11 @@ class _PickerTile extends StatelessWidget {
   final VoidCallback onTap;
   final AppColorTokens tokens;
 
-  const _PickerTile({required this.icon, required this.label, required this.onTap, required this.tokens});
+  const _PickerTile(
+      {required this.icon,
+      required this.label,
+      required this.onTap,
+      required this.tokens});
 
   @override
   Widget build(BuildContext context) {
@@ -793,13 +864,17 @@ class _PickerTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(tokens.rItem),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-        decoration: BoxDecoration(color: tokens.listItemBg.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(tokens.rItem)),
+        decoration: BoxDecoration(
+            color: tokens.listItemBg.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(tokens.rItem)),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 16, color: tokens.textMuted),
             const SizedBox(width: 8),
-            Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            Text(label,
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
@@ -812,23 +887,38 @@ class _PortionControl extends StatelessWidget {
   final ValueChanged<double> onChanged;
   final AppColorTokens tokens;
 
-  const _PortionControl({required this.servingSize, required this.onChanged, required this.tokens});
+  const _PortionControl(
+      {required this.servingSize,
+      required this.onChanged,
+      required this.tokens});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: tokens.listItemBg.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(tokens.rItem)),
+      decoration: BoxDecoration(
+          color: tokens.listItemBg.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(tokens.rItem)),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('분량', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-              Text('${servingSize.toStringAsFixed(1)} 인분', style: TextStyle(color: tokens.primary, fontWeight: FontWeight.w700)),
+              const Text('분량',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              Text('${servingSize.toStringAsFixed(1)} 인분',
+                  style: TextStyle(
+                      color: tokens.primary, fontWeight: FontWeight.w700)),
             ],
           ),
-          Slider(value: servingSize, min: 0.5, max: 3.0, divisions: 5, activeColor: tokens.primary, inactiveColor: tokens.primary.withValues(alpha: 0.1), onChanged: onChanged),
+          Slider(
+              value: servingSize,
+              min: 0.5,
+              max: 3.0,
+              divisions: 5,
+              activeColor: tokens.primary,
+              inactiveColor: tokens.primary.withValues(alpha: 0.1),
+              onChanged: onChanged),
         ],
       ),
     );
@@ -842,15 +932,30 @@ class _TagsArea extends StatelessWidget {
   final ValueChanged<String?> onMoodChanged;
   final AppColorTokens tokens;
 
-  const _TagsArea({this.selectedWeather, this.selectedMood, required this.onWeatherChanged, required this.onMoodChanged, required this.tokens});
+  const _TagsArea(
+      {this.selectedWeather,
+      this.selectedMood,
+      required this.onWeatherChanged,
+      required this.onMoodChanged,
+      required this.tokens});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _TagRow(title: '날씨', options: const ['SUNNY', 'CLOUDY', 'RAINY', 'HOT', 'COLD'], selected: selectedWeather, onChanged: onWeatherChanged, tokens: tokens),
+        _TagRow(
+            title: '날씨',
+            options: const ['SUNNY', 'CLOUDY', 'RAINY', 'HOT', 'COLD'],
+            selected: selectedWeather,
+            onChanged: onWeatherChanged,
+            tokens: tokens),
         const SizedBox(height: 10),
-        _TagRow(title: '기분', options: const ['GOOD', 'TIRED', 'STRESSED', 'HUNGRY', 'EXCITED'], selected: selectedMood, onChanged: onMoodChanged, tokens: tokens),
+        _TagRow(
+            title: '기분',
+            options: const ['GOOD', 'TIRED', 'STRESSED', 'HUNGRY', 'EXCITED'],
+            selected: selectedMood,
+            onChanged: onMoodChanged,
+            tokens: tokens),
       ],
     );
   }
@@ -863,13 +968,21 @@ class _TagRow extends StatelessWidget {
   final ValueChanged<String?> onChanged;
   final AppColorTokens tokens;
 
-  const _TagRow({required this.title, required this.options, required this.selected, required this.onChanged, required this.tokens});
+  const _TagRow(
+      {required this.title,
+      required this.options,
+      required this.selected,
+      required this.onChanged,
+      required this.tokens});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        SizedBox(width: 36, child: Text(title, style: TextStyle(fontSize: 12, color: tokens.textMuted))),
+        SizedBox(
+            width: 36,
+            child: Text(title,
+                style: TextStyle(fontSize: 12, color: tokens.textMuted))),
         Expanded(
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -884,9 +997,15 @@ class _TagRow extends StatelessWidget {
                     onSelected: (val) => onChanged(val ? opt : null),
                     selectedColor: tokens.primary.withValues(alpha: 0.2),
                     backgroundColor: tokens.listItemBg.withValues(alpha: 0.5),
-                    labelStyle: TextStyle(color: isSelected ? tokens.primary : tokens.textSub, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+                    labelStyle: TextStyle(
+                        color: isSelected ? tokens.primary : tokens.textSub,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal),
                     padding: EdgeInsets.zero,
-                    side: BorderSide(color: isSelected ? tokens.primary.withValues(alpha: 0.5) : Colors.transparent),
+                    side: BorderSide(
+                        color: isSelected
+                            ? tokens.primary.withValues(alpha: 0.5)
+                            : Colors.transparent),
                     showCheckmark: false,
                   ),
                 );
@@ -904,18 +1023,23 @@ class _FavoriteToggle extends StatelessWidget {
   final ValueChanged<bool> onChanged;
   final AppColorTokens tokens;
 
-  const _FavoriteToggle({required this.value, required this.onChanged, required this.tokens});
+  const _FavoriteToggle(
+      {required this.value, required this.onChanged, required this.tokens});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(color: tokens.listItemBg.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(tokens.rItem)),
+      decoration: BoxDecoration(
+          color: tokens.listItemBg.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(tokens.rItem)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text('내 즐겨찾기에 추가', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-          Switch(value: value, onChanged: onChanged, activeColor: tokens.primary),
+          const Text('내 즐겨찾기에 추가',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          Switch(
+              value: value, onChanged: onChanged, activeColor: tokens.primary),
         ],
       ),
     );
@@ -936,7 +1060,8 @@ class _MealListTabState extends ConsumerState<_MealListTab> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(mealListProvider.notifier).fetch(refresh: true));
+    Future.microtask(
+        () => ref.read(mealListProvider.notifier).fetch(refresh: true));
     _scrollController.addListener(_onScroll);
   }
 
@@ -947,7 +1072,8 @@ class _MealListTabState extends ConsumerState<_MealListTab> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent * 0.8) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.8) {
       ref.read(mealListProvider.notifier).fetch();
     }
   }
@@ -966,11 +1092,18 @@ class _MealListTabState extends ConsumerState<_MealListTab> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.restaurant_outlined, size: 64, color: tokens.textMuted.withValues(alpha: 0.3)),
+            Icon(Icons.restaurant_outlined,
+                size: 64, color: tokens.textMuted.withValues(alpha: 0.3)),
             const SizedBox(height: 16),
-            const Text('아직 기록된 식사가 없어요', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+            const Text('아직 기록된 식사가 없어요',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
             const SizedBox(height: 24),
-            ElevatedButton(onPressed: widget.onAddTap, style: ElevatedButton.styleFrom(backgroundColor: tokens.primary, foregroundColor: Colors.white), child: const Text('첫 식사 기록하기')),
+            ElevatedButton(
+                onPressed: widget.onAddTap,
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: tokens.primary,
+                    foregroundColor: Colors.white),
+                child: const Text('첫 식사 기록하기')),
           ],
         ),
       );
@@ -984,7 +1117,10 @@ class _MealListTabState extends ConsumerState<_MealListTab> {
         itemCount: state.records.length + (state.hasNext ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == state.records.length) {
-            return const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()));
+            return const Center(
+                child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: CircularProgressIndicator()));
           }
           final meal = state.records[index];
           return _MealListItem(meal: meal, tokens: tokens);
@@ -1014,11 +1150,32 @@ class _MealListItem extends StatelessWidget {
         child: Row(
           children: [
             if (meal.imageUrl != null)
-              ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(meal.imageUrl!, width: 60, height: 60, fit: BoxFit.cover))
+              ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(meal.imageUrl!,
+                      width: 60, height: 60, fit: BoxFit.cover))
             else
-              Container(width: 60, height: 60, decoration: BoxDecoration(color: tokens.listItemBg, borderRadius: BorderRadius.circular(8)), child: Icon(Icons.restaurant, color: tokens.primary.withValues(alpha: 0.5))),
+              Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                      color: tokens.listItemBg,
+                      borderRadius: BorderRadius.circular(8)),
+                  child: Icon(Icons.restaurant,
+                      color: tokens.primary.withValues(alpha: 0.5))),
             const SizedBox(width: 16),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(meal.menuName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)), const SizedBox(height: 4), Text('$dateStr $timeStr · ${meal.calories?.toInt() ?? 0} kcal', style: TextStyle(fontSize: 12, color: tokens.textMuted))])),
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(meal.menuName,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 16)),
+                  const SizedBox(height: 4),
+                  Text(
+                      '$dateStr $timeStr · ${meal.calories?.toInt() ?? 0} kcal',
+                      style: TextStyle(fontSize: 12, color: tokens.textMuted))
+                ])),
             Icon(Icons.arrow_forward_ios, size: 14, color: tokens.textMuted),
           ],
         ),
@@ -1032,8 +1189,20 @@ class _SideEffectsBottomSheet extends StatelessWidget {
 
   const _SideEffectsBottomSheet({required this.sideEffects});
 
-  Widget _buildSectionHeader(String title, IconData icon, AppColorTokens tokens) {
-    return Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(children: [Icon(icon, size: 16, color: tokens.textMuted), const SizedBox(width: 6), Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: tokens.textMuted, letterSpacing: -0.2))]));
+  Widget _buildSectionHeader(
+      String title, IconData icon, AppColorTokens tokens) {
+    return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Row(children: [
+          Icon(icon, size: 16, color: tokens.textMuted),
+          const SizedBox(width: 6),
+          Text(title,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: tokens.textMuted,
+                  letterSpacing: -0.2))
+        ]));
   }
 
   @override
@@ -1042,26 +1211,111 @@ class _SideEffectsBottomSheet extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
-      decoration: BoxDecoration(color: tokens.card, borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
+      decoration: BoxDecoration(
+          color: tokens.card,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: tokens.textMuted.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2))),
+            Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: tokens.textMuted.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 24),
-            const Text('기록 완료!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+            const Text('기록 완료!',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
             const SizedBox(height: 8),
-            Text('+${sideEffects.expGained} XP 획득', style: TextStyle(fontSize: 15, color: tokens.primary, fontWeight: FontWeight.w800)),
+            Text('+${sideEffects.expGained} XP 획득',
+                style: TextStyle(
+                    fontSize: 15,
+                    color: tokens.primary,
+                    fontWeight: FontWeight.w800)),
             const SizedBox(height: 24),
-            if (sideEffects.questsProgressed.isNotEmpty || (sideEffects.grantedBadges.isNotEmpty)) ...[
-              const Align(alignment: Alignment.centerLeft, child: Text('이번 식사로 얻은 성과', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
+            if (sideEffects.questsProgressed.isNotEmpty ||
+                (sideEffects.grantedBadges.isNotEmpty)) ...[
+              const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('이번 식사로 얻은 성과',
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w800))),
               const SizedBox(height: 16),
-              if (sideEffects.questsProgressed.any((q) => q.questType.toUpperCase() == 'DAILY')) ...[_buildSectionHeader('오늘의 목표', Icons.today_rounded, tokens), ...sideEffects.questsProgressed.where((q) => q.questType.toUpperCase() == 'DAILY').map((q) => _QuestProgressOverlayItem(q: q, tokens: tokens)), const SizedBox(height: 12)],
-              if (sideEffects.questsProgressed.any((q) => q.questType.toUpperCase() == 'WEEKLY')) ...[_buildSectionHeader('이번 주 도전', Icons.date_range_rounded, tokens), ...sideEffects.questsProgressed.where((q) => q.questType.toUpperCase() == 'WEEKLY').map((q) => _QuestProgressOverlayItem(q: q, tokens: tokens)), const SizedBox(height: 12)],
-              if (sideEffects.grantedBadges.isNotEmpty) ...[_buildSectionHeader('새로운 뱃지', Icons.military_tech_rounded, tokens), ...sideEffects.grantedBadges.map((b) => _BadgeOverlayItem(badge: b, tokens: tokens)), const SizedBox(height: 12)],
+              if (sideEffects.questsProgressed
+                  .any((q) => q.questType.toUpperCase() == 'DAILY')) ...[
+                _buildSectionHeader('오늘의 목표', Icons.today_rounded, tokens),
+                ...sideEffects.questsProgressed
+                    .where((q) => q.questType.toUpperCase() == 'DAILY')
+                    .map(
+                        (q) => _QuestProgressOverlayItem(q: q, tokens: tokens)),
+                const SizedBox(height: 12)
+              ],
+              if (sideEffects.questsProgressed
+                  .any((q) => q.questType.toUpperCase() == 'WEEKLY')) ...[
+                _buildSectionHeader(
+                    '이번 주 도전', Icons.date_range_rounded, tokens),
+                ...sideEffects.questsProgressed
+                    .where((q) => q.questType.toUpperCase() == 'WEEKLY')
+                    .map(
+                        (q) => _QuestProgressOverlayItem(q: q, tokens: tokens)),
+                const SizedBox(height: 12)
+              ],
+              if (sideEffects.grantedBadges.isNotEmpty) ...[
+                _buildSectionHeader(
+                    '새로운 뱃지', Icons.military_tech_rounded, tokens),
+                ...sideEffects.grantedBadges
+                    .map((b) => _BadgeOverlayItem(badge: b, tokens: tokens)),
+                const SizedBox(height: 12)
+              ],
             ],
-            if (sideEffects.grantedTitle != null) ...[Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(gradient: AppColors.primaryGradient.withOpacity(0.1), borderRadius: BorderRadius.circular(16), border: Border.all(color: tokens.primary.withValues(alpha: 0.3))), child: Row(children: [Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.2), shape: BoxShape.circle), child: const Icon(Icons.stars, color: Colors.orange, size: 20)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('새로운 칭호 획득!', style: TextStyle(fontSize: 11, color: Colors.orange, fontWeight: FontWeight.w900)), Text(sideEffects.grantedTitle!.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))]))])), const SizedBox(height: 24)],
-            SizedBox(width: double.infinity, height: 54, child: ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: tokens.primary, foregroundColor: Colors.white, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))), child: const Text('확인', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)))),
+            if (sideEffects.grantedTitle != null) ...[
+              Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                          color: tokens.primary.withValues(alpha: 0.3))),
+                  child: Row(children: [
+                    Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.2),
+                            shape: BoxShape.circle),
+                        child: const Icon(Icons.stars,
+                            color: Colors.orange, size: 20)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                          const Text('새로운 칭호 획득!',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.orange,
+                                  fontWeight: FontWeight.w900)),
+                          Text(sideEffects.grantedTitle!.name,
+                              style: const TextStyle(
+                                  fontSize: 17, fontWeight: FontWeight.w800))
+                        ]))
+                  ])),
+              const SizedBox(height: 24)
+            ],
+            SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: tokens.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16))),
+                    child: const Text('확인',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w800)))),
           ],
         ),
       ),
@@ -1075,7 +1329,26 @@ class _BadgeOverlayItem extends StatelessWidget {
   const _BadgeOverlayItem({required this.badge, required this.tokens});
   @override
   Widget build(BuildContext context) {
-    return Container(margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), decoration: BoxDecoration(color: tokens.primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: tokens.primary.withValues(alpha: 0.2))), child: Row(children: [const Icon(Icons.verified_rounded, color: Colors.blue, size: 20), const SizedBox(width: 10), Expanded(child: Text(badge.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14))), const Text('획득!', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12))]));
+    return Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+            color: tokens.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: tokens.primary.withValues(alpha: 0.2))),
+        child: Row(children: [
+          const Icon(Icons.verified_rounded, color: Colors.blue, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+              child: Text(badge.name,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w700, fontSize: 14))),
+          const Text('획득!',
+              style: TextStyle(
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12))
+        ]));
   }
 }
 
@@ -1085,14 +1358,59 @@ class _QuestProgressOverlayItem extends StatelessWidget {
   const _QuestProgressOverlayItem({required this.q, required this.tokens});
   String _getLocalizedType(String type) {
     switch (type.toUpperCase()) {
-      case 'DAILY': return '일일';
-      case 'WEEKLY': return '주간';
-      case 'ACHIEVEMENT': return '업적';
-      default: return '퀘스트';
+      case 'DAILY':
+        return '일일';
+      case 'WEEKLY':
+        return '주간';
+      case 'ACHIEVEMENT':
+        return '업적';
+      default:
+        return '퀘스트';
     }
   }
+
   @override
   Widget build(BuildContext context) {
-    return Container(margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10), decoration: BoxDecoration(color: tokens.listItemBg.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: tokens.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Text(_getLocalizedType(q.questType), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: tokens.primary))), const SizedBox(width: 8), Expanded(child: Text(q.questTitle, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)), Text('${q.progress}/${q.target}', style: TextStyle(fontSize: 12, color: tokens.textSub, fontWeight: FontWeight.w500))]), const SizedBox(height: 8), ClipRRect(borderRadius: BorderRadius.circular(2), child: LinearProgressIndicator(value: q.target > 0 ? q.progress / q.target : 0, minHeight: 4, backgroundColor: tokens.primaryBg, valueColor: AlwaysStoppedAnimation<Color>(q.completed ? Colors.green : tokens.primary)))]));
+    return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+            color: tokens.listItemBg.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(12)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                    color: tokens.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4)),
+                child: Text(_getLocalizedType(q.questType),
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: tokens.primary))),
+            const SizedBox(width: 8),
+            Expanded(
+                child: Text(q.questTitle,
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis)),
+            Text('${q.progress}/${q.target}',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: tokens.textSub,
+                    fontWeight: FontWeight.w500))
+          ]),
+          const SizedBox(height: 8),
+          ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                  value: q.target > 0 ? q.progress / q.target : 0,
+                  minHeight: 4,
+                  backgroundColor: tokens.primaryBg,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                      q.completed ? Colors.green : tokens.primary)))
+        ]));
   }
 }
