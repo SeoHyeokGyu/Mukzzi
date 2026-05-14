@@ -41,6 +41,10 @@ scripts/
 # Agent workflow files
 SHARED.md
 GEMINI.md
+AGENTS.md
+CODEX.md
+DOCUMENTATION.md
+docs/SPECS.md
 .handoff/
 docs/VERIFICATION_LOG.md
 
