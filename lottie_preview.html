@@ -93,6 +93,12 @@
     var anim = null;
 
     function load() {
+      if (location.protocol === 'file:') {
+        document.getElementById('info').textContent =
+          'FAILED: open via http://127.0.0.1:8080/lottie_preview.html';
+        return;
+      }
+
       var path = 'frontend/assets/animations/mukzzi_' + currentStage + '_' + currentState + '.json';
       document.getElementById('info').textContent = 'Loading: ' + path;
       if (anim) anim.destroy();

@@ -34,6 +34,40 @@ class CharacterModel {
     this.equippedAccessory,
   });
 
+  CharacterModel copyWith({
+    String? id,
+    String? userId,
+    String? name,
+    int? level,
+    int? exp,
+    CharacterState? state,
+    String? evolutionStage,
+    int? streakDays,
+    int? bodyType,
+    int? muscle,
+    int? skinTone,
+    int? expression,
+    RewardModel? equippedBackground,
+    RewardModel? equippedAccessory,
+  }) {
+    return CharacterModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      level: level ?? this.level,
+      exp: exp ?? this.exp,
+      state: state ?? this.state,
+      evolutionStage: evolutionStage ?? this.evolutionStage,
+      streakDays: streakDays ?? this.streakDays,
+      bodyType: bodyType ?? this.bodyType,
+      muscle: muscle ?? this.muscle,
+      skinTone: skinTone ?? this.skinTone,
+      expression: expression ?? this.expression,
+      equippedBackground: equippedBackground ?? this.equippedBackground,
+      equippedAccessory: equippedAccessory ?? this.equippedAccessory,
+    );
+  }
+
   factory CharacterModel.fromJson(Map<String, dynamic> json) {
     CharacterState status = CharacterState.normal;
     final penalty = json['penalty_status'] as String? ?? 'NORMAL';

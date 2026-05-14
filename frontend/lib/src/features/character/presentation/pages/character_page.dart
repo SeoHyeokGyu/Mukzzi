@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,7 +18,13 @@ class CharacterPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
-    final char = ref.watch(characterProvider).valueOrNull;
+    
+    // Debug mode uses the test provider for manual state control
+    final charAsync = kDebugMode 
+        ? ref.watch(testCharacterProvider)
+        : ref.watch(characterProvider);
+        
+    final char = charAsync.valueOrNull;
 
     final level = char?.level ?? 1;
     final xp = char?.exp.toDouble() ?? 0.0;
@@ -72,6 +79,41 @@ class CharacterPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   MukzziCharacter(state: state, size: 200, level: level),
+                  if (kDebugMode) ...[
+                    const SizedBox(height: 16),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: CharacterState.values.map((s) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ActionChip(
+                              label: Text(s.label, style: const TextStyle(fontSize: 10)),
+                              onPressed: () => ref.read(testCharacterProvider.notifier).updateState(s),
+                              backgroundColor: state == s ? tokens.primary.withValues(alpha: 0.2) : null,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [1, 5, 15].map((lv) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: ActionChip(
+                            label: Text('Lv.$lv', style: const TextStyle(fontSize: 10)),
+                            onPressed: () => ref.read(testCharacterProvider.notifier).updateLevel(lv),
+                            backgroundColor: (lv == 1 && level <= 2) || 
+                                           (lv == 5 && level >= 3 && level <= 14) || 
+                                           (lv == 15 && level >= 15)
+                                ? tokens.primary.withValues(alpha: 0.2) : null,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   Text(
                     'Lv.${level + 1}까지 ${(xpGoal - xp).toInt()} XP',
