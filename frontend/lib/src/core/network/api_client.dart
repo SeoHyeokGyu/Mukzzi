@@ -5,13 +5,27 @@ import 'package:mukzzi/src/core/storage/token_storage.dart';
 
 class ApiClient {
   final Dio _dio;
+
+  // 인터셉터 없는 별도 인스턴스 — refresh 요청이 _onError에 재진입하는 데드락 방지.
+  final Dio _refreshDio;
+
   final TokenStorage _tokenStorage;
+  final void Function()? _onForceLogout;
 
   // 진행 중인 refresh 요청을 재사용해 중복 호출을 방지한다.
   Future<String?>? _refreshFuture;
 
-  ApiClient(this._tokenStorage)
-      : _dio = Dio(
+  ApiClient(this._tokenStorage, {void Function()? onForceLogout})
+      : _onForceLogout = onForceLogout,
+        _dio = Dio(
+          BaseOptions(
+            baseUrl: AppConstants.apiBaseUrl,
+            connectTimeout: AppConstants.apiTimeout,
+            receiveTimeout: AppConstants.apiTimeout,
+            contentType: 'application/json',
+          ),
+        ),
+        _refreshDio = Dio(
           BaseOptions(
             baseUrl: AppConstants.apiBaseUrl,
             connectTimeout: AppConstants.apiTimeout,
@@ -65,30 +79,42 @@ class ApiClient {
   }
 
   Future<String?> _doRefresh() async {
-    final refreshToken =
-        await _tokenStorage.read(AppConstants.refreshTokenKey);
-    if (refreshToken == null) return null;
-
-    try {
-      final response = await _dio.post(
-        '/auth/refresh',
-        data: {'refreshToken': refreshToken},
-        options: Options(headers: {}),
-      );
-      final newAccessToken =
-          response.data['data']['accessToken'] as String?;
-      if (newAccessToken != null) {
-        await _tokenStorage.write(AppConstants.accessTokenKey, newAccessToken);
-      }
-      return newAccessToken;
-    } on DioException {
-      // refresh 실패 시 두 토큰 모두 삭제해 강제 로그아웃 상태로 만든다.
-      await _tokenStorage.deleteAll([
-        AppConstants.accessTokenKey,
-        AppConstants.refreshTokenKey,
-      ]);
+    final refreshToken = await _tokenStorage.read(AppConstants.refreshTokenKey);
+    if (refreshToken == null) {
+      // refresh token 없으면 이미 로그아웃된 상태 — 잔여 토큰 정리 후 강제 로그아웃.
+      await _forceLogoutCleanup();
       return null;
     }
+
+    try {
+      final response = await _refreshDio.post(
+        '/auth/refresh',
+        data: {'refreshToken': refreshToken},
+      );
+      final newAccessToken =
+          response.data['data']?['accessToken'] as String?;
+      if (newAccessToken == null) {
+        // 응답은 200이지만 토큰이 없는 경우 — 강제 로그아웃.
+        await _forceLogoutCleanup();
+        return null;
+      }
+      await _tokenStorage.write(AppConstants.accessTokenKey, newAccessToken);
+      return newAccessToken;
+    } on DioException {
+      await _forceLogoutCleanup();
+      return null;
+    } catch (_) {
+      await _forceLogoutCleanup();
+      return null;
+    }
+  }
+
+  Future<void> _forceLogoutCleanup() async {
+    await _tokenStorage.deleteAll([
+      AppConstants.accessTokenKey,
+      AppConstants.refreshTokenKey,
+    ]);
+    _onForceLogout?.call();
   }
 
   DioException _mapError(DioException error) {

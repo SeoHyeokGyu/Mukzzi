@@ -33,10 +33,10 @@ class UserNotifier extends StateNotifier<UserState> {
   UserNotifier(this._repository, {UserModel? initialUser}) 
       : super(UserState(user: initialUser));
 
-  // Auth 상태 변경 시 호출될 메서드
+  // Auth 상태 변경 시 호출될 메서드 — copyWith은 null을 무시하므로 직접 할당한다.
   void updateUserInfo(UserModel? user) {
     if (mounted) {
-      state = state.copyWith(user: user);
+      state = UserState(user: user, isLoading: state.isLoading, error: state.error);
     }
   }
 

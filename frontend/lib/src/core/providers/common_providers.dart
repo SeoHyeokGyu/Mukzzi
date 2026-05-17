@@ -23,8 +23,14 @@ final tokenStorageProvider = Provider<TokenStorage>((ref) {
   );
 });
 
+/// refresh 실패 시 ApiClient이 이 값을 증가시켜 강제 로그아웃 이벤트를 전달한다.
+final forceLogoutEventProvider = StateProvider<int>((ref) => 0);
+
 final apiClientProvider = Provider<ApiClient>((ref) {
-  return ApiClient(ref.watch(tokenStorageProvider));
+  return ApiClient(
+    ref.watch(tokenStorageProvider),
+    onForceLogout: () => ref.read(forceLogoutEventProvider.notifier).update((s) => s + 1),
+  );
 });
 
 /// 앱 초기화 완료 여부 (스플래시 화면 종료 조건)

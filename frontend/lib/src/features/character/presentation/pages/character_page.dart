@@ -9,6 +9,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../../core/widgets/mukzzi_character.dart';
+import '../../../profile/presentation/providers/user_provider.dart';
 import '../providers/character_provider.dart';
 import '../providers/title_provider.dart';
 
@@ -18,12 +19,13 @@ class CharacterPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
-    
-    // Debug mode uses the test provider for manual state control
-    final charAsync = kDebugMode 
+    final currentUser = ref.watch(userProvider).user;
+    final isAdmin = kDebugMode || currentUser?.nickname == 'admin';
+
+    final charAsync = isAdmin
         ? ref.watch(testCharacterProvider)
         : ref.watch(characterProvider);
-        
+
     final char = charAsync.valueOrNull;
 
     final level = char?.level ?? 1;
@@ -79,7 +81,7 @@ class CharacterPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   MukzziCharacter(state: state, size: 200, level: level),
-                  if (kDebugMode) ...[
+                  if (isAdmin) ...[
                     const SizedBox(height: 16),
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,

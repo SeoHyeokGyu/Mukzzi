@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mukzzi/src/core/constants/app_constants.dart';
@@ -116,6 +118,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = AuthState();
   }
 
+  // API에서 refresh 실패 시 호출 — API 호출 없이 상태만 초기화한다.
+  Future<void> forceLogout() async {
+    await _clearTokens();
+    state = AuthState();
+  }
+
   Future<void> _clearTokens() async {
     await _tokenStorage.deleteAll([
       AppConstants.accessTokenKey,
@@ -126,9 +134,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(
+  final notifier = AuthNotifier(
     ref.watch(authRepositoryProvider),
     ref.watch(tokenStorageProvider),
     ref.watch(sharedPreferencesProvider),
   );
+
+  // ApiClient의 refresh 실패 이벤트를 수신해 강제 로그아웃 처리한다.
+  ref.listen(forceLogoutEventProvider, (previous, next) {
+    if (next > (previous ?? 0)) unawaited(notifier.forceLogout());
+  });
+
+  return notifier;
 });
