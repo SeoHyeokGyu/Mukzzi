@@ -1,7 +1,20 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lottie/lottie.dart';
 import 'lottie_web_player_stub.dart' if (dart.library.js_interop) 'lottie_web_player_web.dart';
+
+enum CharacterVariant { v1, v2 }
+
+extension CharacterVariantLabel on CharacterVariant {
+  String get label => switch (this) {
+    CharacterVariant.v1 => '먹찌 1',
+    CharacterVariant.v2 => '먹찌 2',
+  };
+}
 
 enum CharacterState { normal, happy, hungry, starving, sleeping }
 
@@ -81,13 +94,31 @@ class MukzziCharacter extends StatelessWidget {
   final CharacterState state;
   final double size;
   final int level;
+  final CharacterVariant variant;
 
   const MukzziCharacter({
     super.key,
     this.state = CharacterState.normal,
     this.size = 160,
     this.level = 1,
+    this.variant = CharacterVariant.v1,
   }) : assert(size >= 60, 'MukzziCharacter: size < 60 renders detail-loss. Use at least 80 for best results.');
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (variant) {
+      CharacterVariant.v1 => _LottieCharacter(state: state, size: size, level: level),
+      CharacterVariant.v2 => _SvgLayeredCharacter(state: state, size: size, level: level),
+    };
+  }
+}
+
+class _LottieCharacter extends StatelessWidget {
+  final CharacterState state;
+  final double size;
+  final int level;
+
+  const _LottieCharacter({required this.state, required this.size, required this.level});
 
   @override
   Widget build(BuildContext context) {
@@ -122,6 +153,84 @@ class MukzziCharacter extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _SvgLayeredCharacter extends StatefulWidget {
+  final CharacterState state;
+  final double size;
+  final int level;
+
+  const _SvgLayeredCharacter({
+    required this.state,
+    required this.size,
+    required this.level,
+  });
+
+  @override
+  State<_SvgLayeredCharacter> createState() => _SvgLayeredCharacterState();
+}
+
+class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter> {
+  static const _requiredLayers = ['body'];
+  static const _optionalLayers = ['face', 'accessory'];
+
+  List<String> _visibleLayers = _requiredLayers;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_resolveOptionalLayers());
+  }
+
+  @override
+  void didUpdateWidget(_SvgLayeredCharacter old) {
+    super.didUpdateWidget(old);
+    if (old.state != widget.state || old.level != widget.level) {
+      setState(() => _visibleLayers = _requiredLayers);
+      unawaited(_resolveOptionalLayers());
+    }
+  }
+
+  String _path(String layer) {
+    final stage = widget.level.stage.name.toLowerCase();
+    final stateKey = widget.state.key;
+    return 'assets/svg/mukzzi2_${stage}_${stateKey}_$layer.svg';
+  }
+
+  Future<void> _resolveOptionalLayers() async {
+    final available = <String>[];
+    for (final layer in _optionalLayers) {
+      try {
+        await rootBundle.load(_path(layer));
+        available.add(layer);
+      } catch (_) {
+        // layer file absent — skip silently
+      }
+    }
+    if (mounted && available.isNotEmpty) {
+      setState(() => _visibleLayers = [..._requiredLayers, ...available]);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: widget.size,
+      height: widget.size,
+      child: Stack(
+        children: _visibleLayers.map((layer) {
+          final path = _path(layer);
+          return SvgPicture.asset(
+            path,
+            key: ValueKey(path),
+            width: widget.size,
+            height: widget.size,
+            fit: BoxFit.contain,
+          );
+        }).toList(),
       ),
     );
   }

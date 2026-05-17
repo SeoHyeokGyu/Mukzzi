@@ -33,6 +33,7 @@ class CharacterPage extends ConsumerWidget {
     final xpGoal = level * AppConstants.xpGoalPerLevel;
     final state = char?.state ?? CharacterState.normal;
     final evolutionLabel = char?.evolutionLabel ?? '부화 단계';
+    final variant = ref.watch(characterVariantProvider);
 
     return GradientScaffold(
       appBar: AppBar(automaticallyImplyLeading: false, toolbarHeight: 0),
@@ -80,7 +81,27 @@ class CharacterPage extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  MukzziCharacter(state: state, size: 200, level: level),
+                  MukzziCharacter(
+                    state: state,
+                    size: 200,
+                    level: level,
+                    variant: variant,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: CharacterVariant.values.map((v) {
+                      final selected = variant == v;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: FilterChip(
+                          label: Text(v.label, style: const TextStyle(fontSize: 11)),
+                          selected: selected,
+                          onSelected: (_) => ref.read(characterVariantProvider.notifier).setVariant(v),
+                        ),
+                      );
+                    }).toList(),
+                  ),
                   if (isAdmin) ...[
                     const SizedBox(height: 16),
                     SingleChildScrollView(
