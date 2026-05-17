@@ -20,7 +20,7 @@ class CharacterPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
     final currentUser = ref.watch(userProvider).user;
-    final isAdmin = kDebugMode || currentUser?.nickname == 'admin';
+    final isAdmin = kDebugMode || currentUser?.username == 'admin';
 
     final charAsync = isAdmin
         ? ref.watch(testCharacterProvider)
