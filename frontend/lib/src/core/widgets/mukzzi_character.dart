@@ -96,7 +96,10 @@ class MukzziCharacter extends StatelessWidget {
     final assetPath = 'assets/animations/mukzzi_${stage}_$stateKey.json';
 
     if (kIsWeb) {
-      return buildLottieWebPlayer('assets/$assetPath', size);
+      return KeyedSubtree(
+        key: ValueKey(assetPath),
+        child: buildLottieWebPlayer('assets/$assetPath', size),
+      );
     }
 
     return SizedBox(
@@ -104,6 +107,7 @@ class MukzziCharacter extends StatelessWidget {
       height: size,
       child: Lottie.asset(
         assetPath,
+        key: ValueKey(assetPath),
         fit: BoxFit.contain,
         repeat: true,
         errorBuilder: (context, error, stackTrace) {
