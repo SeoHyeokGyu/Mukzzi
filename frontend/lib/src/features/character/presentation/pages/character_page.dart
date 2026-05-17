@@ -99,21 +99,34 @@ class CharacterPage extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [1, 5, 15].map((lv) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: ActionChip(
-                            label: Text('Lv.$lv', style: const TextStyle(fontSize: 10)),
-                            onPressed: () => ref.read(testCharacterProvider.notifier).updateLevel(lv),
-                            backgroundColor: (lv == 1 && level <= 2) || 
-                                           (lv == 5 && level >= 3 && level <= 14) || 
-                                           (lv == 15 && level >= 15)
-                                ? tokens.primary.withValues(alpha: 0.2) : null,
-                          ),
-                        );
-                      }).toList(),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          (1, '알'),
+                          (3, '아기'),
+                          (7, '청소년'),
+                          (15, '성체'),
+                          (30, '전설'),
+                        ].map(((int, String) entry) {
+                          final (lv, label) = entry;
+                          final isActive = switch (lv) {
+                            1  => level < 3,
+                            3  => level >= 3 && level < 7,
+                            7  => level >= 7 && level < 15,
+                            15 => level >= 15 && level < 30,
+                            _  => level >= 30,
+                          };
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ActionChip(
+                              label: Text('$label\nLv.$lv', style: const TextStyle(fontSize: 10), textAlign: TextAlign.center),
+                              onPressed: () => ref.read(testCharacterProvider.notifier).updateLevel(lv),
+                              backgroundColor: isActive ? tokens.primary.withValues(alpha: 0.2) : null,
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ),
                   ],
                   const SizedBox(height: 12),
