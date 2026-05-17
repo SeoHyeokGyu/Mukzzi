@@ -30,7 +30,7 @@ class CharacterPage extends ConsumerWidget {
 
     final level = char?.level ?? 1;
     final xp = char?.exp.toDouble() ?? 0.0;
-    const xpGoal = AppConstants.xpGoalPerLevel;
+    final xpGoal = level * AppConstants.xpGoalPerLevel;
     final state = char?.state ?? CharacterState.normal;
     final evolutionLabel = char?.evolutionLabel ?? '부화 단계';
 
@@ -174,7 +174,7 @@ class CharacterPage extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _EvolutionStage(label: '알',    minLevel: 1,  current: level == 1,                      done: level > 1,   tokens: tokens),
+                  _EvolutionStage(label: '알',    minLevel: 1,  current: level <= 2,                     done: level > 2,   tokens: tokens),
                   _EvolutionStage(label: '아기',   minLevel: 3,  current: level >= 3 && level < 7,         done: level >= 7,  tokens: tokens),
                   _EvolutionStage(label: '청소년', minLevel: 7,  current: level >= 7 && level < 15,        done: level >= 15, tokens: tokens),
                   _EvolutionStage(label: '성체',   minLevel: 15, current: level >= 15 && level < 30,       done: level >= 30, tokens: tokens),

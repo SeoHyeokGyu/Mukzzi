@@ -416,7 +416,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final level = char?.level ?? 1;
     final name = char?.name ?? '먹찌';
     final xp = char?.exp.toDouble() ?? 0;
-    const xpGoal = AppConstants.xpGoalPerLevel;
+    final xpGoal = level * AppConstants.xpGoalPerLevel;
 
     final card = BentoCard(
       showPaperTexture: true,

@@ -9,7 +9,7 @@ enum CharacterStage { baby, teen, adult }
 
 extension CharacterLevelExtension on int {
   CharacterStage get stage {
-    if (this <= 2) return CharacterStage.baby;
+    if (this <= 6) return CharacterStage.baby;
     if (this <= 14) return CharacterStage.teen;
     return CharacterStage.adult;
   }

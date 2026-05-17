@@ -368,6 +368,7 @@ func (u *userUsecase) AddExp(userID int64, amount int) (*AddExpResult, error) {
 		if char.Level > result.OldLevel {
 			result.LeveledUp = true
 			result.NewLevel = char.Level
+			char.EvolutionStage = evolutionStageForLevel(char.Level)
 		} else {
 			result.NewLevel = char.Level
 		}
@@ -378,13 +379,32 @@ func (u *userUsecase) AddExp(userID int64, amount int) (*AddExpResult, error) {
 		return nil, err
 	}
 
-	// 비동기로 Redis 랭킹 업데이트 및 캐시 무효화 (Fire and Forget)
+	// 캐시 무효화는 동기 처리 (race condition 방지: 프론트 재조회 시 구 데이터 반환 방지)
+	delCtx, delCancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer delCancel()
+	u.rdb.Del(delCtx, fmt.Sprintf("user:char:%d", userID))
+
+	// 랭킹 업데이트는 비동기 (Fire and Forget)
 	go func() {
 		_ = u.rdb.ZIncrBy(context.Background(), RankingWeeklyKey, float64(amount), fmt.Sprintf("%d", userID)).Err()
-		u.rdb.Del(context.Background(), fmt.Sprintf("user:char:%d", userID))
 	}()
 
 	return result, nil
+}
+
+func evolutionStageForLevel(level int) domain.EvolutionStage {
+	switch {
+	case level <= 2:
+		return domain.EvolutionEgg
+	case level <= 6:
+		return domain.EvolutionBaby
+	case level <= 14:
+		return domain.EvolutionTeen
+	case level <= 29:
+		return domain.EvolutionAdult
+	default:
+		return domain.EvolutionLegendary
+	}
 }
 
 func (u *userUsecase) AddPoint(ctx context.Context, userID int64, amount int) error {

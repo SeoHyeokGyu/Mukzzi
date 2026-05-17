@@ -35,8 +35,19 @@ class TestCharacterNotifier extends StateNotifier<AsyncValue<CharacterModel?>> {
   void updateLevel(int newLevel) {
     state.whenData((char) {
       if (char == null) return;
-      state = AsyncValue.data(char.copyWith(level: newLevel));
+      state = AsyncValue.data(char.copyWith(
+        level: newLevel,
+        evolutionStage: _evolutionStageForLevel(newLevel),
+      ));
     });
+  }
+
+  String _evolutionStageForLevel(int level) {
+    if (level <= 2) return 'EGG';
+    if (level <= 6) return 'BABY';
+    if (level <= 14) return 'TEEN';
+    if (level <= 29) return 'ADULT';
+    return 'LEGENDARY';
   }
 }
 
