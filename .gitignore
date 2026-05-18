@@ -1,9 +1,5 @@
 # Claude Code (local only)
 CLAUDE.md
-.handoff/workspace.env
-.handoff/gemini_ws.env
-.handoff/claude_ws.env
-
 # Environment
 .env
 .env.local
@@ -54,6 +50,5 @@ node_modules/
 # Docker
 *.log
 backend/tmp/
-.handoff/workspace.env
-.handoff/archive/
-.handoff/archive/
+.handoff/*
+/docs/superpowers/
