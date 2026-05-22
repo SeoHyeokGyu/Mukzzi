@@ -52,3 +52,4 @@ node_modules/
 backend/tmp/
 .handoff/*
 /docs/superpowers/
+.worktrees/
