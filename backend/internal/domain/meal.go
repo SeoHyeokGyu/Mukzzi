@@ -147,16 +147,18 @@ type MasteryUpdate struct {
 	GradeChanged bool   `json:"grade_changed"`
 }
 
-type LevelUpEvent struct {
-	OldLevel int `json:"old_level"`
-	NewLevel int `json:"new_level"`
+type AppearanceChangedEvent struct {
+	BodyType   int  `json:"body_type"`
+	Muscle     int  `json:"muscle"`
+	SkinTone   int  `json:"skin_tone"`
+	Expression int  `json:"expression"`
+	Changed    bool `json:"changed"`
 }
 
 type MealSideEffects struct {
-	QuestsProgressed []QuestProgress `json:"quests_progressed"`
-	MasteryUpdated   *MasteryUpdate  `json:"mastery_updated"`
-	GrantedBadges    []Badge         `json:"granted_badges"`
-	GrantedTitle     *Title          `json:"granted_title,omitempty"`
-	ExpGained        int             `json:"exp_gained"`
-	LevelUp          *LevelUpEvent   `json:"level_up"`
+	QuestsProgressed  []QuestProgress         `json:"quests_progressed"`
+	MasteryUpdated    *MasteryUpdate          `json:"mastery_updated"`
+	GrantedBadges     []Badge                 `json:"granted_badges"`
+	GrantedTitle      *Title                  `json:"granted_title,omitempty"`
+	AppearanceChanged *AppearanceChangedEvent  `json:"appearance_changed,omitempty"`
 }

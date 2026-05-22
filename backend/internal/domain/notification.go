@@ -9,16 +9,16 @@ import (
 type NotificationType string
 
 const (
-	NotificationTypeFriendRequest   NotificationType = "FRIEND_REQUEST"
-	NotificationTypeFriendAccepted  NotificationType = "FRIEND_ACCEPTED"
-	NotificationTypeNudge           NotificationType = "NUDGE"
-	NotificationTypeGuestbook       NotificationType = "GUESTBOOK"
-	NotificationTypeLevelUp         NotificationType = "LEVEL_UP"
-	NotificationTypeBadgeAcquired   NotificationType = "BADGE_ACQUIRED"
-	NotificationTypeMealTag         NotificationType = "MEAL_TAG"
-	NotificationTypeMealTagAccepted NotificationType = "MEAL_TAG_ACCEPTED"
-	NotificationTypePenaltyChanged  NotificationType = "PENALTY_CHANGED"
-	NotificationTypeQuestCompleted  NotificationType = "QUEST_COMPLETED"
+	NotificationTypeFriendRequest    NotificationType = "FRIEND_REQUEST"
+	NotificationTypeFriendAccepted   NotificationType = "FRIEND_ACCEPTED"
+	NotificationTypeNudge            NotificationType = "NUDGE"
+	NotificationTypeGuestbook        NotificationType = "GUESTBOOK"
+	NotificationTypeAppearanceChanged NotificationType = "APPEARANCE_CHANGED"
+	NotificationTypeBadgeAcquired    NotificationType = "BADGE_ACQUIRED"
+	NotificationTypeMealTag          NotificationType = "MEAL_TAG"
+	NotificationTypeMealTagAccepted  NotificationType = "MEAL_TAG_ACCEPTED"
+	NotificationTypePenaltyChanged   NotificationType = "PENALTY_CHANGED"
+	NotificationTypeQuestCompleted   NotificationType = "QUEST_COMPLETED"
 )
 
 type Notification struct {
