@@ -24,6 +24,7 @@ func StartScheduler(userUsecase usecase.UserUsecase, questUsecase usecase.QuestU
 	}{
 		{"0 0 * * *", func() { runPhysicalDeletion(userUsecase) }, "탈퇴 회원 물리 삭제"},
 		{"0 5 * * *", func() { runInactivityPenalty(userUsecase) }, "패널티 상태 갱신"},
+		{"5 5 * * *", func() { runNutritionAchievementUpdate(userUsecase) }, "영양 달성일 수 갱신"},
 		{"0 5 * * *", func() { runQuestReset(questUsecase) }, "일일 퀘스트 초기화"},
 		{"0 5 * * 1", func() { runWeeklyQuestReset(questUsecase) }, "주간 퀘스트 초기화"},
 		{"0 5 * * *", func() { runStreakReconciliation(userUsecase) }, "전체 유저 스트릭 보정"},
@@ -83,5 +84,14 @@ func runStreakReconciliation(userUsecase usecase.UserUsecase) {
 		slog.Error("스트릭 보정 작업 중 오류 발생", slog.Any("error", err))
 	} else {
 		slog.Info("전체 유저 스트릭 재계산 및 보정 작업 완료")
+	}
+}
+
+func runNutritionAchievementUpdate(userUsecase usecase.UserUsecase) {
+	slog.Info("영양 달성일 수 갱신 작업 시작")
+	if err := userUsecase.RunNutritionAchievementUpdate(); err != nil {
+		slog.Error("영양 달성일 수 갱신 중 오류 발생", slog.Any("error", err))
+	} else {
+		slog.Info("영양 달성일 수 갱신 작업 완료")
 	}
 }

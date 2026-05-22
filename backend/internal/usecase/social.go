@@ -16,7 +16,6 @@ import (
 type RankingEntry struct {
 	UserID        int64   `json:"user_id,string"`
 	Nickname      string  `json:"nickname"`
-	Level         int     `json:"level"`
 	Score         float64 `json:"score"`
 	Rank          int     `json:"rank"`
 	PenaltyStatus string  `json:"penalty_status"`
@@ -419,10 +418,8 @@ func (u *socialUsecase) GetSocialRanking(ctx context.Context) ([]RankingEntry, e
 			Rank:     i + 1,
 		}
 		if char != nil {
-			entry.Level = char.Level
 			entry.PenaltyStatus = string(char.PenaltyStatus)
 		} else {
-			entry.Level = 1
 			entry.PenaltyStatus = "NORMAL"
 		}
 		ranking = append(ranking, entry)

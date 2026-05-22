@@ -96,12 +96,11 @@ type CreateMealResponse struct {
 }
 
 type SideEffectsResponse struct {
-	QuestsProgressed []QuestProgressResponse `json:"quests_progressed"`
-	MasteryUpdated   *domain.MasteryUpdate   `json:"mastery_updated,omitempty"`
-	GrantedBadges    []BadgeResponse         `json:"granted_badges,omitempty"`
-	GrantedTitle     *TitleResponse          `json:"granted_title,omitempty"`
-	ExpGained        int                     `json:"exp_gained"`
-	LevelUp          *domain.LevelUpEvent    `json:"level_up,omitempty"`
+	QuestsProgressed  []QuestProgressResponse        `json:"quests_progressed"`
+	MasteryUpdated    *domain.MasteryUpdate          `json:"mastery_updated,omitempty"`
+	GrantedBadges     []BadgeResponse                `json:"granted_badges,omitempty"`
+	GrantedTitle      *TitleResponse                 `json:"granted_title,omitempty"`
+	AppearanceChanged *domain.AppearanceChangedEvent `json:"appearance_changed,omitempty"`
 }
 
 // DailyNutritionResponse - GET /nutrition/today 응답
@@ -218,11 +217,10 @@ func ToSideEffectsResponse(se *domain.MealSideEffects) *SideEffectsResponse {
 	}
 
 	resp := &SideEffectsResponse{
-		QuestsProgressed: ToQuestProgressListResponse(se.QuestsProgressed),
-		MasteryUpdated:   se.MasteryUpdated,
-		GrantedBadges:    badges,
-		ExpGained:        se.ExpGained,
-		LevelUp:          se.LevelUp,
+		QuestsProgressed:  ToQuestProgressListResponse(se.QuestsProgressed),
+		MasteryUpdated:    se.MasteryUpdated,
+		GrantedBadges:     badges,
+		AppearanceChanged: se.AppearanceChanged,
 	}
 
 	if se.GrantedTitle != nil {

@@ -20,7 +20,7 @@ func SeedQuests(db *gorm.DB) {
 			Description: "오늘 첫 식사를 기록해보세요.",
 			TargetCount: 1,
 			RewardPoint: 10,
-			RewardExp:   20,
+			RewardExp:   0,
 			IsActive:    true,
 		},
 		{
@@ -31,7 +31,7 @@ func SeedQuests(db *gorm.DB) {
 			Description: "오늘 3번의 식사를 모두 기록해보세요.",
 			TargetCount: 3,
 			RewardPoint: 30,
-			RewardExp:   50,
+			RewardExp:   0,
 			IsActive:    true,
 		},
 		{
@@ -42,7 +42,7 @@ func SeedQuests(db *gorm.DB) {
 			Description: "배고픈 친구에게 응원을 보내보세요.",
 			TargetCount: 1,
 			RewardPoint: 5,
-			RewardExp:   10,
+			RewardExp:   0,
 			IsActive:    true,
 		},
 		{
@@ -53,7 +53,7 @@ func SeedQuests(db *gorm.DB) {
 			Description: "친구 방명록에 글을 남겨보세요.",
 			TargetCount: 1,
 			RewardPoint: 5,
-			RewardExp:   10,
+			RewardExp:   0,
 			IsActive:    true,
 		},
 
@@ -66,7 +66,7 @@ func SeedQuests(db *gorm.DB) {
 			Description: "일주일 동안 매일 1회 이상 식사를 기록하세요.",
 			TargetCount: 7,
 			RewardPoint: 100,
-			RewardExp:   200,
+			RewardExp:   0,
 			IsActive:    true,
 		},
 
@@ -80,7 +80,7 @@ func SeedQuests(db *gorm.DB) {
 			Description: "먹찌가 배고파요. 첫 번째 식사를 기록하고 성장을 시작하세요.",
 			TargetCount: 1,
 			RewardPoint: 100,
-			RewardExp:   200,
+			RewardExp:   0,
 			IsActive:    true,
 		},
 	}

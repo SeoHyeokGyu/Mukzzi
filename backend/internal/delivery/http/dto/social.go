@@ -19,12 +19,11 @@ type ReportCreateRequest struct {
 
 // RankingResponse 랭킹 항목 응답
 type RankingResponse struct {
-	UserID        string `json:"user_id"`
-	Nickname      string `json:"nickname"`
-	Level         int    `json:"level"`
+	UserID        string  `json:"user_id"`
+	Nickname      string  `json:"nickname"`
 	Score         float64 `json:"score"`
-	Rank          int    `json:"rank"`
-	PenaltyStatus string `json:"penalty_status"` // 추가된 필드
+	Rank          int     `json:"rank"`
+	PenaltyStatus string  `json:"penalty_status"`
 }
 
 // SocialFeedResponse 소셜 피드 목록 응답
@@ -40,7 +39,6 @@ func ToRankingResponse(e usecase.RankingEntry) RankingResponse {
 	return RankingResponse{
 		UserID:        e.UserIDString(),
 		Nickname:      e.Nickname,
-		Level:         e.Level,
 		Score:         e.Score,
 		Rank:          e.Rank,
 		PenaltyStatus: e.PenaltyStatus,
