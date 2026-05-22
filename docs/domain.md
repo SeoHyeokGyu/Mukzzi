@@ -1,11 +1,11 @@
 # DDD 도메인 설계
 
-> 상태: 진행 중 (Auth 기본/User/Meal/Nutrition/Collection/Social/Notification/Quest/레벨·경험치·패널티 구현, Character HTTP API/OAuth 미구현)
+> 상태: 진행 중 (Auth 기본/User/Meal/Nutrition/Collection/Social/Notification/Quest/패널티 구현, Character 파츠 즉시 재계산/HTTP API/OAuth 미구현)
 
 기획 문서([planning.md](planning.md))의 기능 정의를 기반으로 바운디드 컨텍스트를 정의하고, 도메인 간 관계를 설계합니다.
 
 **구현 현황:**
-- ✓ **구현 완료**: Auth (기본 register/login/refresh/logout), User, Meal, Nutrition (오늘/주간), Collection (전체), Social, Notification, 레벨/경험치 시스템, 패널티 시스템, 온보딩, Quest (일일/주간/업적/튜토리얼)
+- ✓ **구현 완료**: Auth (기본 register/login/refresh/logout), User, Meal, Nutrition (오늘/주간), Collection (전체), Social, Notification, 패널티 시스템, 온보딩, Quest (일일/주간/업적/튜토리얼)
 - ⚠️ **부분 구현**: Menu (검색만), Auth (OAuth 미구현), Character (도메인/유스케이스만, HTTP API 미구현)
 - ❌ **미구현**: Character HTTP API (GET /characters/me 등), OAuth (Kakao/Google/Apple)
 
@@ -117,27 +117,27 @@ type BaseDomain struct {
 ### Character (캐릭터/성장) - ⚠️ 부분 구현
 
 **설계:**
-- 책임: 먹찌 생성, 파츠 조합, 진화 단계 관리, 영양 성분에 따른 외형 변화, 배경/악세서리 장착
+- 책임: 먹찌 생성, 파츠 조합, 영양소 기반 외형 변화, 배경/악세서리 장착
 - 핵심 엔티티: Character, Appearance (body_type, muscle, skin_tone, expression)
 - 비즈니스 규칙:
-  - 설정된 권장 섭취량 목표 대비 실제 섭취 비율(7일 평균)에 따라 캐릭터의 외형 상태가 결정됨.
+  - EXP/레벨/진화 단계 없음. 외형은 당일 식사 기록 합산 영양소 기준으로만 결정됨.
   - 파츠 조합: 체형(5) x 근육(5) x 피부색(5) x 표정(5) = 625가지 외형.
-  - 진화 단계: EGG -> BABY -> TEEN -> ADULT -> LEGENDARY (도메인 enum 기준; 기획의 CHILD·LEGEND와 명칭 차이 있음, 추후 정렬 필요).
-  - 진화 조건은 레벨 도달 + 해당 업적 퀘스트 달성을 모두 충족해야 전환됨. (예: BABY 전환 = Lv.5 이상 + '첫 깨어남' 업적 달성)
+  - 파츠 재계산 시점: `POST /meals` 호출 시 당일 합산 영양소로 즉시 재계산.
+  - 당일 식사 기록 없으면 파츠는 전날 마지막 상태 유지.
   - 패널티 상태: NORMAL -> HUNGRY(미기록 2일 경과) -> STARVING(미기록 3일 경과) -> WEAKENED(미기록 5일 이상). 식사 1회 기록 시 즉시 NORMAL 복구.
+  - `nutrition_achievement_days`: 당일 3대 영양소 모두 권장 범위 이내인 날의 누적 수. 자정 05:00 cron으로 전날 달성 여부를 판정하여 갱신.
   - 달성한 외형은 도감에 기록되며, 이전 외형으로 변경 가능 (가역적).
 
 **현재 구현:**
-- ✓ Character 도메인 엔티티 정의 (Level, Exp, EvolutionStage, PenaltyStatus, StreakDays, 파츠 필드 전체)
-- ✓ 레벨/경험치 시스템 (`AddExp`) - 식사 기록 시 10 EXP, 친구 태그 수락 시 5 EXP 지급
-- ✓ 레벨업 판정 및 LevelUp 알림 발송 (100 EXP/레벨 선형 증가)
+- ✓ Character 도메인 엔티티 정의 (PenaltyStatus, StreakDays, 파츠 필드)
 - ✓ 패널티 시스템 (`RunInactivityPenalty`) - 매일 05:00 배치로 상태 갱신
 - ✓ 연속 기록일(Streak) 갱신 (`UpdateStreakOnMeal`)
 - ✓ 캐릭터 조회 (`GET /users/me/character`) - Redis 캐시 5분
 - ✓ CharacterCollection 자동 등록 (온보딩 시 초기 외형 등록)
-- ❌ 캐릭터 외형 HTTP API 미구현 (`GET /characters/me`, `PATCH /characters/me/appearance`, `PATCH /characters/me/equipment`)
-- ❌ 외형 재계산 배치 미구현 (`AppearanceRecalculate`)
-- ❌ 진화 단계 전환 로직 미구현
+- ✓ Level/Exp/EvolutionStage 필드 제거 및 nutrition_achievement_days 필드 추가 완료
+- ✓ 식사 기록 시 당일 파츠 즉시 재계산 (`RecalcAppearance`) 구현 완료
+- ✓ nutrition_achievement_days 일일 갱신 cron (05:05 KST) 구현 완료
+- ❌ 캐릭터 외형 HTTP API 미구현 (`PATCH /characters/me/appearance`, `PATCH /characters/me/equipment`)
 
 ### Meal (식사 기록) - ✓ 구현 완료
 
@@ -248,9 +248,9 @@ type BaseDomain struct {
 
 ## 비즈니스 불변식 (Invariants) 및 공통 규칙
 
-1. 모든 경험치 수치는 0 이하로 떨어지지 않으며, 최대치를 초과하면 즉시 레벨업 처리를 수행함.
-2. 식사 기록이 삭제되더라도 이미 지급된 경험치와 보상은 소급 적용하여 회수하지 않음.
-3. 캐릭터의 외형 변화는 최근 일주일의 평균 데이터를 따르며, 일시적인 과식으로 급격하게 변하지 않도록 보정함.
+1. 식사 기록이 삭제되더라도 이미 지급된 보상은 소급 적용하여 회수하지 않음.
+2. 캐릭터 외형은 당일 식사 기록 합산 영양소 기준으로 결정되며, 당일 기록이 없으면 전날 상태를 유지함.
+3. `nutrition_achievement_days`는 증가만 하며, 달성 실패 시 감소하지 않음.
 
 ---
 
@@ -265,7 +265,7 @@ type BaseDomain struct {
 | daily_intakes (일일 섭취 통계) | 동일 사용자가 짧은 간격으로 복수 식사 기록 | `SELECT ... FOR UPDATE` 비관적 잠금. daily_intakes 행을 잠근 후 영양소 합산 및 meal_count 증가. 행이 없으면 INSERT, 이미 존재하면 UPDATE |
 | masteries (마스터리) | 동일 메뉴를 연속 기록 시 eat_count 경합 | `SELECT ... FOR UPDATE` 비관적 잠금. eat_count 증가 및 등급 승급 판정을 원자적으로 처리 |
 | user_quests (퀘스트 진행) | 식사 기록으로 여러 퀘스트가 동시에 갱신 | 사용자 단위 잠금: 한 사용자의 퀘스트 갱신은 직렬화 처리. `SELECT ... FOR UPDATE`로 해당 사용자의 ONGOING 퀘스트 행을 일괄 잠금 후 progress 갱신 |
-| characters (경험치/레벨) | 식사 기록 + 퀘스트 보상 수령이 동시 발생 | `SELECT ... FOR UPDATE` 비관적 잠금. exp 갱신 및 레벨업 판정을 원자적으로 처리 |
+| characters (파츠/달성일) | 식사 기록으로 파츠 재계산 + 달성일 갱신 동시 발생 | `SELECT ... FOR UPDATE` 비관적 잠금. 파츠 갱신을 원자적으로 처리 |
 | users.point (재화) | 보상 수령이 동시 발생 | `SELECT ... FOR UPDATE` 비관적 잠금. 포인트 증감을 원자적으로 처리 |
 
 ### 잠금 원칙
@@ -278,26 +278,19 @@ type BaseDomain struct {
 
 ## 캐릭터 외형 재계산 전략
 
-캐릭터 외형은 최근 7일간 영양소 섭취 비율에 따라 결정됩니다. 매 식사 기록마다 7일 평균을 재계산하는 것은 비효율적이므로, 다음과 같은 전략을 적용합니다.
+캐릭터 외형은 **당일 식사 기록 합산 영양소** 기준으로 결정됩니다.
 
-### 재계산 방식: 하루 1회 배치 + 조회 시 캐시 반환
+### 재계산 방식: 식사 기록 시 즉시 재계산
 
-1. **배치 재계산 (Cron)**: 매일 05:00에 `AppearanceRecalculate` 작업을 실행하여 활성 사용자의 캐릭터 외형을 일괄 갱신합니다.
-   - `daily_intakes` 테이블에서 최근 7일(오늘 포함) 데이터를 조회하여 평균 산출
-   - 산출된 영양소 비율을 파츠 결정 규칙에 대입하여 body_type, muscle, skin_tone, expression 값 결정
-   - `characters` 테이블의 파츠 필드를 갱신하고, 신규 조합이면 `character_collections`에 등록
-2. **조회 시 캐시 반환**: 캐릭터 외형 조회 API(`GET /characters/me`)는 `characters` 테이블에 저장된 현재 값을 즉시 반환합니다. 별도의 실시간 계산을 수행하지 않습니다.
-3. **즉시 갱신 트리거**: 식사 기록 생성 시 `MealCreated` 이벤트의 비동기 핸들러에서도 외형 재계산을 수행합니다. 단, 이는 사용자에게 즉각적인 피드백을 제공하기 위한 보조 수단이며, 배치 재계산이 정합성의 최종 기준입니다.
-
-### 갱신 대상 사용자
-
-배치 재계산은 전체 사용자가 아닌, **최근 7일 이내에 식사를 기록한 활성 사용자**만을 대상으로 합니다. `characters.last_recorded_at`이 7일 이내인 사용자를 필터링합니다.
+1. **즉시 재계산**: `POST /meals` 호출 시 당일 `daily_intakes` 합산값으로 파츠 4종을 즉시 재계산하여 `characters` 테이블 업데이트.
+2. **조회 시 캐시 반환**: `GET /users/me/character`는 `characters` 테이블의 현재 값을 즉시 반환 (Redis 캐시 5분).
+3. **달성일 갱신 (Cron)**: 매일 05:00에 전날 영양 밸런스 달성 여부를 판정하여 `nutrition_achievement_days`를 갱신.
 
 ### 스케줄링 작업 추가 (미구현)
 
 | 작업 | 스케줄 | 설명 |
 |------|--------|------|
-| AppearanceRecalculate | 매일 05:10 | 활성 사용자 캐릭터 외형 일괄 재계산 (퀘스트 초기화 이후 실행) |
+| NutritionAchievementUpdate | 매일 05:05 | 전날 영양 밸런스 달성 사용자 nutrition_achievement_days 갱신 |
 
 ---
 
@@ -329,8 +322,8 @@ type BaseDomain struct {
 | RewardClaimed | 보상 수령 | 뱃지/칭호/배경/악세서리 지급, 도감 등록 |
 | NudgeSent | 응원하기 전송 | FCM 푸시 알림 전송, 인앱 알림 생성 |
 | GuestbookWritten | 방명록 작성 | 수신자 FCM 푸시 알림 전송, 인앱 알림 생성 |
-| LevelUp | 레벨 상승 | 레벨업 알림, 진화 단계 전환 판정 |
-| FriendTagAccepted | 친구 태그 수락 | 태그한 사람·태그된 사람 양쪽에 보너스 경험치(5 EXP) 지급 |
+| AppearanceChanged | 파츠 재계산으로 외형 변경 | 외형 변화 알림, character_collections 신규 조합 등록 |
+| FriendTagAccepted | 친구 태그 수락 | 태그한 사람·태그된 사람 양쪽에 알림 발송 |
 | FriendRequestSent | 친구 요청 | 수신자 알림 발송 |
 
 ### 이벤트 처리 전략
@@ -360,7 +353,7 @@ type BaseDomain struct {
 | DailyQuestReset | 매일 05:00 | 일일 퀘스트 초기화 및 신규 할당 | ❌ |
 | WeeklyQuestReset | 매주 월요일 05:00 | 주간 퀘스트 초기화 및 신규 할당 | ❌ |
 | ExpiredRewardCleanup | 매일 05:00 | 기간 만료 미수령 보상 자동 소멸 | ❌ |
-| AppearanceRecalculate | 매일 05:10 | 활성 사용자 캐릭터 외형 일괄 재계산 | ❌ |
+| NutritionAchievementUpdate | 매일 05:05 | 전날 영양 밸런스 달성 사용자 nutrition_achievement_days 갱신 | ❌ |
 
 ---
 
@@ -377,8 +370,8 @@ type BaseDomain struct {
 | 소셜 응원 -> 알림 | Social | Notification | **Goroutine (비동기)** |
 | 방명록 작성 -> 알림 | Social | Notification | **Goroutine (비동기)** |
 | 친구 요청 -> 알림 | Social | Notification | **Goroutine (비동기)** |
-| 친구 태그 수락 -> 경험치 지급 | Meal | Character | 함수 호출 (동기) |
-| 레벨업 -> 진화 판정 | Character | Character | 함수 호출 (동기) |
+| 친구 태그 수락 -> 알림 | Meal | Notification | **Goroutine (비동기)** |
+| 영양소 변화 -> 외형 변화 알림 | Character | Notification | **Goroutine (비동기)** |
 
 ---
 

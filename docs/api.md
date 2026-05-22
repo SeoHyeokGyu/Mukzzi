@@ -91,7 +91,7 @@
 | PATCH | /users/me/settings | O | 설정 변경 (알림 on/off, 프라이버시 레벨, 식사 알림 시간) |
 | PATCH | /users/me/device | O | FCM 기기 토큰 등록/갱신 (푸시 알림 수신용) |
 | DELETE | /users/me | O | 회원 탈퇴 |
-| GET | /users/me/stats | O | 내 누적 통계 (총 식사 수, 스트릭, 레벨업 횟수 등) |
+| GET | /users/me/stats | O | 내 누적 통계 (총 식사 수, 스트릭, 뱃지 수) |
 | GET | /users/{id}/profile | O | 타인 프로필 정보 조회 (누적 기록 수, 연속 기록일 포함) |
 | GET | /users/search | O | 사용자 검색 (query: 닉네임 또는 고유 ID) |
 | GET | /users/recommendations | O | 추천 사용자 목록 (비슷한 식습관/먹찌/인기) |
@@ -152,8 +152,13 @@
         "grade": "MANIA",
         "grade_changed": true
       },
-      "exp_gained": 10,
-      "level_up": null
+      "appearance_changed": {
+        "body_type": 2,
+        "muscle": 3,
+        "skin_tone": 2,
+        "expression": 3,
+        "changed": true
+      }
     }
   }
 }
@@ -276,7 +281,7 @@
 - `FRIEND_ACCEPTED`: 친구 요청 수락됨
 - `NUDGE`: 응원하기(푸시) 수신
 - `GUESTBOOK`: 방명록 새 글 등록
-- `LEVEL_UP`: 캐릭터 레벨업 달성
+- `APPEARANCE_CHANGED`: 캐릭터 외형 파츠 변경
 - `BADGE_ACQUIRED`: 새로운 뱃지 획득
 - `MEAL_TAG`: 식사 기록에 태그됨
 - `MEAL_TAG_ACCEPTED`: 보낸 식사 태그가 수락됨

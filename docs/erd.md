@@ -40,6 +40,25 @@
 | privacy_level | VARCHAR(20) | DEFAULT 'PUBLIC' | PUBLIC, FRIENDS, PRIVATE |
 | notification_settings | JSONB | DEFAULT '{}' | 알림 유형별 on/off 설정 |
 
+### 캐릭터 (characters)
+
+사용자당 1개. 당일 영양소 기반 파츠 외형 및 패널티 상태를 관리합니다.
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| user_id | BIGINT | FK (users.id), UNIQUE, NOT NULL | 소유자 ID |
+| name | VARCHAR(20) | NOT NULL | 먹찌 이름 |
+| body_type | SMALLINT | NOT NULL DEFAULT 3 | 체형 파츠 단계 (0~4) |
+| muscle | SMALLINT | NOT NULL DEFAULT 3 | 근육 파츠 단계 (0~4) |
+| skin_tone | SMALLINT | NOT NULL DEFAULT 3 | 피부색 파츠 단계 (0~4) |
+| expression | SMALLINT | NOT NULL DEFAULT 3 | 표정 파츠 단계 (0~4) |
+| penalty_status | VARCHAR(20) | NOT NULL DEFAULT 'NORMAL' | NORMAL, HUNGRY, STARVING, WEAKENED |
+| streak_days | INT | NOT NULL DEFAULT 0 | 연속 기록일 |
+| nutrition_achievement_days | INT | NOT NULL DEFAULT 0 | 영양 밸런스 달성일 누적 수 |
+| last_recorded_at | TIMESTAMPTZ | NULL | 마지막 식사 기록 일시 |
+| equipped_background_id | BIGINT | FK (rewards.id), NULL | 장착 중인 배경 보상 |
+| equipped_accessory_id | BIGINT | FK (rewards.id), NULL | 장착 중인 악세서리 보상 |
+
 ### 사용자 신체 정보 (user_bodies)
 
 사용자의 신체 변화 이력을 관리합니다. (1:N 이력 구조)
