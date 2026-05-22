@@ -652,14 +652,11 @@ func (u *userUsecase) SyncRankingToRedis(ctx context.Context) error {
 	u.rdb.Del(ctx, RankingWeeklyKey)
 
 	for _, char := range chars {
-		// 초기 스코어는 레벨 * 100 + 경험치로 산정
-		score := float64(char.Level*100 + char.Exp)
-		if score > 0 {
-			_ = u.rdb.ZAdd(ctx, RankingWeeklyKey, redis.Z{
-				Score:  score,
-				Member: fmt.Sprintf("%d", char.UserID),
-			}).Err()
-		}
+		score := float64(char.NutritionAchievementDays)
+		_ = u.rdb.ZAdd(ctx, RankingWeeklyKey, redis.Z{
+			Score:  score,
+			Member: fmt.Sprintf("%d", char.UserID),
+		}).Err()
 	}
 	return nil
 }
