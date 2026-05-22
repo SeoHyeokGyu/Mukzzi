@@ -36,13 +36,14 @@ type UserUsecase interface {
 	Search(query string) ([]domain.User, error)
 	GetRecommendations(id int64) ([]domain.User, error)
 	Onboarding(id int64, mukzziName string, height, weight float64, activityLevel domain.ActivityLevel, goal domain.DietGoal, bodyType, muscle, skinTone, expression int) error
-	AddExp(userID int64, amount int) (*AddExpResult, error)
 	AddPoint(ctx context.Context, userID int64, amount int) error
 	UpdateStreakOnMeal(userID int64, recordedAt time.Time) error
 	RecalculateStreak(userID int64) error
 	RecalculateAllUsersStreak() error
 	RunInactivityPenalty() error
 	SyncRankingToRedis(ctx context.Context) error
+	RecalcAppearance(userID int64, date time.Time) (*domain.AppearanceChangedEvent, error)
+	RunNutritionAchievementUpdate() error
 }
 
 type userUsecase struct {
@@ -295,15 +296,12 @@ func (u *userUsecase) Onboarding(id int64, mukzziName string, height, weight flo
 		character := &domain.Character{UserID: id}
 		if err := tx.Where(domain.Character{UserID: id}).
 			Assign(domain.Character{
-				Name:           mukzziName,
-				Level:          1,
-				Exp:            0,
-				EvolutionStage: domain.EvolutionEgg,
-				BodyType:       bodyType,
-				Muscle:         muscle,
-				SkinTone:       skinTone,
-				Expression:     expression,
-				PenaltyStatus:  domain.PenaltyNormal,
+				Name:          mukzziName,
+				BodyType:      bodyType,
+				Muscle:        muscle,
+				SkinTone:      skinTone,
+				Expression:    expression,
+				PenaltyStatus: domain.PenaltyNormal,
 			}).
 			FirstOrCreate(character).Error; err != nil {
 			return err
@@ -342,73 +340,114 @@ func (u *userUsecase) Onboarding(id int64, mukzziName string, height, weight flo
 
 const RankingWeeklyKey = "ranking:exp:weekly"
 
-type AddExpResult struct {
-	LeveledUp bool
-	OldLevel  int
-	NewLevel  int
-}
-
-func (u *userUsecase) AddExp(userID int64, amount int) (*AddExpResult, error) {
-	result := &AddExpResult{}
-
-	err := u.db.Transaction(func(tx *gorm.DB) error {
-		var char domain.Character
-		if err := tx.Where("user_id = ?", userID).First(&char).Error; err != nil {
-			return err
-		}
-
-		result.OldLevel = char.Level
-		char.Exp += amount
-		// 레벨업 공식: 레벨 N의 필요 EXP = 100 × N (선형 증가)
-		for char.Exp >= char.Level*100 {
-			char.Exp -= char.Level * 100
-			char.Level++
-		}
-
-		if char.Level > result.OldLevel {
-			result.LeveledUp = true
-			result.NewLevel = char.Level
-			char.EvolutionStage = evolutionStageForLevel(char.Level)
-		} else {
-			result.NewLevel = char.Level
-		}
-
-		return tx.Save(&char).Error
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// 캐시 무효화는 동기 처리 (race condition 방지: 프론트 재조회 시 구 데이터 반환 방지)
-	delCtx, delCancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
-	defer delCancel()
-	u.rdb.Del(delCtx, fmt.Sprintf("user:char:%d", userID))
-
-	// 랭킹 업데이트는 비동기 (Fire and Forget)
-	go func() {
-		_ = u.rdb.ZIncrBy(context.Background(), RankingWeeklyKey, float64(amount), fmt.Sprintf("%d", userID)).Err()
-	}()
-
-	return result, nil
-}
-
-func evolutionStageForLevel(level int) domain.EvolutionStage {
-	switch {
-	case level <= 2:
-		return domain.EvolutionEgg
-	case level <= 6:
-		return domain.EvolutionBaby
-	case level <= 14:
-		return domain.EvolutionTeen
-	case level <= 29:
-		return domain.EvolutionAdult
-	default:
-		return domain.EvolutionLegendary
-	}
-}
-
 func (u *userUsecase) AddPoint(ctx context.Context, userID int64, amount int) error {
 	return u.userRepo.AddPoint(userID, amount)
+}
+
+// RecalcAppearance date 날짜의 당일 섭취량을 바탕으로 캐릭터 파츠를 재계산하고 저장한다.
+func (u *userUsecase) RecalcAppearance(userID int64, date time.Time) (*domain.AppearanceChangedEvent, error) {
+	dateOnly := date.UTC().Truncate(24 * time.Hour)
+	intake, err := u.dailyIntakeRepo.FindByUserIDAndDate(userID, dateOnly)
+	if err != nil {
+		return nil, fmt.Errorf("daily intake 조회 실패: %w", err)
+	}
+
+	goal, err := u.userRepo.GetNutritionGoal(userID)
+	if err != nil {
+		return nil, fmt.Errorf("영양 목표 조회 실패: %w", err)
+	}
+
+	event := CalcAppearance(intake, goal)
+	if event == nil {
+		return nil, nil
+	}
+
+	char, err := u.characterRepo.GetByUserID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("캐릭터 조회 실패: %w", err)
+	}
+	if char == nil {
+		return nil, nil
+	}
+
+	if char.BodyType == event.BodyType &&
+		char.Muscle == event.Muscle &&
+		char.SkinTone == event.SkinTone &&
+		char.Expression == event.Expression {
+		event.Changed = false
+		return event, nil
+	}
+
+	char.BodyType = event.BodyType
+	char.Muscle = event.Muscle
+	char.SkinTone = event.SkinTone
+	char.Expression = event.Expression
+	if err := u.characterRepo.Update(char); err != nil {
+		return nil, fmt.Errorf("캐릭터 파츠 업데이트 실패: %w", err)
+	}
+
+	delCtx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	u.rdb.Del(delCtx, fmt.Sprintf("user:char:%d", userID))
+
+	return event, nil
+}
+
+// RunNutritionAchievementUpdate 전날 영양 밸런스 달성 여부를 판정하고
+// 달성한 유저의 nutrition_achievement_days를 1 증가시킨다.
+func (u *userUsecase) RunNutritionAchievementUpdate() error {
+	kst := time.FixedZone("KST", 9*60*60)
+	yesterday := time.Now().In(kst).Truncate(24 * time.Hour).AddDate(0, 0, -1)
+
+	type row struct {
+		UserID int64
+	}
+	var users []row
+	if err := u.db.Table("daily_intakes").
+		Select("user_id").
+		Where("date = ? AND meal_count > 0", yesterday).
+		Scan(&users).Error; err != nil {
+		return fmt.Errorf("daily_intakes 조회 실패: %w", err)
+	}
+
+	for _, r := range users {
+		intake, err := u.dailyIntakeRepo.FindByUserIDAndDate(r.UserID, yesterday)
+		if err != nil || intake == nil {
+			continue
+		}
+		goal, err := u.userRepo.GetNutritionGoal(r.UserID)
+		if err != nil || goal == nil {
+			continue
+		}
+		if !isNutritionBalanced(intake, goal) {
+			continue
+		}
+		if err := u.db.Model(&domain.Character{}).
+			Where("user_id = ?", r.UserID).
+			UpdateColumn("nutrition_achievement_days", gorm.Expr("nutrition_achievement_days + 1")).Error; err != nil {
+			slog.Error("nutrition_achievement_days 갱신 실패",
+				slog.Int64("user_id", r.UserID), slog.Any("error", err))
+		}
+	}
+	return nil
+}
+
+// isNutritionBalanced C/P/F 모두 권장 범위 내에 있으면 true를 반환한다.
+func isNutritionBalanced(intake *domain.DailyIntake, goal *domain.UserNutritionGoal) bool {
+	goalKcal := float64(goal.DailyKcalTarget)
+	if goalKcal == 0 || intake.TotalCalories < goalKcal*0.7 {
+		return false
+	}
+	macroCal := intake.TotalCarbs*4 + intake.TotalProtein*4 + intake.TotalFat*9
+	if macroCal == 0 {
+		return false
+	}
+	carbsRatio := intake.TotalCarbs * 4 / macroCal * 100
+	proteinRatio := intake.TotalProtein * 4 / macroCal * 100
+	fatRatio := intake.TotalFat * 9 / macroCal * 100
+	return carbsRatio >= 55 && carbsRatio <= 65 &&
+		proteinRatio >= 15 && proteinRatio <= 20 &&
+		fatRatio >= 20 && fatRatio <= 30
 }
 
 func (u *userUsecase) UpdateStreakOnMeal(userID int64, recordedAt time.Time) error {
