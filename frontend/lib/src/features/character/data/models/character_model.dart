@@ -5,31 +5,27 @@ class CharacterModel {
   final String id;
   final String userId;
   final String name;
-  final int level;
-  final int exp;
   final CharacterState state;
-  final String evolutionStage;
   final int streakDays;
   final int bodyType;
   final int muscle;
   final int skinTone;
   final int expression;
+  final int nutritionAchievementDays;
   final RewardModel? equippedBackground;
   final RewardModel? equippedAccessory;
 
-  CharacterModel({
+  const CharacterModel({
     required this.id,
     required this.userId,
     required this.name,
-    required this.level,
-    required this.exp,
     required this.state,
-    required this.evolutionStage,
     required this.streakDays,
     required this.bodyType,
     required this.muscle,
     required this.skinTone,
     required this.expression,
+    required this.nutritionAchievementDays,
     this.equippedBackground,
     this.equippedAccessory,
   });
@@ -38,15 +34,13 @@ class CharacterModel {
     String? id,
     String? userId,
     String? name,
-    int? level,
-    int? exp,
     CharacterState? state,
-    String? evolutionStage,
     int? streakDays,
     int? bodyType,
     int? muscle,
     int? skinTone,
     int? expression,
+    int? nutritionAchievementDays,
     RewardModel? equippedBackground,
     RewardModel? equippedAccessory,
   }) {
@@ -54,15 +48,14 @@ class CharacterModel {
       id: id ?? this.id,
       userId: userId ?? this.userId,
       name: name ?? this.name,
-      level: level ?? this.level,
-      exp: exp ?? this.exp,
       state: state ?? this.state,
-      evolutionStage: evolutionStage ?? this.evolutionStage,
       streakDays: streakDays ?? this.streakDays,
       bodyType: bodyType ?? this.bodyType,
       muscle: muscle ?? this.muscle,
       skinTone: skinTone ?? this.skinTone,
       expression: expression ?? this.expression,
+      nutritionAchievementDays:
+          nutritionAchievementDays ?? this.nutritionAchievementDays,
       equippedBackground: equippedBackground ?? this.equippedBackground,
       equippedAccessory: equippedAccessory ?? this.equippedAccessory,
     );
@@ -73,39 +66,28 @@ class CharacterModel {
     final penalty = json['penalty_status'] as String? ?? 'NORMAL';
     if (penalty == 'HUNGRY') status = CharacterState.hungry;
     if (penalty == 'STARVING') status = CharacterState.starving;
-    // 'WEAKENED' is mapped to 'sleeping' state as a visual fallback
     if (penalty == 'WEAKENED') status = CharacterState.sleeping;
 
     return CharacterModel(
       id: json['id']?.toString() ?? '',
       userId: json['user_id']?.toString() ?? '',
       name: json['name'] as String? ?? '먹찌',
-      level: json['level'] as int? ?? 1,
-      exp: json['exp'] as int? ?? 0,
       state: status,
-      evolutionStage: json['evolution_stage'] as String? ?? 'EGG',
       streakDays: json['streak_days'] as int? ?? 0,
       bodyType: json['body_type'] as int? ?? 0,
       muscle: json['muscle'] as int? ?? 0,
       skinTone: json['skin_tone'] as int? ?? 0,
       expression: json['expression'] as int? ?? 0,
+      nutritionAchievementDays:
+          json['nutrition_achievement_days'] as int? ?? 0,
       equippedBackground: json['equipped_background'] != null
-          ? RewardModel.fromJson(json['equipped_background'] as Map<String, dynamic>)
+          ? RewardModel.fromJson(
+              json['equipped_background'] as Map<String, dynamic>)
           : null,
       equippedAccessory: json['equipped_accessory'] != null
-          ? RewardModel.fromJson(json['equipped_accessory'] as Map<String, dynamic>)
+          ? RewardModel.fromJson(
+              json['equipped_accessory'] as Map<String, dynamic>)
           : null,
     );
-  }
-
-  String get evolutionLabel {
-    switch (evolutionStage) {
-      case 'EGG':       return '부화 단계';
-      case 'BABY':      return '아기 단계';
-      case 'TEEN':      return '청소년 단계';
-      case 'ADULT':     return '성체 단계';
-      case 'LEGENDARY': return '전설 단계';
-      default:          return '부화 단계';
-    }
   }
 }

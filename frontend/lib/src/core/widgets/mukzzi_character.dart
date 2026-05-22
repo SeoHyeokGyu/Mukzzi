@@ -19,15 +19,6 @@ extension CharacterVariantLabel on CharacterVariant {
 
 enum CharacterState { normal, happy, hungry, starving, sleeping }
 
-enum CharacterStage { baby, teen, adult }
-
-extension CharacterLevelExtension on int {
-  CharacterStage get stage {
-    if (this <= 6) return CharacterStage.baby;
-    if (this <= 14) return CharacterStage.teen;
-    return CharacterStage.adult;
-  }
-}
 
 extension CharacterStateLabel on CharacterState {
   String get label {
@@ -94,22 +85,20 @@ extension CharacterStateLabel on CharacterState {
 class MukzziCharacter extends StatelessWidget {
   final CharacterState state;
   final double size;
-  final int level;
   final CharacterVariant variant;
 
   const MukzziCharacter({
     super.key,
     this.state = CharacterState.normal,
     this.size = 160,
-    this.level = 1,
     this.variant = CharacterVariant.v1,
   }) : assert(size >= 60, 'MukzziCharacter: size < 60 renders detail-loss. Use at least 80 for best results.');
 
   @override
   Widget build(BuildContext context) {
     return switch (variant) {
-      CharacterVariant.v1 => _LottieCharacter(state: state, size: size, level: level),
-      CharacterVariant.v2 => _SvgLayeredCharacter(state: state, size: size, level: level),
+      CharacterVariant.v1 => _LottieCharacter(state: state, size: size),
+      CharacterVariant.v2 => _SvgLayeredCharacter(state: state, size: size),
     };
   }
 }
@@ -117,15 +106,13 @@ class MukzziCharacter extends StatelessWidget {
 class _LottieCharacter extends StatelessWidget {
   final CharacterState state;
   final double size;
-  final int level;
 
-  const _LottieCharacter({required this.state, required this.size, required this.level});
+  const _LottieCharacter({required this.state, required this.size});
 
   @override
   Widget build(BuildContext context) {
-    final stage = level.stage.name.toLowerCase();
     final stateKey = state.key;
-    final assetPath = 'assets/animations/mukzzi_${stage}_$stateKey.json';
+    final assetPath = 'assets/animations/mukzzi_baby_$stateKey.json';
 
     if (kIsWeb) {
       return KeyedSubtree(
@@ -162,12 +149,10 @@ class _LottieCharacter extends StatelessWidget {
 class _SvgLayeredCharacter extends StatefulWidget {
   final CharacterState state;
   final double size;
-  final int level;
 
   const _SvgLayeredCharacter({
     required this.state,
     required this.size,
-    required this.level,
   });
 
   @override
@@ -196,7 +181,7 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
   @override
   void didUpdateWidget(_SvgLayeredCharacter old) {
     super.didUpdateWidget(old);
-    if (old.state != widget.state || old.level != widget.level) {
+    if (old.state != widget.state) {
       setState(() => _visibleLayers = _requiredLayers);
       unawaited(_resolveOptionalLayers());
     }
@@ -240,18 +225,13 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
     super.dispose();
   }
 
-  // 없는 stage+state 조합은 같은 stage의 idle로 폴백
-  // (예: baby_hungry → baby_idle)
   static const _fallbackStateKey = 'idle';
 
-  String? _resolvedStateKey; // null = resolve 중
+  String? _resolvedStateKey;
 
-  String _buildPath(String layer, String stateKey) {
-    final stage = widget.level.stage.name.toLowerCase();
-    return 'assets/svg/mukzzi2_${stage}_${stateKey}_$layer.svg';
-  }
+  String _buildPath(String layer, String stateKey) =>
+      'assets/svg/mukzzi2_baby_${stateKey}_$layer.svg';
 
-  // build에서 현재 resolvedStateKey 기준으로 경로 반환
   String _path(String layer) =>
       _buildPath(layer, _resolvedStateKey ?? _fallbackStateKey);
 

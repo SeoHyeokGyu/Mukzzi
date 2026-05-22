@@ -413,10 +413,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _buildHeroCard(AppColorTokens tokens, CharacterModel? char) {
     final state = char?.state ?? CharacterState.normal;
-    final level = char?.level ?? 1;
     final name = char?.name ?? '먹찌';
-    final xp = char?.exp.toDouble() ?? 0;
-    final xpGoal = level * AppConstants.xpGoalPerLevel;
 
     final card = BentoCard(
       showPaperTexture: true,
@@ -439,21 +436,6 @@ class _HomePageState extends ConsumerState<HomePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'Lv.$level',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: tokens.heroText,
-                  ),
-                ),
-              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -479,7 +461,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             ],
           ),
           const SizedBox(height: 8),
-          MukzziCharacter(state: state, size: 160, level: level),
+          MukzziCharacter(state: state, size: 160),
           const SizedBox(height: 8),
           Text(
             name,
@@ -494,38 +476,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             state.message,
             style: TextStyle(fontSize: 12, color: tokens.heroTextSub),
             textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '경험치',
-                    style: TextStyle(fontSize: 11, color: tokens.heroTextSub),
-                  ),
-                  Text(
-                    '${xp.toInt()} / ${xpGoal.toInt()}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: tokens.primary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: (xp / xpGoal).clamp(0.0, 1.0),
-                  minHeight: 7,
-                  backgroundColor: Colors.black.withValues(alpha: 0.12),
-                  valueColor: AlwaysStoppedAnimation<Color>(tokens.primary),
-                ),
-              ),
-            ],
           ),
         ],
       ),
