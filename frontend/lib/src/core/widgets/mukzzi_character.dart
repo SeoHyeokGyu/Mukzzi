@@ -1,4 +1,5 @@
 import 'dart:async' show unawaited;
+import 'package:http/http.dart' as http;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -173,15 +174,22 @@ class _SvgLayeredCharacter extends StatefulWidget {
   State<_SvgLayeredCharacter> createState() => _SvgLayeredCharacterState();
 }
 
-class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter> {
+class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
+    with SingleTickerProviderStateMixin {
   static const _requiredLayers = ['body'];
   static const _optionalLayers = ['face', 'accessory'];
 
   List<String> _visibleLayers = _requiredLayers;
 
+  late final AnimationController _ctrl;
+  late Animation<double> _anim;
+
   @override
   void initState() {
     super.initState();
+    _ctrl = AnimationController(vsync: this, duration: _duration);
+    _setupAnimation();
+    _startRepeat();
     unawaited(_resolveOptionalLayers());
   }
 
@@ -192,32 +200,101 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter> {
       setState(() => _visibleLayers = _requiredLayers);
       unawaited(_resolveOptionalLayers());
     }
+    if (old.state != widget.state) {
+      _ctrl.duration = _duration;
+      _setupAnimation();
+      _startRepeat();
+    }
   }
 
-  String _path(String layer) {
+  Duration get _duration => switch (widget.state) {
+    CharacterState.sleeping => const Duration(milliseconds: 2800),
+    CharacterState.happy    => const Duration(milliseconds: 650),
+    CharacterState.hungry   => const Duration(milliseconds: 700),
+    CharacterState.starving => const Duration(milliseconds: 400),
+    _                       => const Duration(milliseconds: 2000),
+  };
+
+  void _startRepeat() {
+    _ctrl.repeat(reverse: widget.state != CharacterState.happy);
+  }
+
+  void _setupAnimation() {
+    _anim = switch (widget.state) {
+      CharacterState.sleeping => Tween(begin: 0.97, end: 1.03).animate(
+          CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut)),
+      CharacterState.happy    => Tween(begin: 0.0, end: -18.0).animate(
+          CurvedAnimation(parent: _ctrl, curve: Curves.easeOut)),
+      CharacterState.hungry   => Tween(begin: -5.0, end: 5.0).animate(
+          CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut)),
+      CharacterState.starving => Tween(begin: -6.0, end: 6.0).animate(
+          CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut)),
+      _                       => Tween(begin: 0.0, end: -8.0).animate(
+          CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut)),
+    };
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  // 없는 stage+state 조합은 같은 stage의 idle로 폴백
+  // (예: baby_hungry → baby_idle)
+  static const _fallbackStateKey = 'idle';
+
+  String? _resolvedStateKey; // null = resolve 중
+
+  String _buildPath(String layer, String stateKey) {
     final stage = widget.level.stage.name.toLowerCase();
-    final stateKey = widget.state.key;
     return 'assets/svg/mukzzi2_${stage}_${stateKey}_$layer.svg';
   }
 
-  Future<void> _resolveOptionalLayers() async {
-    final available = <String>[];
-    for (final layer in _optionalLayers) {
+  // build에서 현재 resolvedStateKey 기준으로 경로 반환
+  String _path(String layer) =>
+      _buildPath(layer, _resolvedStateKey ?? _fallbackStateKey);
+
+  Future<bool> _assetExists(String path) async {
+    if (kIsWeb) {
       try {
-        await rootBundle.load(_path(layer));
-        available.add(layer);
+        final res = await http.get(Uri.parse(path));
+        return res.statusCode == 200;
       } catch (_) {
-        // layer file absent — skip silently
+        return false;
+      }
+    } else {
+      try {
+        await rootBundle.load(path);
+        return true;
+      } catch (_) {
+        return false;
       }
     }
-    if (mounted && available.isNotEmpty) {
-      setState(() => _visibleLayers = [..._requiredLayers, ...available]);
+  }
+
+  Future<void> _resolveOptionalLayers() async {
+    final preferred = widget.state.key;
+    final bodyExists = await _assetExists(_buildPath('body', preferred));
+    final stateKey = bodyExists ? preferred : _fallbackStateKey;
+
+    final available = <String>[];
+    for (final layer in _optionalLayers) {
+      if (await _assetExists(_buildPath(layer, stateKey))) {
+        available.add(layer);
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _resolvedStateKey = stateKey;
+        _visibleLayers = [..._requiredLayers, ...available];
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final svgStack = SizedBox(
       width: widget.size,
       height: widget.size,
       child: Stack(
@@ -232,6 +309,26 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter> {
           );
         }).toList(),
       ),
+    );
+
+    return AnimatedBuilder(
+      animation: _anim,
+      child: svgStack,
+      builder: (_, child) => switch (widget.state) {
+        CharacterState.sleeping => Transform.scale(
+          scale: _anim.value,
+          child: child,
+        ),
+        CharacterState.hungry ||
+        CharacterState.starving => Transform.translate(
+          offset: Offset(_anim.value, 0),
+          child: child,
+        ),
+        _ => Transform.translate(
+          offset: Offset(0, _anim.value),
+          child: child,
+        ),
+      },
     );
   }
 }

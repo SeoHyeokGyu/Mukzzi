@@ -28,6 +28,7 @@ dependencies:
   flutter_svg: ^2.0.9
   web: ^1.1.0
   showcaseview: ^5.0.2
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:
