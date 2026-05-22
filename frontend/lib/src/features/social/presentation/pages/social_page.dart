@@ -189,7 +189,6 @@ class _FeedCardState extends State<_FeedCard> {
                       child: const MukzziCharacter(
                         state: CharacterState.normal,
                         size: 80,
-                        level: 1,
                       ),
                     ),
               ),
@@ -205,10 +204,6 @@ class _FeedCardState extends State<_FeedCard> {
                           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: tokens.textPrimary),
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          '· Lv.1', 
-                          style: TextStyle(fontSize: 11, color: tokens.textMuted),
-                        ),
                       ],
                     ),
                     Text(_formatTime(post.meal.recordedAt), style: TextStyle(fontSize: 11, color: tokens.textMuted)),
@@ -425,7 +420,6 @@ class _RankingTab extends ConsumerWidget {
                               child: MukzziCharacter(
                                 state: _stateFromPenalty(r.penaltyStatus),
                                 size: 64,
-                                level: r.level,
                               ),
                             ),
                           ),
@@ -437,7 +431,7 @@ class _RankingTab extends ConsumerWidget {
                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: tokens.textPrimary),
                           ),
                           Text(
-                            'Lv.${r.level}',
+                            '${r.score.toInt()}일',
                             style: TextStyle(fontSize: 10, color: tokens.textMuted),
                           ),
                         ],
@@ -496,7 +490,6 @@ class _RankingTab extends ConsumerWidget {
                               child: MukzziCharacter(
                                 state: _stateFromPenalty(r.penaltyStatus),
                                 size: 64,
-                                level: r.level,
                               ),
                             ),
                           ),
@@ -513,12 +506,12 @@ class _RankingTab extends ConsumerWidget {
                                     color: tokens.textPrimary,
                                   ),
                                 ),
-                                Text('주간 ${r.score.toInt()} EXP', style: TextStyle(fontSize: 11, color: tokens.textMuted)),
+                                Text('영양 달성 ${r.score.toInt()}일', style: TextStyle(fontSize: 11, color: tokens.textMuted)),
                               ],
                             ),
                           ),
                           Text(
-                            'Lv.${r.level}',
+                            '${r.score.toInt()}일',
                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: tokens.textSub),
                           ),
                         ],
@@ -902,22 +895,15 @@ class _UserItemCard extends ConsumerWidget {
                           style: Theme.of(context).textTheme.titleMedium),
                       if (isRecommendation) ...[
                         const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Text('Lv.1',
-                                style: TextStyle(fontSize: 12, color: tokens.textSub)),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: tokens.primaryBg,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text('추천',
-                                  style: TextStyle(
-                                      fontSize: 10, color: tokens.primary)),
-                            ),
-                          ],
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: tokens.primaryBg,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text('추천',
+                              style: TextStyle(
+                                  fontSize: 10, color: tokens.primary)),
                         ),
                       ] else ...[
                         Text(user.username,

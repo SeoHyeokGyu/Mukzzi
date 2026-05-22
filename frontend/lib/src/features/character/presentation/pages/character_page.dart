@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 // import 'package:lottie/lottie.dart'; // mukzzi.json 추가 시 활성화
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
@@ -28,11 +27,8 @@ class CharacterPage extends ConsumerWidget {
 
     final char = charAsync.valueOrNull;
 
-    final level = char?.level ?? 1;
-    final xp = char?.exp.toDouble() ?? 0.0;
-    final xpGoal = level * AppConstants.xpGoalPerLevel;
+    final nutritionDays = char?.nutritionAchievementDays ?? 0;
     final state = char?.state ?? CharacterState.normal;
-    final evolutionLabel = char?.evolutionLabel ?? '부화 단계';
     final variant = ref.watch(characterVariantProvider);
 
     return GradientScaffold(
@@ -48,7 +44,7 @@ class CharacterPage extends ConsumerWidget {
               child: Column(
                 children: [
                   Text(
-                    'Lv.$level · $evolutionLabel',
+                    '영양 달성 $nutritionDays일',
                     style: TextStyle(fontSize: 13, color: tokens.textMuted),
                     textAlign: TextAlign.center,
                   ),
@@ -76,7 +72,7 @@ class CharacterPage extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _levelBadge('Lv.$level', tokens),
+                      _nutritionBadge('$nutritionDays일', tokens),
                       _statePill(state, tokens),
                     ],
                   ),
@@ -84,7 +80,6 @@ class CharacterPage extends ConsumerWidget {
                   MukzziCharacter(
                     state: state,
                     size: 200,
-                    level: level,
                     variant: variant,
                   ),
                   const SizedBox(height: 8),
@@ -119,87 +114,37 @@ class CharacterPage extends ConsumerWidget {
                         }).toList(),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          (1, '알'),
-                          (3, '아기'),
-                          (7, '청소년'),
-                          (15, '성체'),
-                          (30, '전설'),
-                        ].map(((int, String) entry) {
-                          final (lv, label) = entry;
-                          final isActive = switch (lv) {
-                            1  => level < 3,
-                            3  => level >= 3 && level < 7,
-                            7  => level >= 7 && level < 15,
-                            15 => level >= 15 && level < 30,
-                            _  => level >= 30,
-                          };
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ActionChip(
-                              label: Text('$label\nLv.$lv', style: const TextStyle(fontSize: 10), textAlign: TextAlign.center),
-                              onPressed: () => ref.read(testCharacterProvider.notifier).updateLevel(lv),
-                              backgroundColor: isActive ? tokens.primary.withValues(alpha: 0.2) : null,
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
                   ],
-                  const SizedBox(height: 12),
-                  Text(
-                    'Lv.${level + 1}까지 ${(xpGoal - xp).toInt()} XP',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black.withValues(alpha: 0.4),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('EXP', style: TextStyle(fontSize: 11, color: tokens.heroTextSub)),
-                      Text(
-                        '${xp.toInt()} / ${xpGoal.toInt()}',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: tokens.primary),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: (xp / xpGoal).clamp(0.0, 1.0),
-                      minHeight: 7,
-                      backgroundColor: Colors.black.withValues(alpha: 0.12),
-                      valueColor: AlwaysStoppedAnimation<Color>(tokens.primary),
-                    ),
-                  ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
 
-            // 진화 단계
-            Text('진화 단계', style: _sectionStyle(context, tokens)),
+            // 영양 달성
+            Text('영양 달성', style: _sectionStyle(context, tokens)),
             const SizedBox(height: 10),
             BentoCard(
               borderRadius: BorderRadius.circular(tokens.rCard),
               padding: const EdgeInsets.all(18),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _EvolutionStage(label: '알',    minLevel: 1,  current: level <= 2,                     done: level > 2,   tokens: tokens),
-                  _EvolutionStage(label: '아기',   minLevel: 3,  current: level >= 3 && level < 7,         done: level >= 7,  tokens: tokens),
-                  _EvolutionStage(label: '청소년', minLevel: 7,  current: level >= 7 && level < 15,        done: level >= 15, tokens: tokens),
-                  _EvolutionStage(label: '성체',   minLevel: 15, current: level >= 15 && level < 30,       done: level >= 30, tokens: tokens),
-                  _EvolutionStage(label: '전설',   minLevel: 30, current: level >= 30,                     done: false,       tokens: tokens),
+                  Icon(Icons.local_fire_department, color: tokens.primary, size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '누적 영양 균형 달성일',
+                          style: TextStyle(fontSize: 12, color: tokens.textMuted),
+                        ),
+                        Text(
+                          '$nutritionDays일',
+                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: tokens.textPrimary),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -268,7 +213,7 @@ class CharacterPage extends ConsumerWidget {
         color: tokens.textPrimary,
       );
 
-  Widget _levelBadge(String text, AppColorTokens tokens) => Container(
+  Widget _nutritionBadge(String text, AppColorTokens tokens) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
       color: Colors.black.withValues(alpha: 0.12),
@@ -297,64 +242,6 @@ class CharacterPage extends ConsumerWidget {
       child: Text(
         state.label,
         style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A)),
-      ),
-    );
-  }
-}
-
-class _EvolutionStage extends StatelessWidget {
-  final String label;
-  final int minLevel;
-  final bool current;
-  final bool done;
-  final AppColorTokens tokens;
-
-  const _EvolutionStage({
-    required this.label,
-    required this.minLevel,
-    required this.current,
-    required this.done,
-    required this.tokens,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            margin: const EdgeInsets.only(bottom: 6),
-            decoration: BoxDecoration(
-              color: current ? tokens.primary : done ? tokens.primaryBg : tokens.listItemBg,
-              borderRadius: BorderRadius.circular(12),
-              border: current || done ? null : Border.all(color: tokens.primary.withValues(alpha: 0.15)),
-            ),
-            child: Center(
-              child: done
-                  ? Icon(Icons.check, size: 16, color: tokens.primary)
-                  : current
-                      ? Icon(Icons.egg_outlined, size: 20, color: tokens.bg)
-                      : Text('?', style: TextStyle(color: tokens.textMuted.withValues(alpha: 0.4), fontSize: 16)),
-            ),
-          ),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: current ? FontWeight.w700 : FontWeight.w500,
-              color: current ? tokens.primary : tokens.textSub,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'Lv.$minLevel',
-            style: TextStyle(fontSize: 9, color: tokens.textMuted),
-            textAlign: TextAlign.center,
-          ),
-        ],
       ),
     );
   }
