@@ -221,44 +221,16 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 		}
 	}
 
-	// 경험치 부여 및 레벨업 판정
-	expAmount := 10
-	expResult, err := u.userUc.AddExp(input.UserID, expAmount)
-	if err != nil {
-		slog.Error("경험치 부여 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
-	}
-
-	var levelUpEvent *domain.LevelUpEvent
-	if expResult != nil && expResult.LeveledUp {
-		levelUpEvent = &domain.LevelUpEvent{
-			OldLevel: expResult.OldLevel,
-			NewLevel: expResult.NewLevel,
-		}
-		_ = u.notificationUsecase.CreateNotification(&domain.Notification{
-			UserID:  input.UserID,
-			Type:    domain.NotificationTypeLevelUp,
-			Title:   "레벨 업!",
-			Content: fmt.Sprintf("먹찌가 레벨 %d이 되었습니다!", expResult.NewLevel),
-		})
-
-		// 레벨업 이벤트 발행
-		go u.eventBus.Publish(domain.Event{
-			Type:      domain.EventLevelUp,
-			UserID:    input.UserID,
-			CreatedAt: time.Now(),
-			Payload:   map[string]interface{}{"new_level": expResult.NewLevel},
-		})
-		// 레벨업 퀘스트 즉시 처리
-		_, _ = u.questUc.HandleEvent(ctx, domain.Event{
-			Type:    domain.EventLevelUp,
-			UserID:  input.UserID,
-			Payload: map[string]interface{}{"new_level": expResult.NewLevel},
-		})
-	}
-
 	// streak 갱신
 	if err := u.userUc.UpdateStreakOnMeal(input.UserID, input.RecordedAt); err != nil {
 		slog.Error("streak 갱신 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
+	}
+
+	// 캐릭터 외형 재계산 (당일 영양소 기준)
+	var appearanceEvent *domain.AppearanceChangedEvent
+	appearanceEvent, err = u.userUc.RecalcAppearance(input.UserID, input.RecordedAt)
+	if err != nil {
+		slog.Error("외형 재계산 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
 	}
 
 	// 퀘스트 진행도 갱신
@@ -306,13 +278,11 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 	}()
 
 	output.SideEffects = &domain.MealSideEffects{
-		QuestsProgressed: progressedQuests,
-		// GrantedBadges는 이제 비동기로 처리되므로 응답에서는 즉시 확인 불가 (알림으로 대체)
-		GrantedBadges:  []domain.Badge{}, 
-		MasteryUpdated: masteryUpdate,
-		GrantedTitle:   grantedTitle,
-		ExpGained:      expAmount,
-		LevelUp:        levelUpEvent,
+		QuestsProgressed:  progressedQuests,
+		GrantedBadges:     []domain.Badge{},
+		MasteryUpdated:    masteryUpdate,
+		GrantedTitle:      grantedTitle,
+		AppearanceChanged: appearanceEvent,
 	}
 
 	return &output, nil
@@ -424,25 +394,7 @@ func (u *mealUsecase) AcceptFriendTag(mealID int64, taggedUserID int64) error {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return ErrTagNotFound
 	}
-	if err != nil {
-		return err
-	}
-
-	expResult, expErr := u.userUc.AddExp(taggedUserID, 5)
-	if expErr != nil {
-		slog.Error("친구 태그 수락 경험치 부여 실패", slog.Int64("user_id", taggedUserID), slog.Any("error", expErr))
-	} else if expResult != nil && expResult.LeveledUp {
-		go func() {
-			_ = u.notificationUsecase.CreateNotification(&domain.Notification{
-				UserID:  taggedUserID,
-				Type:    domain.NotificationTypeLevelUp,
-				Title:   "레벨 업!",
-				Content: fmt.Sprintf("먹찌가 레벨 %d이 되었습니다!", expResult.NewLevel),
-			})
-		}()
-	}
-
-	return nil
+	return err
 }
 
 func (u *mealUsecase) GetTodayNutrition(userID int64) (*domain.DailyIntake, error) {
