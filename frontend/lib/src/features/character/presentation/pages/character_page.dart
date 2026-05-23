@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'package:lottie/lottie.dart'; // mukzzi.json 추가 시 활성화
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
@@ -29,7 +28,6 @@ class CharacterPage extends ConsumerWidget {
 
     final nutritionDays = char?.nutritionAchievementDays ?? 0;
     final state = char?.state ?? CharacterState.normal;
-    final variant = ref.watch(characterVariantProvider);
 
     return GradientScaffold(
       appBar: AppBar(automaticallyImplyLeading: false, toolbarHeight: 0),
@@ -80,22 +78,6 @@ class CharacterPage extends ConsumerWidget {
                   MukzziCharacter(
                     state: state,
                     size: 200,
-                    variant: variant,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: CharacterVariant.values.map((v) {
-                      final selected = variant == v;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: FilterChip(
-                          label: Text(v.label, style: const TextStyle(fontSize: 11)),
-                          selected: selected,
-                          onSelected: (_) => ref.read(characterVariantProvider.notifier).setVariant(v),
-                        ),
-                      );
-                    }).toList(),
                   ),
                   if (isAdmin) ...[
                     const SizedBox(height: 16),
