@@ -5,17 +5,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:lottie/lottie.dart';
-import 'lottie_web_player_stub.dart' if (dart.library.js_interop) 'lottie_web_player_web.dart';
-
-enum CharacterVariant { v1, v2 }
-
-extension CharacterVariantLabel on CharacterVariant {
-  String get label => switch (this) {
-    CharacterVariant.v1 => '먹찌 1',
-    CharacterVariant.v2 => '먹찌 2',
-  };
-}
 
 enum CharacterState { normal, happy, hungry, starving, sleeping }
 
@@ -85,64 +74,16 @@ extension CharacterStateLabel on CharacterState {
 class MukzziCharacter extends StatelessWidget {
   final CharacterState state;
   final double size;
-  final CharacterVariant variant;
 
   const MukzziCharacter({
     super.key,
     this.state = CharacterState.normal,
     this.size = 160,
-    this.variant = CharacterVariant.v1,
   }) : assert(size >= 60, 'MukzziCharacter: size < 60 renders detail-loss. Use at least 80 for best results.');
 
   @override
   Widget build(BuildContext context) {
-    return switch (variant) {
-      CharacterVariant.v1 => _LottieCharacter(state: state, size: size),
-      CharacterVariant.v2 => _SvgLayeredCharacter(state: state, size: size),
-    };
-  }
-}
-
-class _LottieCharacter extends StatelessWidget {
-  final CharacterState state;
-  final double size;
-
-  const _LottieCharacter({required this.state, required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    final stateKey = state.key;
-    final assetPath = 'assets/animations/mukzzi_baby_$stateKey.json';
-
-    if (kIsWeb) {
-      return KeyedSubtree(
-        key: ValueKey(assetPath),
-        child: buildLottieWebPlayer('assets/$assetPath', size),
-      );
-    }
-
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Lottie.asset(
-        assetPath,
-        key: ValueKey(assetPath),
-        fit: BoxFit.contain,
-        repeat: true,
-        errorBuilder: (context, error, stackTrace) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.pets, size: size * 0.4, color: const Color(0xFF2D6BFF)),
-                const SizedBox(height: 4),
-                Text('Load Failed: $assetPath', style: const TextStyle(fontSize: 8, color: Colors.red)),
-              ],
-            ),
-          );
-        },
-      ),
-    );
+    return _SvgLayeredCharacter(state: state, size: size);
   }
 }
 
