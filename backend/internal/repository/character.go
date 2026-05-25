@@ -20,7 +20,7 @@ func NewCharacterRepository(db *gorm.DB) CharacterRepository {
 
 func (r *characterRepository) GetByUserID(userID int64) (*domain.Character, error) {
 	var char domain.Character
-	err := r.db.Where("user_id = ?", userID).First(&char).Error
+	err := r.db.Preload("EquippedBackground").Preload("EquippedAccessory").Where("user_id = ?", userID).First(&char).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil

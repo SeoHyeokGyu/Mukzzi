@@ -64,6 +64,7 @@ func NewRouter(
 		NotificationRoute(api, notificationHandler)
 		MealRoute(api, mealHandler)
 		QuestRoute(api, questHandler)
+		CharacterRoute(api, userHandler)
 	}
 
 	return r

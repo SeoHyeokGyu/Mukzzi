@@ -78,6 +78,7 @@ class CharacterPage extends ConsumerWidget {
                   MukzziCharacter(
                     state: state,
                     size: 200,
+                    showAccessory: char?.equippedAccessory != null,
                   ),
                   if (isAdmin) ...[
                     const SizedBox(height: 16),

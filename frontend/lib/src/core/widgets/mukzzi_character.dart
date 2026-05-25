@@ -74,26 +74,34 @@ extension CharacterStateLabel on CharacterState {
 class MukzziCharacter extends StatelessWidget {
   final CharacterState state;
   final double size;
+  final bool showAccessory; // 추가
 
   const MukzziCharacter({
     super.key,
     this.state = CharacterState.normal,
     this.size = 160,
+    this.showAccessory = true, // 추가
   }) : assert(size >= 60, 'MukzziCharacter: size < 60 renders detail-loss. Use at least 80 for best results.');
 
   @override
   Widget build(BuildContext context) {
-    return _SvgLayeredCharacter(state: state, size: size);
+    return _SvgLayeredCharacter(
+      state: state,
+      size: size,
+      showAccessory: showAccessory, // 추가
+    );
   }
 }
 
 class _SvgLayeredCharacter extends StatefulWidget {
   final CharacterState state;
   final double size;
+  final bool showAccessory; // 추가
 
   const _SvgLayeredCharacter({
     required this.state,
     required this.size,
+    required this.showAccessory, // 추가
   });
 
   @override
@@ -122,7 +130,7 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
   @override
   void didUpdateWidget(_SvgLayeredCharacter old) {
     super.didUpdateWidget(old);
-    if (old.state != widget.state) {
+    if (old.state != widget.state || old.showAccessory != widget.showAccessory) {
       setState(() => _visibleLayers = _requiredLayers);
       unawaited(_resolveOptionalLayers());
     }
@@ -201,6 +209,9 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
 
     final available = <String>[];
     for (final layer in _optionalLayers) {
+      if (layer == 'accessory' && !widget.showAccessory) {
+        continue;
+      }
       if (await _assetExists(_buildPath(layer, stateKey))) {
         available.add(layer);
       }

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
@@ -21,6 +22,11 @@ type UserStats struct {
 	StreakDays int   `json:"streak_days"`
 	BadgeCount int64 `json:"badge_count"`
 }
+
+var (
+	ErrInvalidID      = errors.New("유효하지 않은 ID입니다")
+	ErrRewardNotOwned = errors.New("소유하지 않았거나 올바르지 않은 타입의 아이템입니다")
+)
 
 // UserUsecase 인터페이스는 사용자 프로필 관련 비즈니스 로직을 정의합니다.
 type UserUsecase interface {
@@ -44,6 +50,7 @@ type UserUsecase interface {
 	SyncRankingToRedis(ctx context.Context) error
 	RecalcAppearance(userID int64, date time.Time) (*domain.AppearanceChangedEvent, error)
 	RunNutritionAchievementUpdate() error
+	EquipItem(userID int64, backgroundIDStr *string, accessoryIDStr *string) error
 }
 
 type userUsecase struct {
@@ -699,4 +706,80 @@ func (u *userUsecase) calculateNutritionTargets(body *domain.UserBody, goal *dom
 	goal.DailyCarbsTarget = int(kcalTarget * 0.5 / 4)
 	goal.DailyProteinTarget = int(kcalTarget * 0.3 / 4)
 	goal.DailyFatTarget = int(kcalTarget * 0.2 / 9)
+}
+
+// EquipItem 캐릭터 장비(배경, 악세사리) 장착 및 해제 비즈니스 로직
+func (u *userUsecase) EquipItem(userID int64, backgroundIDStr *string, accessoryIDStr *string) error {
+	// 1. 캐릭터 정보 가져오기
+	char, err := u.characterRepo.GetByUserID(userID)
+	if err != nil {
+		return err
+	}
+	if char == nil {
+		return errors.New("캐릭터를 찾을 수 없습니다")
+	}
+
+	// 2. 배경(Background) 검증 및 변경
+	if backgroundIDStr != nil {
+		if *backgroundIDStr == "" {
+			char.EquippedBackgroundID = nil
+			char.EquippedBackground = nil
+		} else {
+			bgID, err := strconv.ParseInt(*backgroundIDStr, 10, 64)
+			if err != nil {
+				return ErrInvalidID
+			}
+			// 소유 여부 및 리워드 타입 검증
+			var count int64
+			if err := u.db.Table("user_rewards").
+				Joins("JOIN rewards ON rewards.id = user_rewards.reward_id").
+				Where("user_id = ? AND reward_id = ? AND rewards.reward_type = 'BACKGROUND'", userID, bgID).
+				Count(&count).Error; err != nil {
+				return err
+			}
+			if count == 0 {
+				return ErrRewardNotOwned
+			}
+			char.EquippedBackgroundID = &bgID
+			char.EquippedBackground = nil
+		}
+	}
+
+	// 3. 악세사리(Accessory) 검증 및 변경
+	if accessoryIDStr != nil {
+		if *accessoryIDStr == "" {
+			char.EquippedAccessoryID = nil
+			char.EquippedAccessory = nil
+		} else {
+			accID, err := strconv.ParseInt(*accessoryIDStr, 10, 64)
+			if err != nil {
+				return ErrInvalidID
+			}
+			// 소유 여부 및 리워드 타입 검증
+			var count int64
+			if err := u.db.Table("user_rewards").
+				Joins("JOIN rewards ON rewards.id = user_rewards.reward_id").
+				Where("user_id = ? AND reward_id = ? AND rewards.reward_type = 'ACCESSORY'", userID, accID).
+				Count(&count).Error; err != nil {
+				return err
+			}
+			if count == 0 {
+				return ErrRewardNotOwned
+			}
+			char.EquippedAccessoryID = &accID
+			char.EquippedAccessory = nil
+		}
+	}
+
+	// 4. 저장 및 캐시 무효화
+	if err := u.characterRepo.Update(char); err != nil {
+		return err
+	}
+
+	// Redis의 사용자 프로필 및 캐릭터 캐시 무효화
+	ctx := context.Background()
+	u.rdb.Del(ctx, fmt.Sprintf("user:profile:%d", userID))
+	u.rdb.Del(ctx, fmt.Sprintf("user:char:%d", userID))
+
+	return nil
 }

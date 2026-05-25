@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"strconv"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/dto"
@@ -380,4 +381,39 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 // Deprecated: DeleteAccount 는 WithdrawAccount 로 대체됩니다.
 func (h *UserHandler) DeleteAccount(c *gin.Context) {
 	h.WithdrawAccount(c)
+}
+
+// EquipItem 캐릭터 장비 장착 및 해제
+// @Summary      캐릭터 장비 장착 및 해제
+// @Description  캐릭터의 배경이나 악세사리를 장착 또는 해제합니다.
+// @Tags         characters
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        EquipItemRequest   body      dto.EquipItemRequest   true  "장착 정보"
+// @Success      200  {object}  Response  "장착 설정 성공"
+// @Router       /api/characters/me/equipment [patch]
+func (h *UserHandler) EquipItem(c *gin.Context) {
+	userID, _ := c.Get("userID")
+
+	var req dto.EquipItemRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		BadRequest(c, "INVALID_REQUEST", "잘못된 요청 형식입니다.", err.Error())
+		return
+	}
+
+	if err := h.userUsecase.EquipItem(userID.(int64), req.BackgroundID, req.AccessoryID); err != nil {
+		if errors.Is(err, usecase.ErrInvalidID) {
+			BadRequest(c, "INVALID_ID", err.Error())
+			return
+		}
+		if errors.Is(err, usecase.ErrRewardNotOwned) {
+			BadRequest(c, "REWARD_NOT_OWNED", err.Error())
+			return
+		}
+		InternalError(c, "장비 장착/해제에 실패했습니다.", err.Error())
+		return
+	}
+
+	Success(c, nil)
 }

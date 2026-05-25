@@ -30,8 +30,10 @@ class CharacterRepository {
 
   Future<void> equipItem({int? backgroundId, int? accessoryId}) async {
     await _apiClient.patch('/characters/me/equipment', data: {
-      if (backgroundId != null) 'background_id': backgroundId.toString(),
-      if (accessoryId != null) 'accessory_id': accessoryId.toString(),
+      if (backgroundId != null)
+        'background_id': backgroundId == 0 ? "" : backgroundId.toString(),
+      if (accessoryId != null)
+        'accessory_id': accessoryId == 0 ? "" : accessoryId.toString(),
     });
   }
 }

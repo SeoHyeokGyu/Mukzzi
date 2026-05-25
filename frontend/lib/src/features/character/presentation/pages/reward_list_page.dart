@@ -105,25 +105,39 @@ class _RewardCard extends ConsumerWidget {
   bool get _isEquippable =>
       reward.acquired && (reward.rewardType == 'BACKGROUND' || reward.rewardType == 'ACCESSORY');
 
-  Future<void> _equip(BuildContext context, WidgetRef ref) async {
+  Future<void> _toggleEquip(BuildContext context, WidgetRef ref, bool isCurrentlyEquipped) async {
     try {
       final id = int.tryParse(reward.id) ?? 0;
       final repo = ref.read(characterRepositoryProvider);
-      if (reward.rewardType == 'BACKGROUND') {
-        await repo.equipItem(backgroundId: id);
+      if (isCurrentlyEquipped) {
+        if (reward.rewardType == 'BACKGROUND') {
+          await repo.equipItem(backgroundId: 0);
+        } else {
+          await repo.equipItem(accessoryId: 0);
+        }
+        ref.invalidate(characterProvider);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('장착 해제되었습니다.')),
+          );
+        }
       } else {
-        await repo.equipItem(accessoryId: id);
-      }
-      ref.invalidate(characterProvider);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('장착되었습니다.')),
-        );
+        if (reward.rewardType == 'BACKGROUND') {
+          await repo.equipItem(backgroundId: id);
+        } else {
+          await repo.equipItem(accessoryId: id);
+        }
+        ref.invalidate(characterProvider);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('장착되었습니다.')),
+          );
+        }
       }
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('장착에 실패했습니다.')),
+          SnackBar(content: Text(isCurrentlyEquipped ? '장착 해제에 실패했습니다.' : '장착에 실패했습니다.')),
         );
       }
     }
@@ -132,6 +146,10 @@ class _RewardCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final acquired = reward.acquired;
+    final char = ref.watch(characterProvider).value;
+    final isEquipped = char != null &&
+        ((reward.rewardType == 'BACKGROUND' && char.equippedBackground?.id == reward.id) ||
+         (reward.rewardType == 'ACCESSORY' && char.equippedAccessory?.id == reward.id));
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -189,21 +207,23 @@ class _RewardCard extends ConsumerWidget {
               ],
             ),
           ),
+
+
           if (_isEquippable)
             GestureDetector(
-              onTap: () => _equip(context, ref),
+              onTap: () => _toggleEquip(context, ref, isEquipped),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: AppColors.softPeach,
+                  color: isEquipped ? AppColors.surfaceDark : AppColors.softPeach,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Text(
-                  '장착',
+                child: Text(
+                  isEquipped ? '해제' : '장착',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.orange,
+                    color: isEquipped ? AppColors.textSecondary : AppColors.orange,
                   ),
                 ),
               ),

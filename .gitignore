@@ -53,3 +53,4 @@ backend/tmp/
 .handoff/*
 /docs/superpowers/
 .worktrees/
+.antigravitycli/
