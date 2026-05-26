@@ -19,7 +19,8 @@ class RewardListPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('보상 아이템')),
       body: rewardsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => CollectionErrorState(onRetry: () => ref.invalidate(rewardListProvider)),
+        error: (_, __) => CollectionErrorState(
+            onRetry: () => ref.invalidate(rewardListProvider)),
         data: (rewards) {
           if (rewards.isEmpty) {
             return const CollectionEmptyState(
@@ -73,9 +74,9 @@ class _RewardGroup extends StatelessWidget {
           ),
         ),
         ...rewards.map((r) => Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: _RewardCard(reward: r),
-        )),
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _RewardCard(reward: r),
+            )),
         const SizedBox(height: 8),
       ],
     );
@@ -103,17 +104,18 @@ class _RewardCard extends ConsumerWidget {
   }
 
   bool get _isEquippable =>
-      reward.acquired && (reward.rewardType == 'BACKGROUND' || reward.rewardType == 'ACCESSORY');
+      reward.acquired &&
+      (reward.rewardType == 'BACKGROUND' || reward.rewardType == 'ACCESSORY');
 
-  Future<void> _toggleEquip(BuildContext context, WidgetRef ref, bool isCurrentlyEquipped) async {
+  Future<void> _toggleEquip(
+      BuildContext context, WidgetRef ref, bool isCurrentlyEquipped) async {
     try {
-      final id = int.tryParse(reward.id) ?? 0;
       final repo = ref.read(characterRepositoryProvider);
       if (isCurrentlyEquipped) {
         if (reward.rewardType == 'BACKGROUND') {
-          await repo.equipItem(backgroundId: 0);
+          await repo.equipItem(backgroundId: '');
         } else {
-          await repo.equipItem(accessoryId: 0);
+          await repo.equipItem(accessoryId: '');
         }
         ref.invalidate(characterProvider);
         if (context.mounted) {
@@ -123,9 +125,9 @@ class _RewardCard extends ConsumerWidget {
         }
       } else {
         if (reward.rewardType == 'BACKGROUND') {
-          await repo.equipItem(backgroundId: id);
+          await repo.equipItem(backgroundId: reward.id);
         } else {
-          await repo.equipItem(accessoryId: id);
+          await repo.equipItem(accessoryId: reward.id);
         }
         ref.invalidate(characterProvider);
         if (context.mounted) {
@@ -137,7 +139,9 @@ class _RewardCard extends ConsumerWidget {
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(isCurrentlyEquipped ? '장착 해제에 실패했습니다.' : '장착에 실패했습니다.')),
+          SnackBar(
+              content:
+                  Text(isCurrentlyEquipped ? '장착 해제에 실패했습니다.' : '장착에 실패했습니다.')),
         );
       }
     }
@@ -148,8 +152,10 @@ class _RewardCard extends ConsumerWidget {
     final acquired = reward.acquired;
     final char = ref.watch(characterProvider).value;
     final isEquipped = char != null &&
-        ((reward.rewardType == 'BACKGROUND' && char.equippedBackground?.id == reward.id) ||
-         (reward.rewardType == 'ACCESSORY' && char.equippedAccessory?.id == reward.id));
+        ((reward.rewardType == 'BACKGROUND' &&
+                char.equippedBackground?.id == reward.id) ||
+            (reward.rewardType == 'ACCESSORY' &&
+                char.equippedAccessory?.id == reward.id));
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -183,7 +189,9 @@ class _RewardCard extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: acquired ? AppColors.textPrimary : AppColors.textTertiary,
+                    color: acquired
+                        ? AppColors.textPrimary
+                        : AppColors.textTertiary,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -197,7 +205,8 @@ class _RewardCard extends ConsumerWidget {
                 if (acquired && reward.achievedAt != null) ...[
                   const SizedBox(height: 3),
                   Text(
-                    DateFormat('yyyy.MM.dd').format(reward.achievedAt!.toLocal()),
+                    DateFormat('yyyy.MM.dd')
+                        .format(reward.achievedAt!.toLocal()),
                     style: const TextStyle(
                       fontSize: 11,
                       color: AppColors.textTertiary,
@@ -207,15 +216,15 @@ class _RewardCard extends ConsumerWidget {
               ],
             ),
           ),
-
-
           if (_isEquippable)
             GestureDetector(
               onTap: () => _toggleEquip(context, ref, isEquipped),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: isEquipped ? AppColors.surfaceDark : AppColors.softPeach,
+                  color:
+                      isEquipped ? AppColors.surfaceDark : AppColors.softPeach,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -223,7 +232,8 @@ class _RewardCard extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: isEquipped ? AppColors.textSecondary : AppColors.orange,
+                    color:
+                        isEquipped ? AppColors.textSecondary : AppColors.orange,
                   ),
                 ),
               ),
@@ -261,4 +271,3 @@ class _RewardCard extends ConsumerWidget {
     );
   }
 }
-
