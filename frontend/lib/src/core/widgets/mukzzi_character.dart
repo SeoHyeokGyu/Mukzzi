@@ -8,65 +8,94 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 enum CharacterState { normal, happy, hungry, starving, sleeping }
 
-
 extension CharacterStateLabel on CharacterState {
   String get label {
     switch (this) {
-      case CharacterState.normal:   return '정상';
-      case CharacterState.happy:    return '행복';
-      case CharacterState.hungry:   return '배고픔';
-      case CharacterState.starving: return '굶주림';
-      case CharacterState.sleeping: return '수면';
+      case CharacterState.normal:
+        return '정상';
+      case CharacterState.happy:
+        return '행복';
+      case CharacterState.hungry:
+        return '배고픔';
+      case CharacterState.starving:
+        return '굶주림';
+      case CharacterState.sleeping:
+        return '수면';
     }
   }
 
   String get message {
     switch (this) {
-      case CharacterState.normal:   return '식사를 기록하면 먹찌가 성장해요';
-      case CharacterState.happy:    return '맛있는 거 먹어서 기분 좋아요!';
-      case CharacterState.hungry:   return '배가 고파요! 뭔가 드세요';
-      case CharacterState.starving: return '배고파요... 밥 주세요';
-      case CharacterState.sleeping: return '먹찌는 꿈나라 여행 중...';
+      case CharacterState.normal:
+        return '식사를 기록하면 먹찌가 성장해요';
+      case CharacterState.happy:
+        return '맛있는 거 먹어서 기분 좋아요!';
+      case CharacterState.hungry:
+        return '배가 고파요! 뭔가 드세요';
+      case CharacterState.starving:
+        return '배고파요... 밥 주세요';
+      case CharacterState.sleeping:
+        return '먹찌는 꿈나라 여행 중...';
     }
   }
 
   String get key {
     switch (this) {
-      case CharacterState.normal:   return 'idle';
-      case CharacterState.happy:    return 'happy';
-      case CharacterState.hungry:   return 'hungry';
-      case CharacterState.starving: return 'starving';
-      case CharacterState.sleeping: return 'sleeping';
+      case CharacterState.normal:
+        return 'idle';
+      case CharacterState.happy:
+        return 'happy';
+      case CharacterState.hungry:
+        return 'hungry';
+      case CharacterState.starving:
+        return 'starving';
+      case CharacterState.sleeping:
+        return 'sleeping';
     }
   }
 
   IconData get icon {
     switch (this) {
-      case CharacterState.normal:   return Icons.sentiment_neutral_outlined;
-      case CharacterState.happy:    return Icons.sentiment_very_satisfied_outlined;
-      case CharacterState.hungry:   return Icons.lunch_dining_outlined;
-      case CharacterState.starving: return Icons.warning_amber_outlined;
-      case CharacterState.sleeping: return Icons.bedtime_outlined;
+      case CharacterState.normal:
+        return Icons.sentiment_neutral_outlined;
+      case CharacterState.happy:
+        return Icons.sentiment_very_satisfied_outlined;
+      case CharacterState.hungry:
+        return Icons.lunch_dining_outlined;
+      case CharacterState.starving:
+        return Icons.warning_amber_outlined;
+      case CharacterState.sleeping:
+        return Icons.bedtime_outlined;
     }
   }
 
   Color get crownColor {
     switch (this) {
-      case CharacterState.normal:   return const Color(0xFF2D6BFF);
-      case CharacterState.happy:    return const Color(0xFFFF85A1);
-      case CharacterState.hungry:   return const Color(0xFFFFCC33);
-      case CharacterState.starving: return const Color(0xFFFF4444);
-      case CharacterState.sleeping: return const Color(0xFF7C4DFF);
+      case CharacterState.normal:
+        return const Color(0xFF2D6BFF);
+      case CharacterState.happy:
+        return const Color(0xFFFF85A1);
+      case CharacterState.hungry:
+        return const Color(0xFFFFCC33);
+      case CharacterState.starving:
+        return const Color(0xFFFF4444);
+      case CharacterState.sleeping:
+        return const Color(0xFF7C4DFF);
     }
   }
 
   Color get indicatorColor {
     switch (this) {
-      case CharacterState.normal:   return const Color(0xFF4CAF50);
-      case CharacterState.happy:    return const Color(0xFFFF85A1);
-      case CharacterState.hungry:   return const Color(0xFFFFCC33);
-      case CharacterState.starving: return const Color(0xFFFF4444);
-      case CharacterState.sleeping: return const Color(0xFF7C4DFF);
+      case CharacterState.normal:
+        return const Color(0xFF4CAF50);
+      case CharacterState.happy:
+        return const Color(0xFFFF85A1);
+      case CharacterState.hungry:
+        return const Color(0xFFFFCC33);
+      case CharacterState.starving:
+        return const Color(0xFFFF4444);
+      case CharacterState.sleeping:
+        return const Color(0xFF7C4DFF);
     }
   }
 }
@@ -76,7 +105,6 @@ class MukzziCharacter extends StatelessWidget {
   final double size;
   final bool showAccessory;
   final String? equippedAccessory;
-  final String growthStage;
 
   const MukzziCharacter({
     super.key,
@@ -84,8 +112,8 @@ class MukzziCharacter extends StatelessWidget {
     this.size = 160,
     this.showAccessory = false,
     this.equippedAccessory,
-    this.growthStage = 'baby',
-  }) : assert(size >= 60, 'MukzziCharacter: size < 60 renders detail-loss. Use at least 80 for best results.');
+  }) : assert(size >= 60,
+            'MukzziCharacter: size < 60 renders detail-loss. Use at least 80 for best results.');
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +122,6 @@ class MukzziCharacter extends StatelessWidget {
       size: size,
       showAccessory: showAccessory,
       equippedAccessory: equippedAccessory,
-      growthStage: growthStage,
     );
   }
 }
@@ -104,14 +131,12 @@ class _SvgLayeredCharacter extends StatefulWidget {
   final double size;
   final bool showAccessory;
   final String? equippedAccessory;
-  final String growthStage;
 
   const _SvgLayeredCharacter({
     required this.state,
     required this.size,
     required this.showAccessory,
     this.equippedAccessory,
-    required this.growthStage,
   });
 
   @override
@@ -142,8 +167,7 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
     super.didUpdateWidget(old);
     if (old.state != widget.state ||
         old.showAccessory != widget.showAccessory ||
-        old.equippedAccessory != widget.equippedAccessory ||
-        old.growthStage != widget.growthStage) {
+        old.equippedAccessory != widget.equippedAccessory) {
       setState(() => _visibleLayers = _requiredLayers);
       unawaited(_resolveOptionalLayers());
     }
@@ -155,12 +179,12 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
   }
 
   Duration get _duration => switch (widget.state) {
-    CharacterState.sleeping => const Duration(milliseconds: 2800),
-    CharacterState.happy    => const Duration(milliseconds: 650),
-    CharacterState.hungry   => const Duration(milliseconds: 700),
-    CharacterState.starving => const Duration(milliseconds: 400),
-    _                       => const Duration(milliseconds: 2000),
-  };
+        CharacterState.sleeping => const Duration(milliseconds: 2800),
+        CharacterState.happy => const Duration(milliseconds: 650),
+        CharacterState.hungry => const Duration(milliseconds: 700),
+        CharacterState.starving => const Duration(milliseconds: 400),
+        _ => const Duration(milliseconds: 2000),
+      };
 
   void _startRepeat() {
     _ctrl.repeat(reverse: widget.state != CharacterState.happy);
@@ -168,16 +192,16 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
 
   void _setupAnimation() {
     _anim = switch (widget.state) {
-      CharacterState.sleeping => Tween(begin: 0.97, end: 1.03).animate(
-          CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut)),
-      CharacterState.happy    => Tween(begin: 0.0, end: -18.0).animate(
-          CurvedAnimation(parent: _ctrl, curve: Curves.easeOut)),
-      CharacterState.hungry   => Tween(begin: -5.0, end: 5.0).animate(
-          CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut)),
-      CharacterState.starving => Tween(begin: -6.0, end: 6.0).animate(
-          CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut)),
-      _                       => Tween(begin: 0.0, end: -8.0).animate(
-          CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut)),
+      CharacterState.sleeping => Tween(begin: 0.97, end: 1.03)
+          .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut)),
+      CharacterState.happy => Tween(begin: 0.0, end: -18.0)
+          .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut)),
+      CharacterState.hungry => Tween(begin: -5.0, end: 5.0)
+          .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut)),
+      CharacterState.starving => Tween(begin: -6.0, end: 6.0)
+          .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut)),
+      _ => Tween(begin: 0.0, end: -8.0)
+          .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut)),
     };
   }
 
@@ -191,15 +215,16 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
 
   String? _resolvedStateKey;
 
+  String _accessoryAssetName() {
+    return widget.equippedAccessory ?? '';
+  }
+
   String _buildPath(String layer, String stateKey) {
-    final stage = widget.growthStage;
     if (layer == 'accessory') {
-      final name = (widget.equippedAccessory != null && widget.equippedAccessory!.isNotEmpty)
-          ? widget.equippedAccessory!
-          : 'accessory';
-      return 'assets/svg/mukzzi2_${stage}_${stateKey}_$name.svg';
+      final name = _accessoryAssetName();
+      return 'assets/svg/mukzzi2_$name.svg';
     }
-    return 'assets/svg/mukzzi2_${stage}_${stateKey}_$layer.svg';
+    return 'assets/svg/mukzzi2_${stateKey}_$layer.svg';
   }
 
   String _path(String layer) =>
@@ -269,18 +294,17 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
       child: svgStack,
       builder: (_, child) => switch (widget.state) {
         CharacterState.sleeping => Transform.scale(
-          scale: _anim.value,
-          child: child,
-        ),
-        CharacterState.hungry ||
-        CharacterState.starving => Transform.translate(
-          offset: Offset(_anim.value, 0),
-          child: child,
-        ),
+            scale: _anim.value,
+            child: child,
+          ),
+        CharacterState.hungry || CharacterState.starving => Transform.translate(
+            offset: Offset(_anim.value, 0),
+            child: child,
+          ),
         _ => Transform.translate(
-          offset: Offset(0, _anim.value),
-          child: child,
-        ),
+            offset: Offset(0, _anim.value),
+            child: child,
+          ),
       },
     );
   }

@@ -15,16 +15,6 @@ class CharacterModel {
   final RewardModel? equippedBackground;
   final RewardModel? equippedAccessory;
 
-  String get growthStage {
-    if (nutritionAchievementDays >= 7) {
-      return 'adult';
-    } else if (nutritionAchievementDays >= 3) {
-      return 'teen';
-    } else {
-      return 'baby';
-    }
-  }
-
   const CharacterModel({
     required this.id,
     required this.userId,
@@ -88,8 +78,7 @@ class CharacterModel {
       muscle: json['muscle'] as int? ?? 0,
       skinTone: json['skin_tone'] as int? ?? 0,
       expression: json['expression'] as int? ?? 0,
-      nutritionAchievementDays:
-          json['nutrition_achievement_days'] as int? ?? 0,
+      nutritionAchievementDays: json['nutrition_achievement_days'] as int? ?? 0,
       equippedBackground: json['equipped_background'] != null
           ? RewardModel.fromJson(
               json['equipped_background'] as Map<String, dynamic>)

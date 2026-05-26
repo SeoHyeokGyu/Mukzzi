@@ -330,6 +330,21 @@ func (u *userUsecase) Onboarding(id int64, mukzziName string, height, weight flo
 			return err
 		}
 
+		var capReward domain.Reward
+		if err := tx.Where("code = ?", "CAP_ACCESSORY").First(&capReward).Error; err == nil {
+			userReward := &domain.UserReward{
+				UserID:     id,
+				RewardID:   capReward.ID,
+				AchievedAt: time.Now(),
+			}
+			if err := tx.Where(domain.UserReward{
+				UserID:   id,
+				RewardID: capReward.ID,
+			}).FirstOrCreate(userReward).Error; err != nil {
+				return err
+			}
+		}
+
 		// 온보딩 완료 시 관련 캐시 무효화
 		u.rdb.Del(context.Background(), fmt.Sprintf("user:char:%d", id))
 		u.rdb.Del(context.Background(), fmt.Sprintf("user:profile:%d", id))
@@ -404,7 +419,7 @@ func (u *userUsecase) RecalcAppearance(userID int64, date time.Time) (*domain.Ap
 // 달성한 유저의 nutrition_achievement_days를 1 증가시킨다.
 func (u *userUsecase) RunNutritionAchievementUpdate() error {
 	kst := time.FixedZone("KST", 9*60*60)
-	yesterday := time.Now().In(kst).Truncate(24 * time.Hour).AddDate(0, 0, -1)
+	yesterday := time.Now().In(kst).Truncate(24*time.Hour).AddDate(0, 0, -1)
 
 	type row struct {
 		UserID int64
@@ -768,17 +783,14 @@ func (u *userUsecase) EquipItem(userID int64, backgroundIDStr *string, accessory
 				return ErrRewardNotOwned
 			}
 
-			// 기본 액세서리(DEFAULT_ACCESSORY)는 소유권 검증 예외 처리
-			if reward.Code != "DEFAULT_ACCESSORY" {
-				var count int64
-				if err := u.db.Table("user_rewards").
-					Where("user_id = ? AND reward_id = ?", userID, accID).
-					Count(&count).Error; err != nil {
-					return err
-				}
-				if count == 0 {
-					return ErrRewardNotOwned
-				}
+			var count int64
+			if err := u.db.Table("user_rewards").
+				Where("user_id = ? AND reward_id = ?", userID, accID).
+				Count(&count).Error; err != nil {
+				return err
+			}
+			if count == 0 {
+				return ErrRewardNotOwned
 			}
 
 			char.EquippedAccessoryID = &accID

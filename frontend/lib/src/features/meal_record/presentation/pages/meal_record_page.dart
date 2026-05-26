@@ -1039,7 +1039,10 @@ class _FavoriteToggle extends StatelessWidget {
           const Text('내 즐겨찾기에 추가',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           Switch(
-              value: value, onChanged: onChanged, activeColor: tokens.primary),
+            value: value,
+            onChanged: onChanged,
+            activeThumbColor: tokens.primary,
+          ),
         ],
       ),
     );

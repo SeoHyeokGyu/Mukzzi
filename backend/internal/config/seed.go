@@ -108,16 +108,11 @@ func SeedRewards(db *gorm.DB) {
 	}
 
 	// 1. 기존 데이터 백필 (Code 컬럼이 누락/비어있는 데이터 보정)
-	// ID가 1번인 레코드는 ID가 1번이라는 이유로 DEFAULT_ACCESSORY로 매핑하지 않고, 오직 Name이 "기본 액세서리"인 레코드만 DEFAULT_ACCESSORY로 간주합니다.
-	// 나머지 레코드는 REWARD_<ID> 로 백필하여 기존 데이터의 ID 및 컨텐츠 가치를 보존합니다.
+	// 기존 보상 데이터의 ID 및 컨텐츠 가치를 보존하기 위해 REWARD_<ID> 로 백필합니다.
 	var itemsWithoutCode []domain.Reward
 	if err := db.Where("code IS NULL OR code = ''").Find(&itemsWithoutCode).Error; err == nil {
 		for _, item := range itemsWithoutCode {
-			if item.Name == "기본 액세서리" {
-				item.Code = "DEFAULT_ACCESSORY"
-			} else {
-				item.Code = "REWARD_" + item.IDString()
-			}
+			item.Code = "REWARD_" + item.IDString()
 			if err := db.Save(&item).Error; err != nil {
 				slog.Error("기본 데이터 백필 업데이트 실패", slog.Int64("id", item.ID), slog.Any("error", err))
 			}
@@ -133,10 +128,10 @@ func SeedRewards(db *gorm.DB) {
 	rewards := []domain.Reward{
 		{
 			RewardType:  domain.RewardAccessory,
-			Code:        "DEFAULT_ACCESSORY",
-			Name:        "기본 액세서리",
-			Description: "먹찌 캐릭터의 기본 액세서리입니다.",
-			AssetURL:    "accessory",
+			Code:        "CAP_ACCESSORY",
+			Name:        "먹찌 캡",
+			Description: "먹찌 캐릭터가 착용하는 캡 모자입니다.",
+			AssetURL:    "cap",
 		},
 	}
 
@@ -161,12 +156,11 @@ func SeedRewards(db *gorm.DB) {
 		}
 	}
 
-	var defaultAccessory domain.Reward
-	if err := db.Where("code = ?", "DEFAULT_ACCESSORY").First(&defaultAccessory).Error; err != nil {
-		slog.Error("기본 액세서리 조회 실패", slog.Any("error", err))
+	var capReward domain.Reward
+	if err := db.Where("code = ?", "CAP_ACCESSORY").First(&capReward).Error; err != nil {
+		slog.Error("캡 액세서리 조회 실패", slog.Any("error", err))
 		return
 	}
-	defaultAccessoryID := defaultAccessory.ID
 
 	var users []domain.User
 	if err := db.Find(&users).Error; err != nil {
@@ -177,16 +171,16 @@ func SeedRewards(db *gorm.DB) {
 	for _, u := range users {
 		userReward := domain.UserReward{
 			UserID:     u.ID,
-			RewardID:   defaultAccessoryID,
+			RewardID:   capReward.ID,
 			AchievedAt: time.Now(),
 		}
 		if err := db.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "user_id"}, {Name: "reward_id"}},
 			DoNothing: true,
 		}).Create(&userReward).Error; err != nil {
-			slog.Error("유저 보상 지급 실패", slog.Int64("user_id", u.ID), slog.Any("error", err))
+			slog.Error("캡 액세서리 지급 실패", slog.Int64("user_id", u.ID), slog.Any("error", err))
 		}
 	}
 
-	slog.Info("보상 시드 및 소유권 지급 완료")
+	slog.Info("보상 시드 및 기본 액세서리 지급 완료")
 }

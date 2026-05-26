@@ -54,7 +54,8 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     // 튜토리얼 퀘스트가 진행 중인지 확인
     final hasTutorialQuest = quests.any(
-      (q) => q.code == 'TUTORIAL_FIRST_MEAL' && q.status == QuestStatus.progress,
+      (q) =>
+          q.code == 'TUTORIAL_FIRST_MEAL' && q.status == QuestStatus.progress,
     );
 
     if (hasTutorialQuest) {
@@ -70,19 +71,23 @@ class _HomePageState extends ConsumerState<HomePage> {
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
 
     ref.listen(notificationProvider, (previous, next) {
-      if (previous == null || (previous.notifications.isEmpty && next.notifications.isNotEmpty)) {
+      if (previous == null ||
+          (previous.notifications.isEmpty && next.notifications.isNotEmpty)) {
         return;
       }
       if (next.notifications.length > previous.notifications.length) {
         final newNotification = next.notifications.first;
-        final isRecent = DateTime.now().difference(newNotification.createdAt).inMinutes < 1;
+        final isRecent =
+            DateTime.now().difference(newNotification.createdAt).inMinutes < 1;
         if (!newNotification.isRead && isRecent) {
-          final isQuest = newNotification.type == NotificationType.questCompleted;
-          final isBadge = newNotification.type == NotificationType.badgeAcquired;
+          final isQuest =
+              newNotification.type == NotificationType.questCompleted;
+          final isBadge =
+              newNotification.type == NotificationType.badgeAcquired;
           final isSpecial = isQuest || isBadge;
-          
+
           if (!context.mounted) return;
-          
+
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -93,18 +98,26 @@ class _HomePageState extends ConsumerState<HomePage> {
                     height: 42,
                     decoration: BoxDecoration(
                       gradient: isSpecial ? AppColors.primaryGradient : null,
-                      color: isSpecial ? null : tokens.primary.withValues(alpha: 0.12),
+                      color: isSpecial
+                          ? null
+                          : tokens.primary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: isSpecial ? [
-                        BoxShadow(
-                          color: tokens.primary.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        )
-                      ] : null,
+                      boxShadow: isSpecial
+                          ? [
+                              BoxShadow(
+                                color: tokens.primary.withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              )
+                            ]
+                          : null,
                     ),
                     child: Icon(
-                      isQuest ? Icons.emoji_events_rounded : (isBadge ? Icons.verified_rounded : Icons.notifications_rounded),
+                      isQuest
+                          ? Icons.emoji_events_rounded
+                          : (isBadge
+                              ? Icons.verified_rounded
+                              : Icons.notifications_rounded),
                       color: isSpecial ? Colors.white : tokens.primary,
                       size: 22,
                     ),
@@ -147,7 +160,9 @@ class _HomePageState extends ConsumerState<HomePage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(tokens.rItem + 4),
                 side: BorderSide(
-                  color: isSpecial ? tokens.primary.withValues(alpha: 0.4) : tokens.textMuted.withValues(alpha: 0.1),
+                  color: isSpecial
+                      ? tokens.primary.withValues(alpha: 0.4)
+                      : tokens.textMuted.withValues(alpha: 0.1),
                   width: 1.5,
                 ),
               ),
@@ -198,7 +213,8 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     final now = DateTime.now();
     final dateLabel = DateFormat('M월 d일 (E)', 'ko').format(now);
-    final nickname = userState.user?.nickname ?? userState.user?.username ?? '먹찌';
+    final nickname =
+        userState.user?.nickname ?? userState.user?.username ?? '먹찌';
 
     return GradientScaffold(
       appBar: AppBar(
@@ -239,10 +255,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                       color: Colors.red,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                    constraints:
+                        const BoxConstraints(minWidth: 16, minHeight: 16),
                     child: Text(
                       unreadCount > 99 ? '99+' : '$unreadCount',
-                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -282,18 +302,21 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget _animated(Widget child, {Duration? delay, bool slideY = false}) {
     if (MediaQuery.of(context).disableAnimations) return child;
     var effect = child.animate().fadeIn(
-      delay: delay ?? Duration.zero,
-      duration: const Duration(milliseconds: 300),
-    );
+          delay: delay ?? Duration.zero,
+          duration: const Duration(milliseconds: 300),
+        );
     return slideY
-        ? effect.slideY(begin: 0.08, end: 0, duration: const Duration(milliseconds: 300))
+        ? effect.slideY(
+            begin: 0.08, end: 0, duration: const Duration(milliseconds: 300))
         : effect;
   }
 
   Widget _buildContent(AppColorTokens tokens) {
     // 유저 데이터 없으면 재요청
     final userState = ref.watch(userProvider);
-    if (userState.user == null && !userState.isLoading && userState.error == null) {
+    if (userState.user == null &&
+        !userState.isLoading &&
+        userState.error == null) {
       Future.microtask(() => ref.read(userProvider.notifier).fetchMe());
     }
 
@@ -314,7 +337,8 @@ class _HomePageState extends ConsumerState<HomePage> {
             error: (_, __) => _buildHeroCard(tokens, null),
           ),
           const SizedBox(height: 12),
-          _buildStreakQuestRow(tokens, dailyQuests, characterAsync.asData?.value.streakDays ?? 0),
+          _buildStreakQuestRow(tokens, dailyQuests,
+              characterAsync.asData?.value.streakDays ?? 0),
           const SizedBox(height: 12),
           _buildQuickCTAs(tokens),
           const SizedBox(height: 12),
@@ -343,7 +367,8 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _buildWeeklyTrendChart(AppColorTokens tokens, List<WeeklyNutritionItemModel> weekly) {
+  Widget _buildWeeklyTrendChart(
+      AppColorTokens tokens, List<WeeklyNutritionItemModel> weekly) {
     if (weekly.isEmpty) return const SizedBox.shrink();
 
     final chart = BentoCard(
@@ -354,7 +379,10 @@ class _HomePageState extends ConsumerState<HomePage> {
         children: [
           Text(
             '주간 영양 트렌드',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: tokens.textPrimary),
+            style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                color: tokens.textPrimary),
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -363,21 +391,27 @@ class _HomePageState extends ConsumerState<HomePage> {
               LineChartData(
                 gridData: const FlGridData(show: false),
                 titlesData: FlTitlesData(
-                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  leftTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
-                        if (index < 0 || index >= weekly.length) return const SizedBox.shrink();
+                        if (index < 0 || index >= weekly.length) {
+                          return const SizedBox.shrink();
+                        }
                         final date = DateTime.parse(weekly[index].date);
                         return Padding(
                           padding: const EdgeInsets.only(top: 8.0),
                           child: Text(
                             DateFormat('E', 'ko').format(date),
-                            style: TextStyle(fontSize: 10, color: tokens.textMuted),
+                            style: TextStyle(
+                                fontSize: 10, color: tokens.textMuted),
                           ),
                         );
                       },
@@ -466,7 +500,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             size: 160,
             showAccessory: char?.equippedAccessory != null,
             equippedAccessory: char?.equippedAccessory?.assetUrl,
-            growthStage: char != null ? char.growthStage : 'baby',
           ),
           const SizedBox(height: 8),
           Text(
@@ -489,7 +522,8 @@ class _HomePageState extends ConsumerState<HomePage> {
     return _animated(card, slideY: true);
   }
 
-  Widget _buildStreakQuestRow(AppColorTokens tokens, List<Quest> quests, int streakDays) {
+  Widget _buildStreakQuestRow(
+      AppColorTokens tokens, List<Quest> quests, int streakDays) {
     final row = BentoCard(
       borderRadius: BorderRadius.circular(tokens.rCard),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -500,7 +534,10 @@ class _HomePageState extends ConsumerState<HomePage> {
           const SizedBox(width: 4),
           Text(
             '연속 $streakDays일',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: tokens.primary),
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: tokens.primary),
           ),
           const SizedBox(width: 12),
           Container(width: 1, height: 28, color: tokens.primaryBg),
@@ -534,7 +571,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                               minHeight: 4,
                               backgroundColor: tokens.primaryBg,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                quests[i].isCompleted ? tokens.primary : tokens.primaryBg,
+                                quests[i].isCompleted
+                                    ? tokens.primary
+                                    : tokens.primaryBg,
                               ),
                             ),
                           ),
@@ -545,7 +584,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 10,
-                              color: quests[i].isCompleted ? tokens.textSub : tokens.textMuted,
+                              color: quests[i].isCompleted
+                                  ? tokens.textSub
+                                  : tokens.textMuted,
                             ),
                           ),
                         ],
@@ -580,7 +621,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: BentoCard(
                 gradient: AppColors.primaryGradient,
                 borderRadius: BorderRadius.circular(tokens.rCard),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 shadows: [
                   BoxShadow(
                     color: tokens.primary.withValues(alpha: 0.35),
@@ -601,7 +643,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                     SizedBox(width: 8),
                     Text(
                       '먹찌 밥 주기',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15),
                     ),
                   ],
                 ),
@@ -622,7 +667,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.camera_alt_outlined, color: tokens.primary, size: 20),
+                  Icon(Icons.camera_alt_outlined,
+                      color: tokens.primary, size: 20),
                   const SizedBox(width: 6),
                   Text(
                     '촬영',
@@ -642,9 +688,11 @@ class _HomePageState extends ConsumerState<HomePage> {
     return _animated(row, delay: 80.ms, slideY: true);
   }
 
-  Widget _buildNutritionCard(AppColorTokens tokens, DailyNutritionModel? nutrition) {
+  Widget _buildNutritionCard(
+      AppColorTokens tokens, DailyNutritionModel? nutrition) {
     final consumed = nutrition?.totalCalories ?? 0;
-    final goal = nutrition?.nutritionGoal?.calorieGoal ?? AppConstants.defaultDailyCalorieGoal;
+    final goal = nutrition?.nutritionGoal?.calorieGoal ??
+        AppConstants.defaultDailyCalorieGoal;
     final remaining = (goal - consumed).clamp(0.0, goal);
 
     return BentoCard(
@@ -657,7 +705,10 @@ class _HomePageState extends ConsumerState<HomePage> {
             children: [
               Text(
                 '오늘의 영양',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: tokens.textPrimary),
+                style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: tokens.textPrimary),
               ),
               Text(
                 '${consumed.toInt()} / ${goal.toInt()} kcal',
@@ -707,7 +758,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ),
                     Text(
                       'kcal',
-                      style: TextStyle(fontSize: 11, color: tokens.textMuted, height: 1.2),
+                      style: TextStyle(
+                          fontSize: 11, color: tokens.textMuted, height: 1.2),
                     ),
                   ],
                 ),
@@ -792,7 +844,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               padding: const EdgeInsets.only(bottom: 8),
               child: BentoCard(
                 borderRadius: BorderRadius.circular(tokens.rItem),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 child: Row(
                   children: [
                     Container(
@@ -803,7 +856,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Center(
-                        child: Icon(mealType.icon, color: tokens.primary, size: 20),
+                        child: Icon(mealType.icon,
+                            color: tokens.primary, size: 20),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -813,8 +867,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                         children: [
                           Text(meal.menuName,
                               style: TextStyle(
-                                  fontWeight: FontWeight.w600, fontSize: 14, color: tokens.textPrimary)),
-                          Text(timeStr, style: TextStyle(fontSize: 11, color: tokens.textMuted)),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  color: tokens.textPrimary)),
+                          Text(timeStr,
+                              style: TextStyle(
+                                  fontSize: 11, color: tokens.textMuted)),
                         ],
                       ),
                     ),
@@ -842,7 +900,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ),
                   ],
                 ),
-              ).animate(delay: Duration(milliseconds: 240 + i * 60)).fadeIn(duration: 250.ms),
+              )
+                  .animate(delay: Duration(milliseconds: 240 + i * 60))
+                  .fadeIn(duration: 250.ms),
             );
           })),
       ],
@@ -872,7 +932,8 @@ class _MacroBar extends StatelessWidget {
       children: [
         SizedBox(
           width: 26,
-          child: Text(label, style: TextStyle(fontSize: 11, color: tokens.textSub)),
+          child: Text(label,
+              style: TextStyle(fontSize: 11, color: tokens.textSub)),
         ),
         const SizedBox(width: 6),
         Expanded(
@@ -889,7 +950,10 @@ class _MacroBar extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           '${consumed.toInt()}g',
-          style: TextStyle(fontSize: 10, color: tokens.textMuted, fontWeight: FontWeight.w500),
+          style: TextStyle(
+              fontSize: 10,
+              color: tokens.textMuted,
+              fontWeight: FontWeight.w500),
         ),
       ],
     );
