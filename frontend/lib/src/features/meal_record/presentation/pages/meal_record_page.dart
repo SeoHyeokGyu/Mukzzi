@@ -1041,7 +1041,9 @@ class _FavoriteToggle extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: tokens.primary,
+            thumbColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.selected) ? tokens.primary : null,
+            ),
           ),
         ],
       ),
