@@ -125,10 +125,6 @@ class _RewardCard extends ConsumerWidget {
           );
         }
       } else {
-        assert(() {
-          debugPrint('[equip] id=${reward.id} type=${reward.rewardType}');
-          return true;
-        }());
         if (reward.rewardType == 'BACKGROUND') {
           await repo.equipItem(backgroundId: reward.id);
         } else {
@@ -142,17 +138,12 @@ class _RewardCard extends ConsumerWidget {
           );
         }
       }
-    } catch (e, st) {
-      assert(() {
-        debugPrint('[equip] error: $e\n$st');
-        return true;
-      }());
+    } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(isCurrentlyEquipped
-                  ? '장착 해제에 실패했습니다: $e'
-                  : '장착에 실패했습니다: $e')),
+              content:
+                  Text(isCurrentlyEquipped ? '장착 해제에 실패했습니다.' : '장착에 실패했습니다.')),
         );
       }
     }
