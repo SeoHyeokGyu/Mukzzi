@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../../core/network/api_client.dart';
 import '../models/character_model.dart';
 
@@ -11,7 +13,12 @@ class CharacterRepository {
     if (response == null || response['data'] == null) {
       throw Exception('캐릭터 정보를 불러올 수 없습니다.');
     }
-    return CharacterModel.fromJson(response['data'] as Map<String, dynamic>);
+    final data = response['data'] as Map<String, dynamic>;
+    assert(() {
+      debugPrint('[character] equipped_accessory=${data['equipped_accessory']}');
+      return true;
+    }());
+    return CharacterModel.fromJson(data);
   }
 
   Future<void> applyAppearance({
