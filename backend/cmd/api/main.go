@@ -39,6 +39,7 @@ func main() {
 	config.SeedTitles(db)
 	config.SeedBadges(db)
 	config.SeedQuests(db)
+	config.SeedRewards(db)
 
 	// Redis 초기화
 	rdb := config.InitRedis()

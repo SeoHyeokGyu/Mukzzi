@@ -81,9 +81,10 @@ const (
 type Reward struct {
 	BaseDomain
 	RewardType  RewardType `gorm:"type:varchar(20);not null"`
-	Name        string     `gorm:"not null;type:varchar(50)"`
-	Description string     `gorm:"type:text"`
-	AssetURL    string     `gorm:"type:text"`
+	Code        string     `gorm:"type:varchar(50)" json:"code"`
+	Name        string     `gorm:"not null;type:varchar(50)" json:"name"`
+	Description string     `gorm:"type:text" json:"description"`
+	AssetURL    string     `gorm:"type:text" json:"asset_url"`
 }
 
 func (Reward) TableName() string { return "rewards" }

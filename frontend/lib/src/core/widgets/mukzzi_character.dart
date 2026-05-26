@@ -74,13 +74,17 @@ extension CharacterStateLabel on CharacterState {
 class MukzziCharacter extends StatelessWidget {
   final CharacterState state;
   final double size;
-  final bool showAccessory; // 추가
+  final bool showAccessory;
+  final String? equippedAccessory;
+  final String growthStage;
 
   const MukzziCharacter({
     super.key,
     this.state = CharacterState.normal,
     this.size = 160,
-    this.showAccessory = true, // 추가
+    this.showAccessory = false,
+    this.equippedAccessory,
+    this.growthStage = 'baby',
   }) : assert(size >= 60, 'MukzziCharacter: size < 60 renders detail-loss. Use at least 80 for best results.');
 
   @override
@@ -88,7 +92,9 @@ class MukzziCharacter extends StatelessWidget {
     return _SvgLayeredCharacter(
       state: state,
       size: size,
-      showAccessory: showAccessory, // 추가
+      showAccessory: showAccessory,
+      equippedAccessory: equippedAccessory,
+      growthStage: growthStage,
     );
   }
 }
@@ -96,12 +102,16 @@ class MukzziCharacter extends StatelessWidget {
 class _SvgLayeredCharacter extends StatefulWidget {
   final CharacterState state;
   final double size;
-  final bool showAccessory; // 추가
+  final bool showAccessory;
+  final String? equippedAccessory;
+  final String growthStage;
 
   const _SvgLayeredCharacter({
     required this.state,
     required this.size,
-    required this.showAccessory, // 추가
+    required this.showAccessory,
+    this.equippedAccessory,
+    required this.growthStage,
   });
 
   @override
@@ -130,7 +140,10 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
   @override
   void didUpdateWidget(_SvgLayeredCharacter old) {
     super.didUpdateWidget(old);
-    if (old.state != widget.state || old.showAccessory != widget.showAccessory) {
+    if (old.state != widget.state ||
+        old.showAccessory != widget.showAccessory ||
+        old.equippedAccessory != widget.equippedAccessory ||
+        old.growthStage != widget.growthStage) {
       setState(() => _visibleLayers = _requiredLayers);
       unawaited(_resolveOptionalLayers());
     }
@@ -178,8 +191,16 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
 
   String? _resolvedStateKey;
 
-  String _buildPath(String layer, String stateKey) =>
-      'assets/svg/mukzzi2_baby_${stateKey}_$layer.svg';
+  String _buildPath(String layer, String stateKey) {
+    final stage = widget.growthStage;
+    if (layer == 'accessory') {
+      final name = (widget.equippedAccessory != null && widget.equippedAccessory!.isNotEmpty)
+          ? widget.equippedAccessory!
+          : 'accessory';
+      return 'assets/svg/mukzzi2_${stage}_${stateKey}_$name.svg';
+    }
+    return 'assets/svg/mukzzi2_${stage}_${stateKey}_$layer.svg';
+  }
 
   String _path(String layer) =>
       _buildPath(layer, _resolvedStateKey ?? _fallbackStateKey);

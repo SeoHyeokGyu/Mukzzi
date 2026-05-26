@@ -355,6 +355,9 @@ func (h *CollectionHandler) GetRewards(c *gin.Context) {
 	responses := make([]dto.RewardResponse, len(rewards))
 	for i, reward := range rewards {
 		ur, acquired := acquiredMap[reward.ID]
+		if reward.Code == "DEFAULT_ACCESSORY" {
+			acquired = true
+		}
 		resp := dto.RewardResponse{
 			ID:          reward.ID,
 			RewardType:  reward.RewardType,

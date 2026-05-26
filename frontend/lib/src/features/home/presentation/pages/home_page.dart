@@ -461,7 +461,13 @@ class _HomePageState extends ConsumerState<HomePage> {
             ],
           ),
           const SizedBox(height: 8),
-          MukzziCharacter(state: state, size: 160),
+          MukzziCharacter(
+            state: state,
+            size: 160,
+            showAccessory: char?.equippedAccessory != null,
+            equippedAccessory: char?.equippedAccessory?.assetUrl,
+            growthStage: char != null ? char.growthStage : 'baby',
+          ),
           const SizedBox(height: 8),
           Text(
             name,

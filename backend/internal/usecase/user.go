@@ -755,17 +755,32 @@ func (u *userUsecase) EquipItem(userID int64, backgroundIDStr *string, accessory
 			if err != nil {
 				return ErrInvalidID
 			}
-			// 소유 여부 및 리워드 타입 검증
-			var count int64
-			if err := u.db.Table("user_rewards").
-				Joins("JOIN rewards ON rewards.id = user_rewards.reward_id").
-				Where("user_id = ? AND reward_id = ? AND rewards.reward_type = 'ACCESSORY'", userID, accID).
-				Count(&count).Error; err != nil {
+
+			// 리워드 정보 조회 및 유효성 검증
+			var reward domain.Reward
+			if err := u.db.First(&reward, accID).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return ErrInvalidID
+				}
 				return err
 			}
-			if count == 0 {
+			if reward.RewardType != domain.RewardAccessory {
 				return ErrRewardNotOwned
 			}
+
+			// 기본 액세서리(DEFAULT_ACCESSORY)는 소유권 검증 예외 처리
+			if reward.Code != "DEFAULT_ACCESSORY" {
+				var count int64
+				if err := u.db.Table("user_rewards").
+					Where("user_id = ? AND reward_id = ?", userID, accID).
+					Count(&count).Error; err != nil {
+					return err
+				}
+				if count == 0 {
+					return ErrRewardNotOwned
+				}
+			}
+
 			char.EquippedAccessoryID = &accID
 			char.EquippedAccessory = nil
 		}
