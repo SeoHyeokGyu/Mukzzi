@@ -118,6 +118,7 @@ class _RewardCard extends ConsumerWidget {
           await repo.equipItem(accessoryId: '');
         }
         ref.invalidate(characterProvider);
+        ref.invalidate(testCharacterProvider);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('장착 해제되었습니다.')),
@@ -130,6 +131,7 @@ class _RewardCard extends ConsumerWidget {
           await repo.equipItem(accessoryId: reward.id);
         }
         ref.invalidate(characterProvider);
+        ref.invalidate(testCharacterProvider);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('장착되었습니다.')),
