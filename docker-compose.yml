@@ -70,15 +70,15 @@ services:
 
   # Oracle Cloud 유휴 자원 회수 방지 (CPU 10% 초과 유지)
   # 1코어 x 50% = 전체 4코어 기준 12.5% 사용
-  stress:
-    image: alexeiled/stress-ng:latest
-    command: --cpu 1 --cpu-load 50 --timeout 0
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.6"
-          memory: 64m
+#  stress:
+#    image: alexeiled/stress-ng:latest
+#    command: --cpu 1 --cpu-load 50 --timeout 0
+#    restart: unless-stopped
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: "0.6"
+#          memory: 64m
 
 volumes:
   postgres_data:
