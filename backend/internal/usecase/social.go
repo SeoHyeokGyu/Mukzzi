@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
@@ -398,31 +400,51 @@ func (u *socialUsecase) GetSocialRanking(ctx context.Context) ([]RankingEntry, e
 		return nil, err
 	}
 
-	ranking := make([]RankingEntry, 0, len(zItems))
+	entries := make([]*RankingEntry, len(zItems))
+	var wg sync.WaitGroup
+
 	for i, item := range zItems {
-		userID, _ := strconv.ParseInt(item.Member.(string), 10, 64)
-		
-		// 유저 정보 조회
-		user, err := u.userRepo.GetByID(userID)
-		if err != nil {
-			continue
-		}
+		wg.Add(1)
+		go func(index int, zItem redis.Z) {
+			defer wg.Done()
+			userID, err := strconv.ParseInt(zItem.Member.(string), 10, 64)
+			if err != nil {
+				return
+			}
+			
+			// 유저 정보 조회
+			user, err := u.userRepo.GetByID(userID)
+			if err != nil {
+				slog.Error("랭킹 유저 정보 조회 실패", slog.Int64("user_id", userID), slog.Any("error", err))
+				return
+			}
 
-		// 캐릭터 레벨 및 상태 조회
-		char, _ := u.characterRepo.GetByUserID(userID)
+			// 캐릭터 레벨 및 상태 조회
+			char, _ := u.characterRepo.GetByUserID(userID)
 
-		entry := RankingEntry{
-			UserID:   userID,
-			Nickname: user.Nickname,
-			Score:    item.Score,
-			Rank:     i + 1,
+			entry := &RankingEntry{
+				UserID:   userID,
+				Nickname: user.Nickname,
+				Score:    zItem.Score,
+				Rank:     index + 1,
+			}
+			if char != nil {
+				entry.PenaltyStatus = string(char.PenaltyStatus)
+			} else {
+				entry.PenaltyStatus = "NORMAL"
+			}
+			entries[index] = entry
+		}(i, item)
+	}
+
+	wg.Wait()
+
+	// 조회 실패한 항목(nil)을 제외하고 결과 슬라이스 조립
+	ranking := make([]RankingEntry, 0, len(zItems))
+	for _, entry := range entries {
+		if entry != nil {
+			ranking = append(ranking, *entry)
 		}
-		if char != nil {
-			entry.PenaltyStatus = string(char.PenaltyStatus)
-		} else {
-			entry.PenaltyStatus = "NORMAL"
-		}
-		ranking = append(ranking, entry)
 	}
 
 	return ranking, nil
