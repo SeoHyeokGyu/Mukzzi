@@ -23,6 +23,7 @@ class SettingsPage extends ConsumerWidget {
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
     final userState = ref.watch(userProvider);
     final ns = userState.user?.notificationSettings ?? const {'meal': true, 'social': true, 'badge': true};
+    final isAdmin = userState.user?.isAdmin ?? false;
 
     return GradientScaffold(
       appBar: AppBar(title: const Text('설정')),
@@ -160,7 +161,23 @@ class SettingsPage extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 20),
+
+          // ── 관리자 섹션 (관리자 계정에만 노출) ──
+          if (isAdmin) ...[
+            const _SectionLabel(label: '관리자'),
+            const SizedBox(height: 10),
+            BentoCard(
+              padding: EdgeInsets.zero,
+              child: _SettingsItem(
+                icon: Icons.admin_panel_settings_outlined,
+                label: '스케줄 및 데이터 관리',
+                onTap: () => context.push('/profile/settings/admin'),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+
           Center(
             child: Text(
               'v${AppConstants.appVersion}',
@@ -236,22 +253,22 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
           onPressed: _isLoading
               ? null
               : () async {
-                  setState(() => _isLoading = true);
-                  final success = await ref.read(userProvider.notifier).deleteAccount();
-                  if (!mounted) return;
-                  if (success) {
-                    if (context.mounted) Navigator.pop(context);
-                    await ref.read(authProvider.notifier).logout();
-                    if (context.mounted) GoRouter.of(context).go('/auth');
-                  } else {
-                    setState(() => _isLoading = false);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('탈퇴 처리 중 오류가 발생했습니다')),
-                      );
-                    }
-                  }
-                },
+            setState(() => _isLoading = true);
+            final success = await ref.read(userProvider.notifier).deleteAccount();
+            if (!mounted) return;
+            if (success) {
+              if (context.mounted) Navigator.pop(context);
+              await ref.read(authProvider.notifier).logout();
+              if (context.mounted) GoRouter.of(context).go('/auth');
+            } else {
+              setState(() => _isLoading = false);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('탈퇴 처리 중 오류가 발생했습니다')),
+                );
+              }
+            }
+          },
           child: _isLoading
               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
               : const Text('탈퇴하기', style: TextStyle(color: Colors.red)),
@@ -332,9 +349,9 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       label,
       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: tokens.textSub,
-            fontWeight: FontWeight.w600,
-          ),
+        color: tokens.textSub,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 }
@@ -420,10 +437,10 @@ class _ToggleItem extends StatelessWidget {
             value: value,
             onChanged: onChanged,
             thumbColor: WidgetStateProperty.resolveWith(
-              (states) => states.contains(WidgetState.selected) ? tokens.primary : null,
+                  (states) => states.contains(WidgetState.selected) ? tokens.primary : null,
             ),
             trackColor: WidgetStateProperty.resolveWith(
-              (states) => states.contains(WidgetState.selected) ? tokens.primaryBg : null,
+                  (states) => states.contains(WidgetState.selected) ? tokens.primaryBg : null,
             ),
           ),
         ],

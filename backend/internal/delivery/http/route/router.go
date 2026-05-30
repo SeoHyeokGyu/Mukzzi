@@ -27,6 +27,7 @@ func NewRouter(
 	recHandler *handler.MenuRecommendationHandler,
 	aiHandler *handler.AIHandler,
 	uploadHandler *handler.UploadHandler,
+	seedHandler *handler.SeedHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -38,24 +39,24 @@ func NewRouter(
 	config.AllowCredentials = true
 
 	// 전역 미들웨어 설정
-	r.Use(gin.Recovery())                   // 패닉 방지
-	r.Use(middleware.RequestIDMiddleware()) // 요청마다 고유 ID 부여
-	r.Use(middleware.LoggerMiddleware())    // 상세 API 로그 기록
-	r.Use(cors.New(config))                 // 커스텀 CORS 설정
+	r.Use(gin.Recovery())
+	r.Use(middleware.RequestIDMiddleware())
+	r.Use(middleware.LoggerMiddleware())
+	r.Use(cors.New(config))
 
 	// 헬스체크
 	r.GET("/health", func(c *gin.Context) {
 		c.String(200, "ok")
 	})
 
-	// Swagger UI - 요청의 Host를 동적으로 설정
+	// Swagger UI
 	r.GET("/swagger/*any", func(c *gin.Context) {
 		docs.SwaggerInfo.Host = c.Request.Host
 		docs.SwaggerInfo.Schemes = []string{"http", "https"}
 		ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
 	})
 
-	// 정적 파일 서빙 (업로드된 이미지)
+	// 정적 파일 서빙
 	r.Static("/uploads", "./uploads")
 
 	// API 라우트 그룹
@@ -72,6 +73,7 @@ func NewRouter(
 		CharacterRoute(api, userHandler)
 		AIRoute(api, aiHandler)
 		UploadRoute(api, uploadHandler)
+		SeedRoute(api, seedHandler)
 	}
 
 	return r

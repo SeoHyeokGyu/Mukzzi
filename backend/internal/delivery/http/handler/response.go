@@ -115,3 +115,8 @@ func NotFound(c *gin.Context, code, message string, details ...any) {
 func InternalError(c *gin.Context, message string, details ...any) {
 	Error(c, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", message, details...)
 }
+
+// Conflict 는 409 에러 응답을 전송합니다.
+func Conflict(c *gin.Context, code, message string, details ...any) {
+	Error(c, http.StatusConflict, code, message, details...)
+}

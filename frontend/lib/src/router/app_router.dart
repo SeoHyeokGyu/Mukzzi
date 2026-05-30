@@ -7,6 +7,7 @@ import '../core/theme/app_theme.dart';
 import '../core/widgets/main_shell.dart';
 import '../features/auth/presentation/pages/auth_page.dart';
 import '../features/settings/presentation/pages/settings_page.dart';
+import '../features/settings/presentation/pages/admin_page.dart';
 import '../features/home/presentation/pages/home_page.dart';
 import '../features/quest/presentation/pages/quest_list_page.dart';
 import '../features/notification/presentation/pages/notification_list_page.dart';
@@ -30,8 +31,6 @@ import '../features/splash/presentation/pages/splash_page.dart';
 import '../features/profile/presentation/providers/user_provider.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
 
-// authProvider 및 userProvider 상태 변화를 GoRouter에 전달하는 ChangeNotifier.
-// GoRouter 인스턴스는 재생성하지 않고 redirect만 재실행하게 한다.
 class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(Ref ref) {
     ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
@@ -73,7 +72,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isInitialized = ref.read(isAppInitializedProvider);
       final isSplashPath = state.matchedLocation == '/splash';
 
-      // 1. 앱이 아직 초기화되지 않았다면 무조건 스플래시 화면으로 이동
       if (!isInitialized) {
         return isSplashPath ? null : '/splash';
       }
@@ -82,13 +80,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final userState = ref.read(userProvider);
       final token = await tokenStorage.read(AppConstants.accessTokenKey);
 
-      // userProvider에 최신 정보가 있으면 그것을 사용, 없으면 authState 사용
       final currentUser = userState.user ?? authState.user;
       final isLoggedIn = token != null || currentUser != null;
       final isAuthPath = state.matchedLocation == '/auth';
       final isOnboardingPath = state.matchedLocation == '/onboarding';
 
-      // 2. 초기화가 완료되었는데 여전히 스플래시 화면에 있다면 알맞은 곳으로 라우팅
       if (isInitialized && isSplashPath) {
         if (!isLoggedIn) return '/auth';
         if (currentUser != null && !currentUser.isOnboarded) return '/onboarding';
@@ -98,14 +94,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (!isLoggedIn && !isAuthPath) return '/auth';
       if (isLoggedIn && isAuthPath) return '/home';
 
-      // 로그인되었을 때 온보딩 상태 체크
       if (isLoggedIn && currentUser != null) {
-        // 온보딩을 완료했는데 온보딩 페이지에 있으려 하면 홈으로 보냄
         if (currentUser.isOnboarded && isOnboardingPath) return '/home';
-        // 온보딩을 안 했는데 다른 페이지에 있으려 하면 온보딩으로 보냄
         if (!currentUser.isOnboarded && !isOnboardingPath) return '/onboarding';
+
+        // 관리자 페이지 접근 제한 (비관리자가 직접 URL 입력 시 차단)
+        if (state.matchedLocation.startsWith('/profile/settings/admin') &&
+            !currentUser.isAdmin) {
+          return '/profile/settings';
+        }
       }
-      
+
       return null;
     },
     routes: [
@@ -272,6 +271,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       path: 'terms',
                       name: 'terms-of-service',
                       builder: (context, state) => const TermsPage(),
+                    ),
+                    // ── 관리자 전용 ──
+                    GoRoute(
+                      path: 'admin',
+                      name: 'admin',
+                      builder: (context, state) => const AdminPage(),
                     ),
                   ],
                 ),

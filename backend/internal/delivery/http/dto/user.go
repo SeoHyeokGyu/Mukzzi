@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"os"
 	"strconv"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
@@ -9,24 +10,32 @@ import (
 
 // UserResponse 는 공통 사용자 응답 데이터를 정의합니다.
 type UserResponse struct {
-	ID              string `json:"id"`
-	Username        string `json:"username"`
-	Email           string `json:"email"`
-	Nickname        string `json:"nickname"`
-	ProfileImageURL string `json:"profile_image_url"`
-	EquippedTitle   string `json:"equipped_title,omitempty"`
+	ID                   string         `json:"id"`
+	Username             string         `json:"username"`
+	Email                string         `json:"email"`
+	Nickname             string         `json:"nickname"`
+	ProfileImageURL      string         `json:"profile_image_url"`
+	EquippedTitle        any            `json:"equipped_title,omitempty"`
+	NotificationSettings datatypes.JSON `json:"notification_settings"`
+	PrivacyLevel         string         `json:"privacy_level"`
+	Body                 any            `json:"body"`
+	IsAdmin              bool           `json:"is_admin"`
 }
 
 func ToUserResponse(u *domain.User) UserResponse {
 	resp := UserResponse{
-		ID:              strconv.FormatInt(u.ID, 10),
-		Username:        u.Username,
-		Email:           u.Email,
-		Nickname:        u.Nickname,
-		ProfileImageURL: u.ProfileImageURL,
+		ID:                   strconv.FormatInt(u.ID, 10),
+		Username:             u.Username,
+		Email:                u.Email,
+		Nickname:             u.Nickname,
+		ProfileImageURL:      u.ProfileImageURL,
+		NotificationSettings: u.NotificationSettings,
+		PrivacyLevel:         string(u.PrivacyLevel),
+		Body:                 u.Body,
+		IsAdmin:              strconv.FormatInt(u.ID, 10) == os.Getenv("ADMIN_USER_ID"),
 	}
 	if u.EquippedTitle != nil {
-		resp.EquippedTitle = u.EquippedTitle.Name
+		resp.EquippedTitle = u.EquippedTitle
 	}
 	return resp
 }
