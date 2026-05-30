@@ -125,7 +125,7 @@ class CoachingSummaryCard extends ConsumerWidget {
               ),
             ),
             error: (err, stack) => Text(
-              '아직 식사 기록이 없어 코칭을 받을 수 없어요.',
+              err.toString(),
               style: TextStyle(color: tokens.textMuted, fontSize: 13),
             ),
           ),

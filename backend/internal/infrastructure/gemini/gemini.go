@@ -2,17 +2,24 @@ package gemini
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync"
 	"time"
 
 	"google.golang.org/genai"
 )
 
+var ErrQuotaExhausted = errors.New("Gemini API의 모든 모델 한도가 초과되었습니다. 잠시 후 다시 시도해주세요.")
+
 type Client struct {
-	client *genai.Client
-	model  string
+	client             *genai.Client
+	model              string
+	mu                 sync.RWMutex
+	lastQuotaExhausted time.Time
+	cooldownDuration   time.Duration
 }
 
 func NewClient(apiKey string) (*Client, error) {
@@ -29,18 +36,26 @@ func NewClient(apiKey string) (*Client, error) {
 	}
 
 	return &Client{
-		client: client,
-		model:  "gemini-3.5-flash",
+		client:           client,
+		model:            "gemini-3.5-flash",
+		cooldownDuration: 3 * time.Minute, // 3분 동안 쿨다운 적용
 	}, nil
 }
 
 func (c *Client) generateWithFallback(ctx context.Context, prompt string, isImage bool, imageURL string, req *genai.GenerateContentConfig) (*genai.GenerateContentResponse, error) {
+	c.mu.RLock()
+	isCoolingDown := !c.lastQuotaExhausted.IsZero() && time.Since(c.lastQuotaExhausted) < c.cooldownDuration
+	c.mu.RUnlock()
+
+	if isCoolingDown {
+		return nil, ErrQuotaExhausted
+	}
+
 	modelsToTry := []string{
 		c.model,
 		"gemini-3.5-flash",
 		"gemini-2.5-flash",
 		"gemini-2.0-flash",
-		"gemini-1.5-flash",
 	}
 
 	// 중복 모델 제거
@@ -54,6 +69,8 @@ func (c *Client) generateWithFallback(ctx context.Context, prompt string, isImag
 	}
 
 	var lastErr error
+	var hasQuotaExhausted bool = true // 모든 시도 모델이 429 한도 초과이면 true 유지
+
 	for _, m := range uniqueModels {
 		var res *genai.GenerateContentResponse
 		var err error
@@ -79,11 +96,21 @@ func (c *Client) generateWithFallback(ctx context.Context, prompt string, isImag
 			continue // 다음 모델 시도
 		}
 
-		// 한도 초과가 아닌 다른 에러는 즉시 반환
+		// 한도 초과가 아닌 다른 에러는 즉시 반환 (이때는 쿨다운을 유발하지 않음)
+		hasQuotaExhausted = false
 		return nil, err
 	}
 
-	return nil, fmt.Errorf("모든 하위 모델이 한도 초과로 실패했습니다: %w", lastErr)
+	// 모든 모델이 429 한도 초과로 실패한 경우 쿨다운 상태로 진입
+	if hasQuotaExhausted {
+		c.mu.Lock()
+		c.lastQuotaExhausted = time.Now()
+		c.mu.Unlock()
+		slog.Error("Gemini API의 모든 모델 한도가 초과되어 쿨다운에 진입합니다.", slog.Duration("cooldown", c.cooldownDuration))
+		return nil, ErrQuotaExhausted
+	}
+
+	return nil, fmt.Errorf("모든 하위 모델이 실패했습니다: %w", lastErr)
 }
 
 func (c *Client) GenerateJSON(ctx context.Context, prompt string) (string, error) {
