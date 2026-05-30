@@ -108,6 +108,36 @@ class MealRecord {
 // CreateMealRequest
 // ─────────────────────────────────────────
 
+class MealNutritionPayload {
+  final double calories;
+  final double carbs;
+  final double protein;
+  final double fat;
+  final double fiber;
+  final double sodium;
+  final double vitaminScore;
+
+  const MealNutritionPayload({
+    required this.calories,
+    required this.carbs,
+    required this.protein,
+    required this.fat,
+    this.fiber = 0,
+    this.sodium = 0,
+    this.vitaminScore = 0,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'calories': calories,
+    'carbs': carbs,
+    'protein': protein,
+    'fat': fat,
+    'fiber': fiber,
+    'sodium': sodium,
+    'vitamin_score': vitaminScore,
+  };
+}
+
 class CreateMealRequest {
   final String? menuId;
   final String menuName;
@@ -122,6 +152,7 @@ class CreateMealRequest {
   final int? rating;
   final String? imageUrl;
   final List<int> friendTags;
+  final MealNutritionPayload? nutrition;
 
   const CreateMealRequest({
     this.menuId,
@@ -137,6 +168,7 @@ class CreateMealRequest {
     this.rating,
     this.imageUrl,
     this.friendTags = const [],
+    this.nutrition,
   });
 
   Map<String, dynamic> toJson() => {
@@ -158,6 +190,7 @@ class CreateMealRequest {
     if (rating != null) 'rating': rating,
     if (imageUrl != null) 'image_url': imageUrl,
     if (friendTags.isNotEmpty) 'friend_tags': friendTags,
+    if (nutrition != null) 'nutrition': nutrition!.toJson(),
   };
 }
 

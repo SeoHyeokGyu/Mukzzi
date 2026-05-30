@@ -25,6 +25,8 @@ func NewRouter(
 	filterHandler *handler.MenuFilterHandler,
 	questHandler *handler.QuestHandler,
 	recHandler *handler.MenuRecommendationHandler,
+	aiHandler *handler.AIHandler,
+	uploadHandler *handler.UploadHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -53,6 +55,9 @@ func NewRouter(
 		ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
 	})
 
+	// 정적 파일 서빙 (업로드된 이미지)
+	r.Static("/uploads", "./uploads")
+
 	// API 라우트 그룹
 	api := r.Group("/api")
 	{
@@ -65,6 +70,8 @@ func NewRouter(
 		MealRoute(api, mealHandler)
 		QuestRoute(api, questHandler)
 		CharacterRoute(api, userHandler)
+		AIRoute(api, aiHandler)
+		UploadRoute(api, uploadHandler)
 	}
 
 	return r

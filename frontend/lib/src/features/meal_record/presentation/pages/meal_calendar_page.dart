@@ -299,7 +299,7 @@ class _CalendarGrid extends StatelessWidget {
         crossAxisCount: 7,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        childAspectRatio: 0.85,
+        childAspectRatio: 1.0,
         children: cells,
       ),
     );

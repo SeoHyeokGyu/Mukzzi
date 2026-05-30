@@ -12,6 +12,7 @@ const (
 	EventBadgeAcquired     EventType = "BADGE_ACQUIRED"
 	EventAppearanceChanged EventType = "APPEARANCE_CHANGED"
 	EventQuestCompleted    EventType = "QUEST_COMPLETED"
+	EventLevelUp           EventType = "LEVEL_UP"
 )
 
 type Event struct {

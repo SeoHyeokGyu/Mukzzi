@@ -148,7 +148,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: '/meal-record',
               name: 'meal-record',
-              builder: (context, state) => const MealRecordPage(),
+              builder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>?;
+                return MealRecordPage(
+                  initialMenuName: extra?['initialMenuName'] as String?,
+                  initialCategory: extra?['initialCategory'] as String?,
+                  initialCalories: extra?['initialCalories'] as double?,
+                  initialCarbs: extra?['initialCarbs'] as double?,
+                  initialProtein: extra?['initialProtein'] as double?,
+                  initialFat: extra?['initialFat'] as double?,
+                );
+              },
               routes: [
                 GoRoute(
                   path: 'masteries',

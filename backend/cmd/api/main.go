@@ -12,6 +12,7 @@ import (
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/delivery/http/route"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/infrastructure/eventbus"
+	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/infrastructure/gemini"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/usecase"
 	"github.com/joho/godotenv"
@@ -153,10 +154,16 @@ func main() {
 	socialUsecase := usecase.NewSocialUsecase(socialRepo, userRepo, mealRepo, characterRepo, notificationUsecase, eventBus, rdb)
 	socialHandler := handler.NewSocialHandler(socialUsecase)
 
+	// AI 도메인 (Meal 도메인 등 여러 곳에서 사용되므로 미리 초기화)
+	geminiClient, err := gemini.NewClient(os.Getenv("GEMINI_API_KEY"))
+	if err != nil {
+		slog.Error("Gemini 클라이언트 초기화 실패", slog.Any("error", err))
+	}
+
 	// Meal 도메인
 	masteryTracker := usecase.NewMasteryTracker(masteryRepo)
 	titleGranter := usecase.NewTitleGranter(titleRepo)
-	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, userUsecase, masteryTracker, titleGranter, notificationUsecase, eventBus, questUsecase, badgeGranter, db)
+	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, userUsecase, masteryTracker, titleGranter, notificationUsecase, eventBus, questUsecase, badgeGranter, geminiClient, db)
 	mealHandler := handler.NewMealHandler(mealUsecase)
 
 	// Roulette 도메인
@@ -173,6 +180,13 @@ func main() {
 	recUc := usecase.NewMenuRecommendationUsecase(recRepo)
 	recHandler := handler.NewMenuRecommendationHandler(recUc)
 
+	// AI 도메인 라우터/핸들러 연동
+	aiUc := usecase.NewAIUsecase(geminiClient, dailyIntakeRepo, mealRepo, userRepo, preferenceRepo)
+	aiHandler := handler.NewAIHandler(aiUc)
+
+	// 업로드 핸들러
+	uploadHandler := handler.NewUploadHandler()
+
 	// 라우터 초기화
 	r := route.NewRouter(
 		authHandler,
@@ -188,6 +202,8 @@ func main() {
 		filterHandler,
 		questHandler,
 		recHandler,
+		aiHandler,
+		uploadHandler,
 	)
 
 	// 서버 실행

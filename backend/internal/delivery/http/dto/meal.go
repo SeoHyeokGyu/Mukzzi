@@ -27,6 +27,18 @@ type CreateMealRequest struct {
 	Rating      *int               `json:"rating" binding:"omitempty,min=1,max=5"`
 	FriendTags  []string           `json:"friend_tags"`
 	ImageURL    *string            `json:"image_url"`
+	Nutrition   *NutritionRequest  `json:"nutrition,omitempty"`
+}
+
+// NutritionRequest - 식사 기록 생성 시 직접 전달할 영양소
+type NutritionRequest struct {
+	Calories     float64 `json:"calories"`
+	Carbs        float64 `json:"carbs"`
+	Protein      float64 `json:"protein"`
+	Fat          float64 `json:"fat"`
+	Fiber        float64 `json:"fiber"`
+	Sodium       float64 `json:"sodium"`
+	VitaminScore float64 `json:"vitamin_score"`
 }
 
 // UpdateMealRequest - PATCH /meals/:id
@@ -244,6 +256,8 @@ func ToCreateMealInput(req CreateMealRequest, userID int64) (usecase.CreateMealI
 		return usecase.CreateMealInput{}, fmt.Errorf("recorded_at 형식이 올바르지 않습니다: %w", err)
 	}
 
+	isManual := req.MenuID == nil || *req.MenuID == "" || *req.MenuID == "ai-analyzed"
+
 	input := usecase.CreateMealInput{
 		UserID:      userID,
 		MenuName:    req.MenuName,
@@ -255,11 +269,23 @@ func ToCreateMealInput(req CreateMealRequest, userID int64) (usecase.CreateMealI
 		MoodTag:     req.MoodTag,
 		Review:      req.Review,
 		Rating:      req.Rating,
-		IsManual:    req.MenuID == nil,
+		IsManual:    isManual,
 		ImageURL:    req.ImageURL,
 	}
 
-	if req.MenuID != nil {
+	if req.Nutrition != nil {
+		input.Nutrition = &domain.Nutrition{
+			Calories:     req.Nutrition.Calories,
+			Carbs:        req.Nutrition.Carbs,
+			Protein:      req.Nutrition.Protein,
+			Fat:          req.Nutrition.Fat,
+			Fiber:        req.Nutrition.Fiber,
+			Sodium:       req.Nutrition.Sodium,
+			VitaminScore: req.Nutrition.VitaminScore,
+		}
+	}
+
+	if !isManual {
 		id, err := strconv.ParseInt(*req.MenuID, 10, 64)
 		if err != nil {
 			return usecase.CreateMealInput{}, fmt.Errorf("menu_id가 올바르지 않습니다: %w", err)

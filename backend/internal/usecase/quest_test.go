@@ -8,7 +8,15 @@ import (
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
+
+func setupTestDB() *gorm.DB {
+	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db.AutoMigrate(&domain.UserQuest{}, &domain.QuestDefinition{})
+	return db
+}
 
 // MockQuestRepository 는 QuestRepository 의 목 객체입니다.
 type MockQuestRepository struct {
@@ -68,6 +76,11 @@ func (m *MockQuestRepository) GetUserQuestByID(ctx context.Context, id int64) (*
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*domain.UserQuest), args.Error(1)
+}
+
+func (m *MockQuestRepository) UpdateExpiredQuests(ctx context.Context, now time.Time) (int64, error) {
+	args := m.Called(ctx, now)
+	return args.Get(0).(int64), args.Error(1)
 }
 
 // MockMealRepository 는 MealRepository 의 목 객체입니다.
@@ -180,6 +193,18 @@ func (m *MockCharacterRepository) Update(char *domain.Character) error {
 	return m.Called(char).Error(0)
 }
 
+type MockEventBus struct {
+	mock.Mock
+}
+
+func (m *MockEventBus) Publish(event domain.Event) {
+	m.Called(event)
+}
+
+func (m *MockEventBus) Subscribe(eventType domain.EventType, handler func(domain.Event)) {
+	m.Called(eventType, handler)
+}
+
 func TestQuestUsecase_HandleEvent(t *testing.T) {
 	// HandleEvent uses raw GORM pessimistic locking (u.db.Transaction) and cannot
 	// be tested without a real DB connection. These cases are skipped in unit tests.
@@ -187,35 +212,38 @@ func TestQuestUsecase_HandleEvent(t *testing.T) {
 
 	ctx := context.Background()
 	userID := int64(1)
+	db := setupTestDB()
 
 	t.Run("식사 기록 이벤트 시 관련 퀘스트 진행도 증가", func(t *testing.T) {
 		mockRepo := new(MockQuestRepository)
 		mockCharRepo := new(MockCharacterRepository)
 		mockMealRepo := new(MockMealRepository)
-		uc := NewQuestUsecase(mockRepo, nil, mockCharRepo, mockMealRepo, nil, nil, nil, nil)
+		uc := NewQuestUsecase(mockRepo, nil, mockCharRepo, mockMealRepo, nil, nil, new(MockEventBus), db)
 
 		event := domain.Event{
 			Type:   domain.EventMealCreated,
 			UserID: userID,
 		}
 
-		userQuests := []domain.UserQuest{
-			{
-				UserID:       userID,
-				QuestID:      101,
-				CurrentCount: 0,
-				Status:       domain.QuestStatusProgress,
-				Quest: &domain.QuestDefinition{
-					BaseDomain:  domain.BaseDomain{ID: 101},
-					Category:    domain.QuestCategoryMeal,
-					TargetCount: 3,
-					Type:        domain.QuestTypeDaily,
-				},
-			},
+		// DB 초기화 및 데이터 삽입
+		db.Exec("DELETE FROM user_quests")
+		db.Exec("DELETE FROM quests")
+		
+		questDef := domain.QuestDefinition{
+			BaseDomain:  domain.BaseDomain{ID: 101},
+			Category:    domain.QuestCategoryMeal,
+			TargetCount: 3,
+			Type:        domain.QuestTypeDaily,
 		}
+		db.Create(&questDef)
 
-		mockRepo.On("GetActiveQuestsByUserID", ctx, userID).Return(userQuests, nil)
-		mockRepo.On("UpdateUserQuest", ctx, mock.Anything).Return(nil)
+		userQuest := domain.UserQuest{
+			UserID:       userID,
+			QuestID:      101,
+			CurrentCount: 0,
+			Status:       domain.QuestStatusProgress,
+		}
+		db.Create(&userQuest)
 
 		progress, err := uc.HandleEvent(ctx, event)
 
@@ -223,45 +251,50 @@ func TestQuestUsecase_HandleEvent(t *testing.T) {
 		assert.Len(t, progress, 1)
 		assert.Equal(t, 1, progress[0].Progress)
 		assert.False(t, progress[0].Completed)
-		mockRepo.AssertExpectations(t)
 	})
 
 	t.Run("퀘스트 목표 달성 시 상태 변경", func(t *testing.T) {
 		mockRepo := new(MockQuestRepository)
 		mockCharRepo := new(MockCharacterRepository)
 		mockMealRepo := new(MockMealRepository)
-		uc := NewQuestUsecase(mockRepo, nil, mockCharRepo, mockMealRepo, nil, nil, nil, nil)
+		eventBus := new(MockEventBus)
+		uc := NewQuestUsecase(mockRepo, nil, mockCharRepo, mockMealRepo, nil, nil, eventBus, db)
 
 		event := domain.Event{
 			Type:   domain.EventMealCreated,
 			UserID: userID,
 		}
 
-		userQuests := []domain.UserQuest{
-			{
-				UserID:       userID,
-				QuestID:      101,
-				CurrentCount: 2,
-				Status:       domain.QuestStatusProgress,
-				Quest: &domain.QuestDefinition{
-					BaseDomain:  domain.BaseDomain{ID: 101},
-					Category:    domain.QuestCategoryMeal,
-					TargetCount: 3,
-					Type:        domain.QuestTypeDaily,
-				},
-			},
-		}
+		// DB 초기화 및 데이터 삽입
+		db.Exec("DELETE FROM user_quests")
+		db.Exec("DELETE FROM quests")
 
-		mockRepo.On("GetActiveQuestsByUserID", ctx, userID).Return(userQuests, nil)
-		mockRepo.On("UpdateUserQuest", ctx, mock.MatchedBy(func(uq *domain.UserQuest) bool {
-			return uq.Status == domain.QuestStatusCompleted
-		})).Return(nil)
+		questDef := domain.QuestDefinition{
+			BaseDomain:  domain.BaseDomain{ID: 101},
+			Category:    domain.QuestCategoryMeal,
+			TargetCount: 3,
+			Type:        domain.QuestTypeDaily,
+		}
+		db.Create(&questDef)
+
+		userQuest := domain.UserQuest{
+			UserID:       userID,
+			QuestID:      101,
+			CurrentCount: 2,
+			Status:       domain.QuestStatusProgress,
+		}
+		db.Create(&userQuest)
+
+		eventBus.On("Publish", mock.Anything).Return(nil)
 
 		progress, err := uc.HandleEvent(ctx, event)
 
 		assert.NoError(t, err)
 		assert.True(t, progress[0].Completed)
-		mockRepo.AssertExpectations(t)
+
+		var updatedUQ domain.UserQuest
+		db.First(&updatedUQ, userQuest.ID)
+		assert.Equal(t, domain.QuestStatusCompleted, updatedUQ.Status)
 	})
 }
 

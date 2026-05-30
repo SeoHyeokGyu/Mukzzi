@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -10,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
+	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/infrastructure/gemini"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
 )
 
@@ -40,8 +42,9 @@ type CreateMealInput struct {
 	MoodTag     *domain.MoodTag
 	Review      *string
 	Rating      *int
-	IsManual    bool
 	FriendTags  []int64
+	IsManual    bool
+	Nutrition   *domain.Nutrition
 	ImageURL    *string
 }
 
@@ -101,6 +104,7 @@ type mealUsecase struct {
 	eventBus            domain.EventBus
 	questUc             QuestUsecase
 	badgeGranter        BadgeGranter
+	geminiClient        *gemini.Client
 	db                  *gorm.DB
 }
 
@@ -116,6 +120,7 @@ func NewMealUsecase(
 	eventBus domain.EventBus,
 	questUc QuestUsecase,
 	badgeGranter BadgeGranter,
+	geminiClient *gemini.Client,
 	db *gorm.DB,
 ) MealUsecase {
 	return &mealUsecase{
@@ -130,6 +135,7 @@ func NewMealUsecase(
 		eventBus:            eventBus,
 		questUc:             questUc,
 		badgeGranter:        badgeGranter,
+		geminiClient:        geminiClient,
 		db:                  db,
 	}
 }
@@ -144,6 +150,18 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 			return nil, err
 		}
 		menuData = m
+	} else if input.IsManual && input.Nutrition == nil {
+		// 수동 입력인데 영양소 정보가 프론트에서 넘어오지 않은 경우 AI로 추정
+		prompt := fmt.Sprintf("사용자가 '%s'라는 음식을 %f 인분 먹었습니다. 이 음식의 대략적인 칼로리(kcal), 탄수화물(g), 단백질(g), 지방(g), 나트륨(mg), 식이섬유(g), 비타민 점수(1~100)를 JSON으로 추정해주세요. 키는 calories, carbs, protein, fat, sodium, fiber, vitamin_score 로 해주세요.", input.MenuName, input.ServingSize)
+		aiResStr, err := u.geminiClient.GenerateJSON(context.Background(), prompt)
+		if err == nil {
+			var aiNutr domain.Nutrition
+			if err := json.Unmarshal([]byte(aiResStr), &aiNutr); err == nil {
+				input.Nutrition = &aiNutr
+				// servingSize가 이미 고려된 프롬프트이므로 서빙 사이즈 곱셈을 막기 위해 여기서 처리
+				input.ServingSize = 1.0
+			}
+		}
 	}
 
 	err := u.db.Transaction(func(tx *gorm.DB) error {
@@ -166,7 +184,7 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 			return err
 		}
 
-		nutrition := buildNutrition(meal.ID, menuData, input.ServingSize)
+		nutrition := buildNutrition(meal.ID, menuData, input.ServingSize, input.Nutrition)
 		if err := tx.Create(nutrition).Error; err != nil {
 			return err
 		}
@@ -416,16 +434,48 @@ func (u *mealUsecase) GetWeeklyNutrition(userID int64, startDate string) ([]doma
 		return nil, fmt.Errorf("startDate 형식이 올바르지 않습니다: %w", err)
 	}
 	endDate := start.AddDate(0, 0, 6).Format(time.DateOnly)
-	return u.nutritionRepo.FindWeeklyIntakes(userID, startDate, endDate)
+	
+	intakes, err := u.nutritionRepo.FindWeeklyIntakes(userID, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+
+	intakeMap := make(map[string]domain.DailyIntake)
+	for _, di := range intakes {
+		intakeMap[di.Date.Format(time.DateOnly)] = di
+	}
+
+	var padded []domain.DailyIntake
+	for i := 0; i < 7; i++ {
+		dateStr := start.AddDate(0, 0, i).Format(time.DateOnly)
+		if di, exists := intakeMap[dateStr]; exists {
+			padded = append(padded, di)
+		} else {
+			parsed, _ := time.Parse(time.DateOnly, dateStr)
+			padded = append(padded, domain.DailyIntake{
+				UserID: userID,
+				Date:   parsed,
+			})
+		}
+	}
+	return padded, nil
 }
 
 // ─────────────────────────────────────────
 // 내부 헬퍼
 // ─────────────────────────────────────────
 
-func buildNutrition(mealID int64, menu *domain.Menu, servingSize float64) *domain.Nutrition {
+func buildNutrition(mealID int64, menu *domain.Menu, servingSize float64, customNutrition *domain.Nutrition) *domain.Nutrition {
 	n := &domain.Nutrition{MealID: mealID}
-	if menu != nil {
+	if customNutrition != nil {
+		n.Calories = customNutrition.Calories * servingSize
+		n.Carbs = customNutrition.Carbs * servingSize
+		n.Protein = customNutrition.Protein * servingSize
+		n.Fat = customNutrition.Fat * servingSize
+		n.Fiber = customNutrition.Fiber * servingSize
+		n.Sodium = customNutrition.Sodium * servingSize
+		n.VitaminScore = customNutrition.VitaminScore
+	} else if menu != nil {
 		n.Calories = menu.DefaultCalories * servingSize
 		n.Carbs = menu.DefaultCarbs * servingSize
 		n.Protein = menu.DefaultProtein * servingSize

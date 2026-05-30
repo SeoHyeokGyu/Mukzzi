@@ -52,14 +52,14 @@ const (
 
 type MealRecord struct {
 	BaseDomain
-	UserID      int64       `gorm:"column:user_id;not null;index"`
+	UserID      int64       `gorm:"column:user_id;not null;index:idx_meal_user_recorded"`
 	MenuID      *int64      `gorm:"column:menu_id;index"`
 	ImageURL    *string     `gorm:"column:image_url"`
 	MenuName    string      `gorm:"column:menu_name;not null"`
 	Category    string      `gorm:"column:category;not null"`
 	MealType    MealType    `gorm:"column:meal_type;not null"`
 	ServingSize float64     `gorm:"column:serving_size;default:1.0"`
-	RecordedAt  time.Time   `gorm:"column:recorded_at;not null"`
+	RecordedAt  time.Time   `gorm:"column:recorded_at;not null;index:idx_meal_user_recorded"`
 	WeatherTag  *WeatherTag `gorm:"column:weather_tag"`
 	MoodTag     *MoodTag    `gorm:"column:mood_tag"`
 	Review      *string     `gorm:"column:review"`
