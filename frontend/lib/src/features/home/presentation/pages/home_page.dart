@@ -385,9 +385,40 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
+  Widget _buildLegendItem(String label, Color color, {bool isLine = false}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: isLine ? 12 : 8,
+          height: isLine ? 3 : 8,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(isLine ? 1.5 : 4),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+        ),
+      ],
+    );
+  }
+
   Widget _buildWeeklyTrendChart(
       AppColorTokens tokens, List<WeeklyNutritionItemModel> weekly) {
     if (weekly.isEmpty) return const SizedBox.shrink();
+
+    // 탄단지 합산 최대치 계산 (BarChart rod 최대 높이 결정용)
+    double maxNutrientSum = 0;
+    for (var item in weekly) {
+      double sum = item.carbs + item.protein + item.fat;
+      if (sum > maxNutrientSum) {
+        maxNutrientSum = sum;
+      }
+    }
+    if (maxNutrientSum == 0) maxNutrientSum = 100; // fallback
 
     final chart = BentoCard(
       borderRadius: BorderRadius.circular(tokens.rCard),
@@ -395,67 +426,135 @@ class _HomePageState extends ConsumerState<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '주간 영양 트렌드',
-            style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-                color: tokens.textPrimary),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '주간 영양 트렌드',
+                style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: tokens.textPrimary),
+              ),
+              // 모든 범례 통합 표시
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  _buildLegendItem('탄', AppColors.carbsColor),
+                  _buildLegendItem('단', AppColors.proteinColor),
+                  _buildLegendItem('지', AppColors.fatColor),
+                  _buildLegendItem('칼로리', tokens.primary, isLine: true),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
+          
+          // ── 칼로리(꺾은선) + 탄단지(누적막대) 겹쳐진 통합 그래프 ──
           SizedBox(
-            height: 120,
-            child: LineChart(
-              LineChartData(
-                gridData: const FlGridData(show: false),
-                titlesData: FlTitlesData(
-                  leftTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: 1.0,
-                      getTitlesWidget: (value, meta) {
-                        final index = value.toInt();
-                        if (index < 0 || index >= weekly.length) {
-                          return const SizedBox.shrink();
-                        }
-                        final date = DateTime.parse(weekly[index].date);
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(
-                            DateFormat('E', 'ko').format(date),
-                            style: TextStyle(
-                                fontSize: 10, color: tokens.textMuted),
+            height: 140,
+            child: Stack(
+              children: [
+                // 1. 배후: 탄단지 누적 막대 그래프 (BarChart)
+                BarChart(
+                  BarChartData(
+                    alignment: BarChartAlignment.spaceAround,
+                    maxY: maxNutrientSum * 1.15,
+                    gridData: const FlGridData(show: false),
+                    borderData: FlBorderData(show: false),
+                    titlesData: FlTitlesData(
+                      leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          interval: 1.0,
+                          getTitlesWidget: (value, meta) {
+                            final index = value.toInt();
+                            if (index < 0 || index >= weekly.length) {
+                              return const SizedBox.shrink();
+                            }
+                            final date = DateTime.parse(weekly[index].date);
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Text(
+                                DateFormat('E', 'ko').format(date),
+                                style: TextStyle(fontSize: 10, color: tokens.textMuted),
+                              ),
+                            );
+                          },
+                          reservedSize: 22,
+                        ),
+                      ),
+                    ),
+                    barGroups: weekly.asMap().entries.map((e) {
+                      final index = e.key;
+                      final item = e.value;
+                      final total = item.carbs + item.protein + item.fat;
+                      return BarChartGroupData(
+                        x: index,
+                        barRods: [
+                          BarChartRodData(
+                            toY: total,
+                            width: 14,
+                            borderRadius: BorderRadius.circular(4),
+                            rodStackItems: [
+                              BarChartRodStackItem(0, item.carbs, AppColors.carbsColor),
+                              BarChartRodStackItem(item.carbs, item.carbs + item.protein, AppColors.proteinColor),
+                              BarChartRodStackItem(item.carbs + item.protein, total, AppColors.fatColor),
+                            ],
                           ),
-                        );
-                      },
-                      reservedSize: 22,
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
+                
+                // 2. 전방: 칼로리 꺾은선 그래프 (LineChart)
+                // 아래쪽 날짜 타이틀 공간(22px)만큼 하단 패딩을 주어 BarChart의 본체 영역과 Y축 영역을 동일하게 맞춥니다.
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 22.0),
+                  child: LineChart(
+                    LineChartData(
+                      minX: -0.5,
+                      maxX: weekly.length - 0.5,
+                      gridData: const FlGridData(show: false),
+                      borderData: FlBorderData(show: false),
+                      titlesData: const FlTitlesData(
+                        leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      ),
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: weekly.asMap().entries.map((e) {
+                            return FlSpot(e.key.toDouble(), e.value.calories);
+                          }).toList(),
+                          isCurved: true,
+                          color: tokens.primary,
+                          barWidth: 3.5,
+                          isStrokeCapRound: true,
+                          dotData: FlDotData(
+                            show: true,
+                            getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                              radius: 4.5,
+                              color: tokens.primary,
+                              strokeWidth: 2,
+                              strokeColor: Colors.white,
+                            ),
+                          ),
+                          belowBarData: BarAreaData(
+                            show: false,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: weekly.asMap().entries.map((e) {
-                      return FlSpot(e.key.toDouble(), e.value.calories);
-                    }).toList(),
-                    isCurved: true,
-                    color: tokens.primary,
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: tokens.primary.withValues(alpha: 0.1),
-                    ),
-                  ),
-                ],
-              ),
+              ],
             ),
           ),
         ],
