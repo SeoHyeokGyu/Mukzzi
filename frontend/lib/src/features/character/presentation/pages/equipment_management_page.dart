@@ -41,9 +41,9 @@ class _EquipmentManagementPageState
         slot: slot.value,
         rewardId: isEquipped ? null : reward.id,
       );
+      if (!mounted) return;
       _invalidateCharacters();
 
-      if (!mounted) return;
       if (isEquipped) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -71,17 +71,23 @@ class _EquipmentManagementPageState
     required EquipmentSlot slot,
     required String rewardId,
   }) async {
+    if (_isSubmitting) return;
+
+    setState(() => _isSubmitting = true);
     try {
-      await ref.read(characterRepositoryProvider).equipItem(
-            slot: slot.value,
-            rewardId: rewardId,
-          );
+      final repository = ref.read(characterRepositoryProvider);
+      await repository.equipItem(slot: slot.value, rewardId: rewardId);
+      if (!mounted) return;
       _invalidateCharacters();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('되돌리기에 실패했습니다.')),
       );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
