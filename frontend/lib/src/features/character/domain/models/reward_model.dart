@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 enum EquipmentSlot {
   background('BACKGROUND'),
   back('BACK'),
@@ -17,6 +19,46 @@ enum EquipmentSlot {
       if (slot.value == value) return slot;
     }
     return null;
+  }
+}
+
+extension EquipmentSlotUi on EquipmentSlot {
+  String get label {
+    switch (this) {
+      case EquipmentSlot.background:
+        return '배경';
+      case EquipmentSlot.back:
+        return '등';
+      case EquipmentSlot.body:
+        return '몸';
+      case EquipmentSlot.hand:
+        return '손';
+      case EquipmentSlot.face:
+        return '얼굴';
+      case EquipmentSlot.head:
+        return '머리';
+      case EquipmentSlot.aura:
+        return '오라';
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case EquipmentSlot.background:
+        return Icons.wallpaper_outlined;
+      case EquipmentSlot.back:
+        return Icons.back_hand_outlined;
+      case EquipmentSlot.body:
+        return Icons.accessibility_new;
+      case EquipmentSlot.hand:
+        return Icons.pan_tool_alt_outlined;
+      case EquipmentSlot.face:
+        return Icons.sentiment_satisfied_alt;
+      case EquipmentSlot.head:
+        return Icons.face_6_outlined;
+      case EquipmentSlot.aura:
+        return Icons.auto_awesome;
+    }
   }
 }
 

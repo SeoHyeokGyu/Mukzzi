@@ -82,6 +82,15 @@ class CharacterPage extends ConsumerWidget {
                     equippedAccessory: char?.equippedAccessory?.assetUrl,
                     equipment: char?.equipment ?? const {},
                   ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: () => context.push('/character/equipment'),
+                      icon: const Icon(Icons.checkroom_outlined),
+                      label: const Text('장착 관리'),
+                    ),
+                  ),
                   if (isAdmin) ...[
                     const SizedBox(height: 16),
                     SingleChildScrollView(
@@ -166,7 +175,7 @@ class CharacterPage extends ConsumerWidget {
                   _EquipmentItem(
                     label: '배경',
                     value: char?.equippedBackground?.name ?? '기본 배경',
-                    onTap: () => context.push('/character/rewards'),
+                    onTap: () => context.push('/character/equipment'),
                     tokens: tokens,
                   ),
                   Divider(
@@ -174,7 +183,7 @@ class CharacterPage extends ConsumerWidget {
                   _EquipmentItem(
                     label: '악세서리',
                     value: char?.equippedAccessory?.name ?? '없음',
-                    onTap: () => context.push('/character/rewards'),
+                    onTap: () => context.push('/character/equipment'),
                     tokens: tokens,
                   ),
                 ],
