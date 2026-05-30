@@ -33,25 +33,26 @@ class _RecordingApiClient extends ApiClient {
 
 void main() {
   group('CharacterRepository.equipItem', () {
-    test('keeps large reward IDs as strings when equipping an accessory',
+    test('keeps large reward IDs as strings when equipping a slot item',
         () async {
       final apiClient = _RecordingApiClient();
       final repository = CharacterRepository(apiClient);
 
-      await repository.equipItem(accessoryId: '621143988300152778');
+      await repository.equipItem(slot: 'HEAD', rewardId: '621143988300152778');
 
       expect(apiClient.lastPath, '/characters/me/equipment');
-      expect(apiClient.lastData, {'accessory_id': '621143988300152778'});
+      expect(apiClient.lastData,
+          {'slot': 'HEAD', 'reward_id': '621143988300152778'});
     });
 
-    test('sends an empty string when unequipping an accessory', () async {
+    test('sends null reward_id when unequipping a slot', () async {
       final apiClient = _RecordingApiClient();
       final repository = CharacterRepository(apiClient);
 
-      await repository.equipItem(accessoryId: '');
+      await repository.equipItem(slot: 'HEAD', rewardId: null);
 
       expect(apiClient.lastPath, '/characters/me/equipment');
-      expect(apiClient.lastData, {'accessory_id': ''});
+      expect(apiClient.lastData, {'slot': 'HEAD', 'reward_id': null});
     });
   });
 }

@@ -356,12 +356,14 @@ func (h *CollectionHandler) GetRewards(c *gin.Context) {
 	for i, reward := range rewards {
 		ur, acquired := acquiredMap[reward.ID]
 		resp := dto.RewardResponse{
-			ID:          reward.ID,
-			RewardType:  reward.RewardType,
-			Name:        reward.Name,
-			Description: reward.Description,
-			AssetURL:    reward.AssetURL,
-			Acquired:    acquired,
+			ID:           reward.ID,
+			RewardType:   reward.RewardType,
+			Code:         reward.Code,
+			Name:         reward.Name,
+			Description:  reward.Description,
+			AssetURL:     reward.AssetURL,
+			RenderConfig: reward.RenderConfig,
+			Acquired:     acquired,
 		}
 		if acquired && ur != nil {
 			resp.AchievedAt = &ur.AchievedAt

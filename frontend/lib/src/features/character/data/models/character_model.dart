@@ -12,6 +12,7 @@ class CharacterModel {
   final int skinTone;
   final int expression;
   final int nutritionAchievementDays;
+  final Map<EquipmentSlot, RewardModel> equipment;
   final RewardModel? equippedBackground;
   final RewardModel? equippedAccessory;
 
@@ -26,6 +27,7 @@ class CharacterModel {
     required this.skinTone,
     required this.expression,
     required this.nutritionAchievementDays,
+    this.equipment = const {},
     this.equippedBackground,
     this.equippedAccessory,
   });
@@ -41,6 +43,7 @@ class CharacterModel {
     int? skinTone,
     int? expression,
     int? nutritionAchievementDays,
+    Map<EquipmentSlot, RewardModel>? equipment,
     RewardModel? equippedBackground,
     RewardModel? equippedAccessory,
   }) {
@@ -56,6 +59,7 @@ class CharacterModel {
       expression: expression ?? this.expression,
       nutritionAchievementDays:
           nutritionAchievementDays ?? this.nutritionAchievementDays,
+      equipment: equipment ?? this.equipment,
       equippedBackground: equippedBackground ?? this.equippedBackground,
       equippedAccessory: equippedAccessory ?? this.equippedAccessory,
     );
@@ -68,6 +72,18 @@ class CharacterModel {
     if (penalty == 'STARVING') status = CharacterState.starving;
     if (penalty == 'WEAKENED') status = CharacterState.sleeping;
 
+    final equipment = <EquipmentSlot, RewardModel>{};
+    final equipmentJson = json['equipment'];
+    if (equipmentJson is Map<String, dynamic>) {
+      for (final entry in equipmentJson.entries) {
+        final slot = EquipmentSlot.fromJson(entry.key);
+        if (slot != null && entry.value is Map<String, dynamic>) {
+          equipment[slot] =
+              RewardModel.fromJson(entry.value as Map<String, dynamic>);
+        }
+      }
+    }
+
     return CharacterModel(
       id: json['id']?.toString() ?? '',
       userId: json['user_id']?.toString() ?? '',
@@ -79,6 +95,7 @@ class CharacterModel {
       skinTone: json['skin_tone'] as int? ?? 0,
       expression: json['expression'] as int? ?? 0,
       nutritionAchievementDays: json['nutrition_achievement_days'] as int? ?? 0,
+      equipment: equipment,
       equippedBackground: json['equipped_background'] != null
           ? RewardModel.fromJson(
               json['equipped_background'] as Map<String, dynamic>)

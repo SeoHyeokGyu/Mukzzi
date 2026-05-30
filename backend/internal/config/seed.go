@@ -106,6 +106,34 @@ func SeedRewards(db *gorm.DB) {
 		slog.Error("rewards 테이블 code 컬럼 생성 실패", slog.Any("error", err))
 		return
 	}
+	if err := db.Exec("ALTER TABLE rewards ADD COLUMN IF NOT EXISTS render_config jsonb").Error; err != nil {
+		slog.Error("rewards 테이블 render_config 컬럼 생성 실패", slog.Any("error", err))
+		return
+	}
+	if err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS character_equipment (
+			id bigint PRIMARY KEY,
+			created_at timestamptz NOT NULL DEFAULT now(),
+			updated_at timestamptz NOT NULL DEFAULT now(),
+			deleted_at timestamptz,
+			character_id bigint NOT NULL REFERENCES characters(id),
+			user_id bigint NOT NULL REFERENCES users(id),
+			slot varchar(20) NOT NULL,
+			reward_id bigint NOT NULL REFERENCES rewards(id),
+			equipped_at timestamptz NOT NULL DEFAULT now()
+		)
+	`).Error; err != nil {
+		slog.Error("character_equipment 테이블 생성 실패", slog.Any("error", err))
+		return
+	}
+	if err := db.Exec("CREATE INDEX IF NOT EXISTS idx_character_equipment_user_id ON character_equipment(user_id)").Error; err != nil {
+		slog.Error("character_equipment user_id 인덱스 생성 실패", slog.Any("error", err))
+		return
+	}
+	if err := db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_character_equipment_slot_active ON character_equipment(character_id, slot) WHERE deleted_at IS NULL").Error; err != nil {
+		slog.Error("character_equipment 슬롯 유니크 인덱스 생성 실패", slog.Any("error", err))
+		return
+	}
 
 	// 1. 기존 데이터 백필 (Code 컬럼이 누락/비어있는 데이터 보정)
 	// 기존 보상 데이터의 ID 및 컨텐츠 가치를 보존하기 위해 REWARD_<ID> 로 백필합니다.
@@ -125,15 +153,7 @@ func SeedRewards(db *gorm.DB) {
 		return
 	}
 
-	rewards := []domain.Reward{
-		{
-			RewardType:  domain.RewardAccessory,
-			Code:        "CAP_ACCESSORY",
-			Name:        "먹찌 캡",
-			Description: "먹찌 캐릭터가 착용하는 캡 모자입니다.",
-			AssetURL:    "cap",
-		},
-	}
+	rewards := defaultRewards()
 
 	for _, r := range rewards {
 		var existing domain.Reward
@@ -150,6 +170,7 @@ func SeedRewards(db *gorm.DB) {
 			existing.Description = r.Description
 			existing.AssetURL = r.AssetURL
 			existing.RewardType = r.RewardType
+			existing.RenderConfig = r.RenderConfig
 			if err := db.Save(&existing).Error; err != nil {
 				slog.Error("보상 시드 업데이트 실패", slog.Any("error", err))
 			}
@@ -182,5 +203,74 @@ func SeedRewards(db *gorm.DB) {
 		}
 	}
 
+	backfillCharacterEquipment(db)
+
 	slog.Info("보상 시드 및 기본 액세서리 지급 완료")
+}
+
+func defaultRewards() []domain.Reward {
+	return []domain.Reward{
+		{
+			RewardType:  domain.RewardAccessory,
+			Code:        "CAP_ACCESSORY",
+			Name:        "먹찌 캡",
+			Description: "먹찌 캐릭터가 착용하는 캡 모자입니다.",
+			AssetURL:    "cap",
+			RenderConfig: &domain.RewardRenderConfig{
+				Slot:     domain.EquipmentSlotHead,
+				OffsetX:  0,
+				OffsetY:  0,
+				Scale:    1,
+				Rotation: 0,
+				ZIndex:   30,
+			},
+		},
+	}
+}
+
+func backfillCharacterEquipment(db *gorm.DB) {
+	var chars []domain.Character
+	if err := db.Find(&chars).Error; err != nil {
+		slog.Error("캐릭터 장비 백필 대상 조회 실패", slog.Any("error", err))
+		return
+	}
+
+	now := time.Now()
+	for _, char := range chars {
+		if char.EquippedAccessoryID != nil {
+			upsertEquipmentSeed(db, char, domain.EquipmentSlotHead, *char.EquippedAccessoryID, now)
+		}
+		if char.EquippedBackgroundID != nil {
+			upsertEquipmentSeed(db, char, domain.EquipmentSlotBackground, *char.EquippedBackgroundID, now)
+		}
+	}
+}
+
+func upsertEquipmentSeed(db *gorm.DB, char domain.Character, slot domain.EquipmentSlot, rewardID int64, now time.Time) {
+	var existing domain.CharacterEquipment
+	err := db.Where("character_id = ? AND slot = ?", char.ID, slot).First(&existing).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		equipment := domain.CharacterEquipment{
+			CharacterID: char.ID,
+			UserID:      char.UserID,
+			Slot:        slot,
+			RewardID:    rewardID,
+			EquippedAt:  now,
+		}
+		if err := db.Create(&equipment).Error; err != nil {
+			slog.Error("캐릭터 장비 백필 생성 실패", slog.Int64("character_id", char.ID), slog.String("slot", string(slot)), slog.Any("error", err))
+		}
+		return
+	}
+	if err != nil {
+		slog.Error("캐릭터 장비 백필 조회 실패", slog.Int64("character_id", char.ID), slog.String("slot", string(slot)), slog.Any("error", err))
+		return
+	}
+	if existing.RewardID != rewardID {
+		existing.RewardID = rewardID
+		existing.EquippedAt = now
+		if err := db.Save(&existing).Error; err != nil {
+			slog.Error("캐릭터 장비 백필 갱신 실패", slog.Int64("character_id", char.ID), slog.String("slot", string(slot)), slog.Any("error", err))
+		}
+	}
 }

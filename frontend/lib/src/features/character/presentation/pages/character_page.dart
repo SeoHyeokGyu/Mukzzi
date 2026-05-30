@@ -80,6 +80,7 @@ class CharacterPage extends ConsumerWidget {
                     size: 200,
                     showAccessory: char?.equippedAccessory != null,
                     equippedAccessory: char?.equippedAccessory?.assetUrl,
+                    equipment: char?.equipment ?? const {},
                   ),
                   if (isAdmin) ...[
                     const SizedBox(height: 16),

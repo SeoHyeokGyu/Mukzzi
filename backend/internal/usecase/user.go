@@ -24,8 +24,12 @@ type UserStats struct {
 }
 
 var (
-	ErrInvalidID      = errors.New("유효하지 않은 ID입니다")
-	ErrRewardNotOwned = errors.New("소유하지 않았거나 올바르지 않은 타입의 아이템입니다")
+	ErrInvalidID             = errors.New("유효하지 않은 ID입니다")
+	ErrInvalidSlot           = errors.New("유효하지 않은 장비 슬롯입니다")
+	ErrRewardNotOwned        = errors.New("소유하지 않았거나 올바르지 않은 타입의 아이템입니다")
+	ErrRewardNotEquippable   = errors.New("장착할 수 없는 보상입니다")
+	ErrEquipmentSlotMismatch = errors.New("요청 슬롯과 보상 슬롯이 일치하지 않습니다")
+	ErrCharacterNotFound     = errors.New("캐릭터를 찾을 수 없습니다")
 )
 
 // UserUsecase 인터페이스는 사용자 프로필 관련 비즈니스 로직을 정의합니다.
@@ -50,7 +54,7 @@ type UserUsecase interface {
 	SyncRankingToRedis(ctx context.Context) error
 	RecalcAppearance(userID int64, date time.Time) (*domain.AppearanceChangedEvent, error)
 	RunNutritionAchievementUpdate() error
-	EquipItem(userID int64, backgroundIDStr *string, accessoryIDStr *string) error
+	EquipItem(userID int64, slot domain.EquipmentSlot, rewardIDStr *string) error
 }
 
 type userUsecase struct {
@@ -723,90 +727,116 @@ func (u *userUsecase) calculateNutritionTargets(body *domain.UserBody, goal *dom
 	goal.DailyFatTarget = int(kcalTarget * 0.2 / 9)
 }
 
-// EquipItem 캐릭터 장비(배경, 악세사리) 장착 및 해제 비즈니스 로직
-func (u *userUsecase) EquipItem(userID int64, backgroundIDStr *string, accessoryIDStr *string) error {
-	// 1. 캐릭터 정보 가져오기
+// EquipItem 캐릭터 장비 슬롯 장착 및 해제 비즈니스 로직
+func (u *userUsecase) EquipItem(userID int64, slot domain.EquipmentSlot, rewardIDStr *string) error {
+	if !isValidEquipmentSlot(slot) {
+		return ErrInvalidSlot
+	}
+
 	char, err := u.characterRepo.GetByUserID(userID)
 	if err != nil {
 		return err
 	}
 	if char == nil {
-		return errors.New("캐릭터를 찾을 수 없습니다")
+		return ErrCharacterNotFound
 	}
 
-	// 2. 배경(Background) 검증 및 변경
-	if backgroundIDStr != nil {
-		if *backgroundIDStr == "" {
-			char.EquippedBackgroundID = nil
-			char.EquippedBackground = nil
-		} else {
-			bgID, err := strconv.ParseInt(*backgroundIDStr, 10, 64)
-			if err != nil {
-				return ErrInvalidID
-			}
-			// 소유 여부 및 리워드 타입 검증
-			var count int64
-			if err := u.db.Table("user_rewards").
-				Joins("JOIN rewards ON rewards.id = user_rewards.reward_id").
-				Where("user_id = ? AND reward_id = ? AND rewards.reward_type = 'BACKGROUND'", userID, bgID).
-				Count(&count).Error; err != nil {
-				return err
-			}
-			if count == 0 {
-				return ErrRewardNotOwned
-			}
-			char.EquippedBackgroundID = &bgID
-			char.EquippedBackground = nil
+	if rewardIDStr == nil || *rewardIDStr == "" {
+		if err := u.db.Where("character_id = ? AND slot = ?", char.ID, slot).
+			Delete(&domain.CharacterEquipment{}).Error; err != nil {
+			return err
 		}
+		u.invalidateCharacterCaches(userID)
+		return nil
 	}
 
-	// 3. 악세사리(Accessory) 검증 및 변경
-	if accessoryIDStr != nil {
-		if *accessoryIDStr == "" {
-			char.EquippedAccessoryID = nil
-			char.EquippedAccessory = nil
-		} else {
-			accID, err := strconv.ParseInt(*accessoryIDStr, 10, 64)
-			if err != nil {
-				return ErrInvalidID
-			}
+	rewardID, err := strconv.ParseInt(*rewardIDStr, 10, 64)
+	if err != nil {
+		return ErrInvalidID
+	}
 
-			// 리워드 정보 조회 및 유효성 검증
-			var reward domain.Reward
-			if err := u.db.First(&reward, accID).Error; err != nil {
-				if errors.Is(err, gorm.ErrRecordNotFound) {
-					return ErrInvalidID
-				}
-				return err
-			}
-			if reward.RewardType != domain.RewardAccessory {
-				return ErrRewardNotOwned
-			}
-
-			var count int64
-			if err := u.db.Table("user_rewards").
-				Where("user_id = ? AND reward_id = ?", userID, accID).
-				Count(&count).Error; err != nil {
-				return err
-			}
-			if count == 0 {
-				return ErrRewardNotOwned
-			}
-
-			char.EquippedAccessoryID = &accID
-			char.EquippedAccessory = nil
+	var reward domain.Reward
+	if err := u.db.First(&reward, rewardID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrInvalidID
 		}
+		return err
+	}
+	if !isEquippableReward(reward.RewardType) || reward.RenderConfig == nil {
+		return ErrRewardNotEquippable
+	}
+	if reward.RenderConfig.Slot != slot {
+		return ErrEquipmentSlotMismatch
 	}
 
-	// 4. 저장 및 캐시 무효화
-	if err := u.characterRepo.Update(char); err != nil {
+	var count int64
+	if err := u.db.Table("user_rewards").
+		Where("user_id = ? AND reward_id = ?", userID, rewardID).
+		Count(&count).Error; err != nil {
+		return err
+	}
+	if count == 0 {
+		return ErrRewardNotOwned
+	}
+
+	var existing domain.CharacterEquipment
+	err = u.db.Where("character_id = ? AND slot = ?", char.ID, slot).First(&existing).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		equipment := domain.CharacterEquipment{
+			CharacterID: char.ID,
+			UserID:      userID,
+			Slot:        slot,
+			RewardID:    rewardID,
+			EquippedAt:  time.Now(),
+		}
+		if err := u.db.Create(&equipment).Error; err != nil {
+			return err
+		}
+		u.invalidateCharacterCaches(userID)
+		return nil
+	}
+	if err != nil {
 		return err
 	}
 
-	// Redis의 사용자 프로필 및 캐릭터 캐시 무효화
+	existing.RewardID = rewardID
+	existing.EquippedAt = time.Now()
+	if err := u.db.Save(&existing).Error; err != nil {
+		return err
+	}
+	u.invalidateCharacterCaches(userID)
+	return nil
+}
+
+func isValidEquipmentSlot(slot domain.EquipmentSlot) bool {
+	switch slot {
+	case domain.EquipmentSlotBackground,
+		domain.EquipmentSlotBack,
+		domain.EquipmentSlotBody,
+		domain.EquipmentSlotHand,
+		domain.EquipmentSlotFace,
+		domain.EquipmentSlotHead,
+		domain.EquipmentSlotAura:
+		return true
+	default:
+		return false
+	}
+}
+
+func isEquippableReward(rewardType domain.RewardType) bool {
+	switch rewardType {
+	case domain.RewardBackground, domain.RewardAccessory, domain.RewardEffect, domain.RewardMotion:
+		return true
+	default:
+		return false
+	}
+}
+
+func (u *userUsecase) invalidateCharacterCaches(userID int64) {
+	if u.rdb == nil {
+		return
+	}
 	ctx := context.Background()
 	u.rdb.Del(ctx, fmt.Sprintf("user:profile:%d", userID))
 	u.rdb.Del(ctx, fmt.Sprintf("user:char:%d", userID))
-
-	return nil
 }

@@ -28,10 +28,11 @@ class CharacterRepository {
     });
   }
 
-  Future<void> equipItem({String? backgroundId, String? accessoryId}) async {
+  Future<void> equipItem(
+      {required String slot, required String? rewardId}) async {
     await _apiClient.patch('/characters/me/equipment', data: {
-      if (backgroundId != null) 'background_id': backgroundId,
-      if (accessoryId != null) 'accessory_id': accessoryId,
+      'slot': slot,
+      'reward_id': rewardId,
     });
   }
 }

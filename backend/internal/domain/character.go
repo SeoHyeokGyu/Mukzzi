@@ -29,13 +29,31 @@ type Character struct {
 	EquippedBackgroundID     *int64        `gorm:"type:bigint" json:"equipped_background_id,string"`
 	EquippedAccessoryID      *int64        `gorm:"type:bigint" json:"equipped_accessory_id,string"`
 
-	User               *User   `gorm:"foreignKey:UserID" json:"-"`
-	EquippedBackground *Reward `gorm:"foreignKey:EquippedBackgroundID" json:"equipped_background,omitempty"`
-	EquippedAccessory  *Reward `gorm:"foreignKey:EquippedAccessoryID" json:"equipped_accessory,omitempty"`
+	User               *User                `gorm:"foreignKey:UserID" json:"-"`
+	EquippedBackground *Reward              `gorm:"foreignKey:EquippedBackgroundID" json:"equipped_background,omitempty"`
+	EquippedAccessory  *Reward              `gorm:"foreignKey:EquippedAccessoryID" json:"equipped_accessory,omitempty"`
+	Equipment          []CharacterEquipment `gorm:"foreignKey:CharacterID" json:"equipment,omitempty"`
 }
 
 func (Character) TableName() string {
 	return "characters"
+}
+
+// CharacterEquipment 는 슬롯별 캐릭터 장비 장착 상태입니다.
+type CharacterEquipment struct {
+	BaseDomain
+	CharacterID int64         `gorm:"not null;index" json:"character_id,string"`
+	UserID      int64         `gorm:"not null;index" json:"user_id,string"`
+	Slot        EquipmentSlot `gorm:"type:varchar(20);not null;index" json:"slot"`
+	RewardID    int64         `gorm:"not null;index" json:"reward_id,string"`
+	EquippedAt  time.Time     `gorm:"not null" json:"equipped_at"`
+
+	Character *Character `gorm:"foreignKey:CharacterID" json:"-"`
+	Reward    Reward     `gorm:"foreignKey:RewardID" json:"reward"`
+}
+
+func (CharacterEquipment) TableName() string {
+	return "character_equipment"
 }
 
 // CharacterCollection 은 사용자가 획득한 먹찌 외형 도감 기록입니다.

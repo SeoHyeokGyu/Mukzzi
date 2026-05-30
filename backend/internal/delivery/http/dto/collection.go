@@ -59,11 +59,13 @@ type EquipTitleRequest struct {
 
 // RewardResponse 보상 아이템 응답
 type RewardResponse struct {
-	ID          int64             `json:"id,string"`
-	RewardType  domain.RewardType `json:"reward_type"`
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	AssetURL    string            `json:"asset_url"`
-	Acquired    bool              `json:"acquired"`
-	AchievedAt  *time.Time        `json:"achieved_at,omitempty"`
+	ID           int64                      `json:"id,string"`
+	RewardType   domain.RewardType          `json:"reward_type"`
+	Code         string                     `json:"code"`
+	Name         string                     `json:"name"`
+	Description  string                     `json:"description"`
+	AssetURL     string                     `json:"asset_url"`
+	RenderConfig *domain.RewardRenderConfig `json:"render_config,omitempty"`
+	Acquired     bool                       `json:"acquired"`
+	AchievedAt   *time.Time                 `json:"achieved_at,omitempty"`
 }
