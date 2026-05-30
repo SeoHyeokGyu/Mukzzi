@@ -45,7 +45,7 @@ func (h *UserHandler) GetMe(c *gin.Context) {
 		return
 	}
 
-	Success(c, user)
+	Success(c, dto.ToUserResponse(user))
 }
 
 // GetCharacter 내 캐릭터 조회
@@ -125,7 +125,7 @@ func (h *UserHandler) UpdateMe(c *gin.Context) {
 		InternalError(c, "프로필 조회에 실패했습니다.", err.Error())
 		return
 	}
-	Success(c, updatedUser)
+	Success(c, dto.ToUserResponse(updatedUser))
 }
 
 // UpdateBody 신체 정보 수정
@@ -158,7 +158,7 @@ func (h *UserHandler) UpdateBody(c *gin.Context) {
 		InternalError(c, "프로필 조회에 실패했습니다.", err.Error())
 		return
 	}
-	Success(c, updatedUser)
+	Success(c, dto.ToUserResponse(updatedUser))
 }
 
 // UpdateNutritionGoal 영양 목표 재설정
@@ -190,7 +190,7 @@ func (h *UserHandler) UpdateNutritionGoal(c *gin.Context) {
 		InternalError(c, "프로필 조회에 실패했습니다.", err.Error())
 		return
 	}
-	Success(c, updatedUser)
+	Success(c, dto.ToUserResponse(updatedUser))
 }
 
 // UpdateSettings 설정 변경
@@ -222,7 +222,7 @@ func (h *UserHandler) UpdateSettings(c *gin.Context) {
 		InternalError(c, "프로필 조회에 실패했습니다.", err.Error())
 		return
 	}
-	Success(c, updatedUser)
+	Success(c, dto.ToUserResponse(updatedUser))
 }
 
 // WithdrawAccount 회원 탈퇴

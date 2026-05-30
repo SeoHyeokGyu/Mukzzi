@@ -118,9 +118,6 @@ func main() {
 		})
 	})
 
-	// 스케줄러 시작
-	config.StartScheduler(userUsecase, questUsecase)
-
 	// BadgeGranter 초기화 (여러 도메인에서 사용)
 	badgeGranter := usecase.NewBadgeGranter(badgeRepo, mealRepo, dailyIntakeRepo, charCollectionRepo)
 
@@ -187,6 +184,13 @@ func main() {
 	// 업로드 핸들러
 	uploadHandler := handler.NewUploadHandler()
 
+	// Seed 도메인 (menuRepo, rdb 의존 → menuUsecase 초기화 이후)
+	seedUsecase := usecase.NewSeedUsecase(menuRepo, menuUsecase, db)
+	seedHandler := handler.NewSeedHandler(seedUsecase)
+
+	// 스케줄러 시작 (seedUsecase 초기화 완료 후)
+	config.StartScheduler(userUsecase, questUsecase, seedUsecase)
+
 	// 라우터 초기화
 	r := route.NewRouter(
 		authHandler,
@@ -204,6 +208,7 @@ func main() {
 		recHandler,
 		aiHandler,
 		uploadHandler,
+		seedHandler,
 	)
 
 	// 서버 실행

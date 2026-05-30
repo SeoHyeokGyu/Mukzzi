@@ -7,6 +7,7 @@ class UserModel {
   final String? equippedTitle;
   final Map<String, bool> notificationSettings;
   final bool isOnboarded;
+  final bool isAdmin;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -18,6 +19,7 @@ class UserModel {
     this.profileImageUrl,
     this.equippedTitle,
     this.isOnboarded = false,
+    this.isAdmin = false,
     Map<String, bool>? notificationSettings,
     this.createdAt,
     this.updatedAt,
@@ -50,6 +52,7 @@ class UserModel {
       equippedTitle: titleName,
       notificationSettings: notificationSettings,
       isOnboarded: json['body'] != null || json['Body'] != null,
+      isAdmin: json['is_admin'] as bool? ?? false,
       createdAt: json['CreatedAt'] != null
           ? DateTime.tryParse(json['CreatedAt'] as String)
           : null,
