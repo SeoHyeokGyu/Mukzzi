@@ -27,6 +27,7 @@ const (
 	QuestStatusProgress  QuestStatus = "PROGRESS"
 	QuestStatusCompleted QuestStatus = "COMPLETED"
 	QuestStatusClaimed   QuestStatus = "CLAIMED"
+	QuestStatusExpired   QuestStatus = "EXPIRED"
 )
 
 // QuestDefinition 은 시스템에 정의된 퀘스트의 템플릿입니다.
@@ -51,10 +52,10 @@ func (QuestDefinition) TableName() string { return "quests" }
 // UserQuest 는 사용자가 할당받은 구체적인 퀘스트 진행 상태를 나타냅니다.
 type UserQuest struct {
 	BaseDomain
-	UserID       int64       `gorm:"column:user_id;not null;uniqueIndex:idx_user_quest"`
-	QuestID      int64       `gorm:"column:quest_id;not null;uniqueIndex:idx_user_quest"`
+	UserID       int64       `gorm:"column:user_id;not null;uniqueIndex:idx_user_quest,where:deleted_at IS NULL;index:idx_quest_user_status,where:deleted_at IS NULL"`
+	QuestID      int64       `gorm:"column:quest_id;not null;uniqueIndex:idx_user_quest,where:deleted_at IS NULL"`
 	CurrentCount int         `gorm:"column:current_count;default:0"` // 현재 진행 수치
-	Status       QuestStatus `gorm:"column:status;default:'PROGRESS'"` // PROGRESS, COMPLETED, CLAIMED
+	Status       QuestStatus `gorm:"column:status;default:'PROGRESS';index:idx_quest_user_status,where:deleted_at IS NULL"`
 	AssignedAt   time.Time   `gorm:"column:assigned_at;not null"`     // 할당 일시
 	ExpiresAt    time.Time   `gorm:"column:expires_at;not null"`      // 만료 일시 (업적은 먼 미래)
 
@@ -73,4 +74,5 @@ type QuestRepository interface {
 	GetAvailableQuestsByType(ctx context.Context, qType QuestType) ([]QuestDefinition, error)
 	DeleteQuestsByUserIDAndType(ctx context.Context, userID int64, qType QuestType) error
 	GetUserQuestByID(ctx context.Context, id int64) (*UserQuest, error)
+	UpdateExpiredQuests(ctx context.Context, now time.Time) (int64, error)
 }
