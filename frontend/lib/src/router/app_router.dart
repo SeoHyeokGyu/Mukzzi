@@ -16,6 +16,7 @@ import '../features/character/presentation/pages/mastery_list_page.dart';
 import '../features/character/presentation/pages/title_list_page.dart';
 import '../features/character/presentation/pages/reward_list_page.dart';
 import '../features/character/presentation/pages/character_collection_page.dart';
+import '../features/character/presentation/pages/equipment_management_page.dart';
 import '../features/profile/presentation/pages/onboarding_page.dart';
 import '../features/profile/presentation/pages/profile_page.dart';
 import '../features/profile/presentation/pages/edit_profile_page.dart';
@@ -189,6 +190,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   path: 'titles',
                   name: 'character-titles',
                   builder: (context, state) => const TitleListPage(),
+                ),
+                GoRoute(
+                  path: 'equipment',
+                  name: 'character-equipment',
+                  builder: (context, state) => const EquipmentManagementPage(),
                 ),
                 GoRoute(
                   path: 'rewards',
