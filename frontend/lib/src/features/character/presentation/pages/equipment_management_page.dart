@@ -71,7 +71,7 @@ class _EquipmentManagementPageState
     required EquipmentSlot slot,
     required String rewardId,
   }) async {
-    if (_isSubmitting) return;
+    if (!mounted || _isSubmitting) return;
 
     setState(() => _isSubmitting = true);
     try {
