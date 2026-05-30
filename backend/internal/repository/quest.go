@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -87,4 +88,12 @@ func (r *questRepository) GetUserQuestByID(ctx context.Context, id int64) (*doma
 		return nil, err
 	}
 	return &uq, nil
+}
+
+func (r *questRepository) UpdateExpiredQuests(ctx context.Context, now time.Time) (int64, error) {
+	result := r.db.WithContext(ctx).Model(&domain.UserQuest{}).
+		Where("expires_at < ? AND status IN ?", now, []string{string(domain.QuestStatusProgress), string(domain.QuestStatusCompleted)}).
+		Update("status", domain.QuestStatusExpired)
+
+	return result.RowsAffected, result.Error
 }

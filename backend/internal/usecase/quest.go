@@ -23,6 +23,7 @@ type QuestUsecase interface {
 	AssignTutorialQuest(ctx context.Context, userID int64) error
 	AssignAllUsersDailyQuests(ctx context.Context) error
 	AssignAllUsersWeeklyQuests(ctx context.Context) error
+	ProcessExpiredQuests(ctx context.Context) error
 }
 
 type questUsecase struct {
@@ -149,9 +150,25 @@ func (u *questUsecase) HandleEvent(ctx context.Context, event domain.Event) ([]d
 					uq.CurrentCount++
 					shouldUpdate = true
 				}
+			case domain.EventLevelUp:
+				// [성장 퀘스트] 특정 레벨 달성 체크
+				if uq.Quest != nil && uq.Quest.Category == domain.QuestCategoryGrowth && uq.Quest.Code == "REACH_LEVEL" {
+					newLevel, ok := event.Payload["new_level"].(int)
+					if !ok {
+						// 페이로드 타입 처리 (JSON 숫자 등)
+						if val, ok := event.Payload["new_level"].(float64); ok {
+							newLevel = int(val)
+						}
+					}
+					if newLevel > 0 {
+						uq.CurrentCount = newLevel
+						shouldUpdate = true
+					}
+				}
 			case domain.EventAppearanceChanged:
 				// 외형 변경 이벤트 — 현재 퀘스트에서 별도 처리 없음
 			}
+
 
 			if shouldUpdate {
 				// 완료 상태 전환 체크
@@ -243,7 +260,23 @@ func (u *questUsecase) ClaimReward(ctx context.Context, userID int64, userQuestI
 			}
 		}
 
-
+		// 경험치 지급 및 레벨업 처리
+		if uq.Quest.RewardExp > 0 {
+			char, err := u.characterRepo.GetByUserID(userID)
+			if err != nil {
+				return err
+			}
+			if char != nil {
+				char.Exp += uq.Quest.RewardExp
+				for char.Exp >= char.Level*100 {
+					char.Exp -= char.Level * 100
+					char.Level++
+				}
+				if err := u.characterRepo.Update(char); err != nil {
+					return err
+				}
+			}
+		}
 
 		// 칭호 보상 지급
 		if uq.Quest.RewardTitleID != nil {
@@ -459,5 +492,15 @@ func (u *questUsecase) AssignAllUsersWeeklyQuests(ctx context.Context) error {
 	}
 
 	slog.Info("모든 유저에게 주간 퀘스트 할당 완료", slog.Int("count", len(userIDs)))
+	return nil
+}
+
+func (u *questUsecase) ProcessExpiredQuests(ctx context.Context) error {
+	slog.Info("만료된 퀘스트 정리 작업 시작")
+	count, err := u.questRepo.UpdateExpiredQuests(ctx, time.Now())
+	if err != nil {
+		return err
+	}
+	slog.Info("만료된 퀘스트 정리 작업 완료", slog.Int64("count", count))
 	return nil
 }
