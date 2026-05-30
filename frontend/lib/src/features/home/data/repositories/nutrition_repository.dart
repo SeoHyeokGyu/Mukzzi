@@ -15,7 +15,14 @@ class NutritionRepository {
   }
 
   Future<List<WeeklyNutritionItemModel>> getWeeklyNutrition() async {
-    final response = await _apiClient.get('/nutrition/weekly');
+    final now = DateTime.now();
+    final startDate = now.subtract(const Duration(days: 6));
+    final startDateStr = '${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}';
+
+    final response = await _apiClient.get(
+      '/nutrition/weekly',
+      queryParameters: {'start_date': startDateStr},
+    );
     if (response == null || response['data'] == null) {
       return [];
     }

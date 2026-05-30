@@ -60,9 +60,13 @@ class DailyNutritionModel {
 @JsonSerializable()
 class WeeklyNutritionItemModel {
   final String date;
+  @JsonKey(name: 'total_calories')
   final double calories;
+  @JsonKey(name: 'total_carbs')
   final double carbs;
+  @JsonKey(name: 'total_protein')
   final double protein;
+  @JsonKey(name: 'total_fat')
   final double fat;
 
   WeeklyNutritionItemModel({

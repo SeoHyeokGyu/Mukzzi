@@ -21,6 +21,10 @@ func AuthMiddleware() gin.HandlerFunc {
 			parts := strings.Split(authHeader, " ")
 			if len(parts) == 2 && parts[0] == "Bearer" {
 				tokenString = parts[1]
+			} else {
+				handler.Unauthorized(c, "INVALID_TOKEN_FORMAT", "인증 헤더 형식이 올바르지 않습니다.")
+				c.Abort()
+				return
 			}
 		}
 

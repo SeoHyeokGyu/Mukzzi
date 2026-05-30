@@ -19,6 +19,10 @@ import '../../data/repositories/meal_repository.dart';
 import '../../data/repositories/preference_repository.dart';
 import '../widgets/menu_search_field.dart';
 import '../providers/favorite_provider.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:mukzzi/src/features/ai/presentation/providers/ai_provider.dart';
+import 'package:mukzzi/src/features/ai/data/models/ai_models.dart';
 
 // ─────────────────────────────────────────
 // Providers
@@ -421,17 +425,32 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
       _selectedTime.minute,
     );
 
+    final isManual = _selectedMenu == null || _selectedMenu?.id == 'ai-analyzed';
+    MealNutritionPayload? nutritionPayload;
+    if (isManual && _selectedMenu != null && _selectedMenu!.id == 'ai-analyzed') {
+      nutritionPayload = MealNutritionPayload(
+        calories: _selectedMenu!.defaultCalories,
+        carbs: _selectedMenu!.defaultCarbs,
+        protein: _selectedMenu!.defaultProtein,
+        fat: _selectedMenu!.defaultFat,
+        fiber: _selectedMenu!.defaultFiber,
+        sodium: 0, // TODO: 모델에서 나트륨 정보 제공 시 업데이트
+        vitaminScore: _selectedMenu!.defaultVitaminScore,
+      );
+    }
+
     final request = CreateMealRequest(
-      menuId: _selectedMenu?.id,
+      menuId: isManual ? null : _selectedMenu?.id,
       menuName: menuName,
       category: _selectedMenu?.category ?? 'OTHER',
       mealType: widget.selectedMealType.apiValue,
       servingSize: _servingSize,
       recordedAt: recordedAt,
-      isManual: _selectedMenu == null,
+      isManual: isManual,
       weatherTag: _selectedWeather,
       moodTag: _selectedMood,
       friendTags: [],
+      nutrition: nutritionPayload,
     );
 
     final success = await ref.read(mealCreateProvider.notifier).submit(request);
@@ -495,7 +514,29 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _PhotoArea(tokens: tokens),
+          _PhotoArea(
+            tokens: tokens,
+            onAnalyzed: (result) {
+              setState(() {
+                _selectedMenu = MenuModel(
+                  id: 'ai-analyzed',
+                  name: result.menuName,
+                  category: result.category,
+                  defaultCalories: result.calories,
+                  defaultCarbs: result.carbs,
+                  defaultProtein: result.protein,
+                  defaultFat: result.fat,
+                  defaultFiber: result.fiber,
+                  defaultVitaminScore: result.vitaminScore,
+                  source: 'ai',
+                );
+                widget.menuController.text = result.menuName;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('${result.menuName} (으)로 분석되었습니다!')),
+              );
+            },
+          ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -710,37 +751,72 @@ class _InternalMealTypeSelector extends StatelessWidget {
   }
 }
 
-class _PhotoArea extends StatelessWidget {
+class _PhotoArea extends ConsumerWidget {
   final AppColorTokens tokens;
-  const _PhotoArea({required this.tokens});
+  final ValueChanged<AnalyzeMealResponse> onAnalyzed;
+
+  const _PhotoArea({required this.tokens, required this.onAnalyzed});
+
+  Future<void> _pickAndAnalyze(BuildContext context, WidgetRef ref) async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery);
+    if (file != null) {
+      await ref.read(analyzeMealProvider.notifier).analyzeImage(File(file.path));
+      final state = ref.read(analyzeMealProvider);
+      if (state.data != null) {
+        onAnalyzed(state.data!);
+      } else if (state.error != null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('분석 실패: ${state.error}')),
+          );
+        }
+      }
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 200,
-      decoration: BoxDecoration(
-        color: tokens.listItemBg.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(tokens.rCard),
-        border: Border.all(
-            color: tokens.primary.withValues(alpha: 0.1), width: 1.5),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.camera_alt_outlined,
-              size: 48, color: tokens.primary.withValues(alpha: 0.5)),
-          const SizedBox(height: 12),
-          Text('음식 사진을 추가해보세요',
-              style: TextStyle(
-                  color: tokens.textMuted,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500)),
-          const SizedBox(height: 4),
-          Text('(AI가 영양소를 자동 분석해드려요)',
-              style: TextStyle(
-                  color: tokens.primary.withValues(alpha: 0.5), fontSize: 11)),
-        ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final aiState = ref.watch(analyzeMealProvider);
+
+    return GestureDetector(
+      onTap: aiState.isLoading ? null : () => _pickAndAnalyze(context, ref),
+      child: Container(
+        width: double.infinity,
+        height: 200,
+        decoration: BoxDecoration(
+          color: tokens.listItemBg.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(tokens.rCard),
+          border: Border.all(
+              color: tokens.primary.withValues(alpha: 0.1), width: 1.5),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (aiState.isLoading) ...[
+              const CircularProgressIndicator(),
+              const SizedBox(height: 12),
+              Text('Gemini가 이미지를 분석중입니다...',
+                  style: TextStyle(
+                      color: tokens.primary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
+            ] else ...[
+              Icon(Icons.camera_alt_outlined,
+                  size: 48, color: tokens.primary.withValues(alpha: 0.5)),
+              const SizedBox(height: 12),
+              Text('음식 사진을 추가해보세요',
+                  style: TextStyle(
+                      color: tokens.textMuted,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500)),
+              const SizedBox(height: 4),
+              Text('(사진을 고르면 AI가 영양소를 자동 분석해드려요)',
+                  style: TextStyle(
+                      color: tokens.primary.withValues(alpha: 0.5), fontSize: 11)),
+            ]
+          ],
+        ),
       ),
     );
   }

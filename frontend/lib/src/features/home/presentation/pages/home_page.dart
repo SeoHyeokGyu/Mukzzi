@@ -19,6 +19,8 @@ import 'package:mukzzi/src/features/character/data/models/character_model.dart';
 import 'package:mukzzi/src/features/character/presentation/providers/character_provider.dart';
 import 'package:mukzzi/src/features/profile/presentation/providers/user_provider.dart';
 import 'package:mukzzi/src/features/home/presentation/widgets/menu_decision_section.dart';
+import 'package:mukzzi/src/features/ai/presentation/widgets/recommendation_card.dart';
+import 'package:mukzzi/src/features/ai/presentation/widgets/coaching_summary_card.dart';
 import 'package:mukzzi/src/features/home/data/models/nutrition_model.dart';
 import 'package:mukzzi/src/features/home/presentation/providers/nutrition_provider.dart';
 import 'package:mukzzi/src/features/meal_record/data/models/meal_model.dart';
@@ -326,8 +328,19 @@ class _HomePageState extends ConsumerState<HomePage> {
     final weeklyNutritionAsync = ref.watch(weeklyNutritionProvider);
     final mealsAsync = ref.watch(todayMealsProvider);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(todayNutritionProvider);
+        ref.invalidate(weeklyNutritionProvider);
+        ref.invalidate(todayMealsProvider);
+        ref.invalidate(questProvider);
+        ref.invalidate(characterProvider);
+        ref.invalidate(userProvider);
+      },
+      color: tokens.primary,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -354,6 +367,10 @@ class _HomePageState extends ConsumerState<HomePage> {
             error: (_, __) => const SizedBox.shrink(),
           ),
           const SizedBox(height: 12),
+          _animated(const CoachingSummaryCard(), delay: 150.ms, slideY: true),
+          const SizedBox(height: 12),
+          _animated(const RecommendationCard(mealType: 'LUNCH'), delay: 160.ms, slideY: true),
+          const SizedBox(height: 12),
           _animated(const MenuDecisionSection(), delay: 200.ms, slideY: true),
           const SizedBox(height: 24),
           mealsAsync.when(
@@ -363,6 +380,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
           const SizedBox(height: 16),
         ],
+      ),
       ),
     );
   }

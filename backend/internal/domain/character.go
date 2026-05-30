@@ -21,6 +21,8 @@ type Character struct {
 	SkinTone                 int           `gorm:"default:3" json:"skin_tone"`
 	Expression               int           `gorm:"default:3" json:"expression"`
 	PenaltyStatus            PenaltyStatus `gorm:"type:varchar(20);default:'NORMAL'" json:"penalty_status"`
+	Level                    int           `gorm:"default:1" json:"level"`
+	Exp                      int           `gorm:"default:0" json:"exp"`
 	StreakDays               int           `gorm:"default:0" json:"streak_days"`
 	NutritionAchievementDays int           `gorm:"default:0" json:"nutrition_achievement_days"`
 	LastRecordedAt           *time.Time    `json:"last_recorded_at"`
