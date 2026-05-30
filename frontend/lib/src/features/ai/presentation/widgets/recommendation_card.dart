@@ -131,7 +131,7 @@ class RecommendationCard extends ConsumerWidget {
               ),
             ),
             error: (err, stack) => Text(
-              '추천을 불러오지 못했습니다.',
+              err.toString(),
               style: TextStyle(color: tokens.textMuted, fontSize: 12),
             ),
           ),
