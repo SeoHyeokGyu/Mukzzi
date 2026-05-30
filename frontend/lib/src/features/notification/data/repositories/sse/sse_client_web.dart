@@ -27,16 +27,15 @@ class SseClientWeb implements SseClient {
       });
 
       eventSource.addEventListener('notification', (event) {
-        final html.MessageEvent msgEvent = event as html.MessageEvent;
-        final String data = msgEvent.data.toString();
-        
         try {
+          final dynamic msgEvent = event;
+          final String data = msgEvent.data.toString();
           final json = jsonDecode(data) as Map<String, dynamic>;
           if (!controller.isClosed) {
             controller.add(NotificationModel.fromJson(json));
           }
         } catch (e) {
-          debugPrint('[$_now][SseClientWeb] 파싱 에러: $e');
+          debugPrint('[$_now][SseClientWeb] 에러 발생 (캐스팅/파싱): $e');
         }
       });
 
