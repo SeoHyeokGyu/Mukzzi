@@ -742,8 +742,14 @@ func (u *userUsecase) EquipItem(userID int64, slot domain.EquipmentSlot, rewardI
 	}
 
 	if rewardIDStr == nil || *rewardIDStr == "" {
-		if err := u.db.Where("character_id = ? AND slot = ?", char.ID, slot).
-			Delete(&domain.CharacterEquipment{}).Error; err != nil {
+		err := u.db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Where("character_id = ? AND slot = ?", char.ID, slot).
+				Delete(&domain.CharacterEquipment{}).Error; err != nil {
+				return err
+			}
+			return syncLegacyEquipmentColumn(tx, char.ID, slot, nil)
+		})
+		if err != nil {
 			return err
 		}
 		u.invalidateCharacterCaches(userID)
@@ -779,33 +785,51 @@ func (u *userUsecase) EquipItem(userID int64, slot domain.EquipmentSlot, rewardI
 		return ErrRewardNotOwned
 	}
 
-	var existing domain.CharacterEquipment
-	err = u.db.Where("character_id = ? AND slot = ?", char.ID, slot).First(&existing).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		equipment := domain.CharacterEquipment{
-			CharacterID: char.ID,
-			UserID:      userID,
-			Slot:        slot,
-			RewardID:    rewardID,
-			EquippedAt:  time.Now(),
+	err = u.db.Transaction(func(tx *gorm.DB) error {
+		var existing domain.CharacterEquipment
+		err = tx.Where("character_id = ? AND slot = ?", char.ID, slot).First(&existing).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			equipment := domain.CharacterEquipment{
+				CharacterID: char.ID,
+				UserID:      userID,
+				Slot:        slot,
+				RewardID:    rewardID,
+				EquippedAt:  time.Now(),
+			}
+			if err := tx.Create(&equipment).Error; err != nil {
+				return err
+			}
+			return syncLegacyEquipmentColumn(tx, char.ID, slot, &rewardID)
 		}
-		if err := u.db.Create(&equipment).Error; err != nil {
+		if err != nil {
 			return err
 		}
-		u.invalidateCharacterCaches(userID)
-		return nil
-	}
-	if err != nil {
-		return err
-	}
 
-	existing.RewardID = rewardID
-	existing.EquippedAt = time.Now()
-	if err := u.db.Save(&existing).Error; err != nil {
+		existing.RewardID = rewardID
+		existing.EquippedAt = time.Now()
+		if err := tx.Save(&existing).Error; err != nil {
+			return err
+		}
+		return syncLegacyEquipmentColumn(tx, char.ID, slot, &rewardID)
+	})
+	if err != nil {
 		return err
 	}
 	u.invalidateCharacterCaches(userID)
 	return nil
+}
+
+func syncLegacyEquipmentColumn(tx *gorm.DB, charID int64, slot domain.EquipmentSlot, rewardID *int64) error {
+	switch slot {
+	case domain.EquipmentSlotHead:
+		return tx.Model(&domain.Character{}).Where("id = ?", charID).
+			Update("equipped_accessory_id", rewardID).Error
+	case domain.EquipmentSlotBackground:
+		return tx.Model(&domain.Character{}).Where("id = ?", charID).
+			Update("equipped_background_id", rewardID).Error
+	default:
+		return nil
+	}
 }
 
 func isValidEquipmentSlot(slot domain.EquipmentSlot) bool {
