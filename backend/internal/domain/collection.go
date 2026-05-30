@@ -70,21 +70,43 @@ func (UserTitle) TableName() string { return "user_titles" }
 // RewardType 보상 유형
 type RewardType string
 
+// EquipmentSlot 캐릭터 장비 슬롯
+type EquipmentSlot string
+
 const (
 	RewardBackground RewardType = "BACKGROUND"
 	RewardEffect     RewardType = "EFFECT"
 	RewardMotion     RewardType = "MOTION"
 	RewardAccessory  RewardType = "ACCESSORY"
+
+	EquipmentSlotBackground EquipmentSlot = "BACKGROUND"
+	EquipmentSlotBack       EquipmentSlot = "BACK"
+	EquipmentSlotBody       EquipmentSlot = "BODY"
+	EquipmentSlotHand       EquipmentSlot = "HAND"
+	EquipmentSlotFace       EquipmentSlot = "FACE"
+	EquipmentSlotHead       EquipmentSlot = "HEAD"
+	EquipmentSlotAura       EquipmentSlot = "AURA"
 )
+
+// RewardRenderConfig 보상 아이템의 캐릭터 렌더링 설정
+type RewardRenderConfig struct {
+	Slot     EquipmentSlot `json:"slot"`
+	OffsetX  float64       `json:"offset_x"`
+	OffsetY  float64       `json:"offset_y"`
+	Scale    float64       `json:"scale"`
+	Rotation float64       `json:"rotation"`
+	ZIndex   int           `json:"z_index"`
+}
 
 // Reward 보상 아이템
 type Reward struct {
 	BaseDomain
-	RewardType  RewardType `gorm:"type:varchar(20);not null"`
-	Code        string     `gorm:"type:varchar(50)" json:"code"`
-	Name        string     `gorm:"not null;type:varchar(50)" json:"name"`
-	Description string     `gorm:"type:text" json:"description"`
-	AssetURL    string     `gorm:"type:text" json:"asset_url"`
+	RewardType   RewardType          `gorm:"type:varchar(20);not null"`
+	Code         string              `gorm:"type:varchar(50)" json:"code"`
+	Name         string              `gorm:"not null;type:varchar(50)" json:"name"`
+	Description  string              `gorm:"type:text" json:"description"`
+	AssetURL     string              `gorm:"type:text" json:"asset_url"`
+	RenderConfig *RewardRenderConfig `gorm:"serializer:json;type:json" json:"render_config,omitempty"`
 }
 
 func (Reward) TableName() string { return "rewards" }

@@ -103,20 +103,16 @@ class _RewardCard extends ConsumerWidget {
     }
   }
 
-  bool get _isEquippable =>
-      reward.acquired &&
-      (reward.rewardType == 'BACKGROUND' || reward.rewardType == 'ACCESSORY');
+  bool get _isEquippable => reward.acquired && reward.renderConfig != null;
 
   Future<void> _toggleEquip(
       BuildContext context, WidgetRef ref, bool isCurrentlyEquipped) async {
     try {
       final repo = ref.read(characterRepositoryProvider);
+      final slot = reward.renderConfig?.slot.value;
+      if (slot == null) return;
       if (isCurrentlyEquipped) {
-        if (reward.rewardType == 'BACKGROUND') {
-          await repo.equipItem(backgroundId: '');
-        } else {
-          await repo.equipItem(accessoryId: '');
-        }
+        await repo.equipItem(slot: slot, rewardId: null);
         ref.invalidate(characterProvider);
         ref.invalidate(testCharacterProvider);
         if (context.mounted) {
@@ -125,11 +121,7 @@ class _RewardCard extends ConsumerWidget {
           );
         }
       } else {
-        if (reward.rewardType == 'BACKGROUND') {
-          await repo.equipItem(backgroundId: reward.id);
-        } else {
-          await repo.equipItem(accessoryId: reward.id);
-        }
+        await repo.equipItem(slot: slot, rewardId: reward.id);
         ref.invalidate(characterProvider);
         ref.invalidate(testCharacterProvider);
         if (context.mounted) {
@@ -153,11 +145,9 @@ class _RewardCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final acquired = reward.acquired;
     final char = ref.watch(characterProvider).value;
-    final isEquipped = char != null &&
-        ((reward.rewardType == 'BACKGROUND' &&
-                char.equippedBackground?.id == reward.id) ||
-            (reward.rewardType == 'ACCESSORY' &&
-                char.equippedAccessory?.id == reward.id));
+    final slot = reward.renderConfig?.slot;
+    final isEquipped =
+        char != null && slot != null && char.equipment[slot]?.id == reward.id;
 
     return Container(
       padding: const EdgeInsets.all(16),

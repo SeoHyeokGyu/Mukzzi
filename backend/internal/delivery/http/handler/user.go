@@ -66,7 +66,7 @@ func (h *UserHandler) GetCharacter(c *gin.Context) {
 		return
 	}
 
-	Success(c, char)
+	Success(c, dto.ToCharacterResponse(char))
 }
 
 // GetStats 내 프로필 통계 조회
@@ -402,13 +402,45 @@ func (h *UserHandler) EquipItem(c *gin.Context) {
 		return
 	}
 
-	if err := h.userUsecase.EquipItem(userID.(int64), req.BackgroundID, req.AccessoryID); err != nil {
+	slot := req.Slot
+	rewardID := req.RewardID
+	if slot == "" {
+		switch {
+		case req.BackgroundID != nil:
+			slot = domain.EquipmentSlotBackground
+			rewardID = req.BackgroundID
+		case req.AccessoryID != nil:
+			slot = domain.EquipmentSlotHead
+			rewardID = req.AccessoryID
+		default:
+			BadRequest(c, "INVALID_SLOT", usecase.ErrInvalidSlot.Error())
+			return
+		}
+	}
+
+	if err := h.userUsecase.EquipItem(userID.(int64), slot, rewardID); err != nil {
 		if errors.Is(err, usecase.ErrInvalidID) {
 			BadRequest(c, "INVALID_ID", err.Error())
 			return
 		}
+		if errors.Is(err, usecase.ErrInvalidSlot) {
+			BadRequest(c, "INVALID_SLOT", err.Error())
+			return
+		}
 		if errors.Is(err, usecase.ErrRewardNotOwned) {
 			BadRequest(c, "REWARD_NOT_OWNED", err.Error())
+			return
+		}
+		if errors.Is(err, usecase.ErrRewardNotEquippable) {
+			BadRequest(c, "REWARD_NOT_EQUIPPABLE", err.Error())
+			return
+		}
+		if errors.Is(err, usecase.ErrEquipmentSlotMismatch) {
+			BadRequest(c, "SLOT_MISMATCH", err.Error())
+			return
+		}
+		if errors.Is(err, usecase.ErrCharacterNotFound) {
+			NotFound(c, "CHARACTER_NOT_FOUND", err.Error())
 			return
 		}
 		InternalError(c, "장비 장착/해제에 실패했습니다.", err.Error())

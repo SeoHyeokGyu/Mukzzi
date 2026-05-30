@@ -1,10 +1,12 @@
 import 'dart:async' show unawaited;
+import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mukzzi/src/features/character/domain/models/reward_model.dart';
 
 enum CharacterState { normal, happy, hungry, starving, sleeping }
 
@@ -105,6 +107,7 @@ class MukzziCharacter extends StatelessWidget {
   final double size;
   final bool showAccessory;
   final String? equippedAccessory;
+  final Map<EquipmentSlot, RewardModel> equipment;
 
   const MukzziCharacter({
     super.key,
@@ -112,6 +115,7 @@ class MukzziCharacter extends StatelessWidget {
     this.size = 160,
     this.showAccessory = false,
     this.equippedAccessory,
+    this.equipment = const {},
   }) : assert(size >= 60,
             'MukzziCharacter: size < 60 renders detail-loss. Use at least 80 for best results.');
 
@@ -122,6 +126,7 @@ class MukzziCharacter extends StatelessWidget {
       size: size,
       showAccessory: showAccessory,
       equippedAccessory: equippedAccessory,
+      equipment: equipment,
     );
   }
 }
@@ -131,12 +136,14 @@ class _SvgLayeredCharacter extends StatefulWidget {
   final double size;
   final bool showAccessory;
   final String? equippedAccessory;
+  final Map<EquipmentSlot, RewardModel> equipment;
 
   const _SvgLayeredCharacter({
     required this.state,
     required this.size,
     required this.showAccessory,
     this.equippedAccessory,
+    required this.equipment,
   });
 
   @override
@@ -167,7 +174,8 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
     super.didUpdateWidget(old);
     if (old.state != widget.state ||
         old.showAccessory != widget.showAccessory ||
-        old.equippedAccessory != widget.equippedAccessory) {
+        old.equippedAccessory != widget.equippedAccessory ||
+        old.equipment != widget.equipment) {
       setState(() => _visibleLayers = _requiredLayers);
       unawaited(_resolveOptionalLayers());
     }
@@ -272,20 +280,25 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
 
   @override
   Widget build(BuildContext context) {
+    final bodyPath = _path('body');
+    final facePath = _visibleLayers.contains('face') ? _path('face') : null;
+    final equipmentLayers = _equipmentLayers();
+    final specs = <_CharacterLayerSpec>[
+      for (final item in equipmentLayers)
+        if ((item.renderConfig?.zIndex ?? 30) < 0)
+          _CharacterLayerSpec.equipment(item),
+      _CharacterLayerSpec.asset(bodyPath, 0),
+      for (final item in equipmentLayers)
+        if ((item.renderConfig?.zIndex ?? 30) >= 0)
+          _CharacterLayerSpec.equipment(item),
+      if (facePath != null) _CharacterLayerSpec.asset(facePath, 50),
+    ]..sort((a, b) => a.zIndex.compareTo(b.zIndex));
+
     final svgStack = SizedBox(
       width: widget.size,
       height: widget.size,
       child: Stack(
-        children: _visibleLayers.map((layer) {
-          final path = _path(layer);
-          return SvgPicture.asset(
-            path,
-            key: ValueKey(path),
-            width: widget.size,
-            height: widget.size,
-            fit: BoxFit.contain,
-          );
-        }).toList(),
+        children: specs.map(_buildLayer).toList(),
       ),
     );
 
@@ -308,4 +321,89 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
       },
     );
   }
+
+  List<RewardModel> _equipmentLayers() {
+    final rewards = widget.equipment.values
+        .where((reward) => reward.assetUrl.isNotEmpty)
+        .toList();
+    if (rewards.isEmpty &&
+        widget.showAccessory &&
+        _accessoryAssetName().isNotEmpty) {
+      rewards.add(RewardModel(
+        id: 'legacy-accessory',
+        rewardType: 'ACCESSORY',
+        name: 'legacy-accessory',
+        description: '',
+        assetUrl: _accessoryAssetName(),
+        renderConfig: const RewardRenderConfig(
+          slot: EquipmentSlot.head,
+          offsetX: 0,
+          offsetY: 0,
+          scale: 1,
+          rotation: 0,
+          zIndex: 30,
+        ),
+        acquired: true,
+      ));
+    }
+    rewards.sort((a, b) =>
+        (a.renderConfig?.zIndex ?? 30).compareTo(b.renderConfig?.zIndex ?? 30));
+    return rewards;
+  }
+
+  Widget _buildLayer(_CharacterLayerSpec spec) {
+    if (spec.reward == null) {
+      return SvgPicture.asset(
+        spec.path!,
+        key: ValueKey(spec.path),
+        width: widget.size,
+        height: widget.size,
+        fit: BoxFit.contain,
+      );
+    }
+
+    final reward = spec.reward!;
+    final config = reward.renderConfig ??
+        const RewardRenderConfig(
+          slot: EquipmentSlot.head,
+          offsetX: 0,
+          offsetY: 0,
+          scale: 1,
+          rotation: 0,
+          zIndex: 30,
+        );
+    final path = 'assets/svg/mukzzi2_${reward.assetUrl}.svg';
+    final layerSize = widget.size * config.scale;
+
+    return Positioned.fill(
+      child: Transform.translate(
+        offset:
+            Offset(widget.size * config.offsetX, widget.size * config.offsetY),
+        child: Transform.rotate(
+          angle: config.rotation * math.pi / 180,
+          child: Center(
+            child: SvgPicture.asset(
+              path,
+              key: ValueKey(path),
+              width: layerSize,
+              height: layerSize,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CharacterLayerSpec {
+  final String? path;
+  final RewardModel? reward;
+  final int zIndex;
+
+  const _CharacterLayerSpec.asset(this.path, this.zIndex) : reward = null;
+
+  _CharacterLayerSpec.equipment(this.reward)
+      : path = null,
+        zIndex = reward!.renderConfig?.zIndex ?? 30;
 }
