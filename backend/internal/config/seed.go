@@ -153,23 +153,7 @@ func SeedRewards(db *gorm.DB) {
 		return
 	}
 
-	rewards := []domain.Reward{
-		{
-			RewardType:  domain.RewardAccessory,
-			Code:        "CAP_ACCESSORY",
-			Name:        "먹찌 캡",
-			Description: "먹찌 캐릭터가 착용하는 캡 모자입니다.",
-			AssetURL:    "cap",
-			RenderConfig: &domain.RewardRenderConfig{
-				Slot:     domain.EquipmentSlotHead,
-				OffsetX:  0,
-				OffsetY:  -0.28,
-				Scale:    0.42,
-				Rotation: 0,
-				ZIndex:   30,
-			},
-		},
-	}
+	rewards := defaultRewards()
 
 	for _, r := range rewards {
 		var existing domain.Reward
@@ -222,6 +206,26 @@ func SeedRewards(db *gorm.DB) {
 	backfillCharacterEquipment(db)
 
 	slog.Info("보상 시드 및 기본 액세서리 지급 완료")
+}
+
+func defaultRewards() []domain.Reward {
+	return []domain.Reward{
+		{
+			RewardType:  domain.RewardAccessory,
+			Code:        "CAP_ACCESSORY",
+			Name:        "먹찌 캡",
+			Description: "먹찌 캐릭터가 착용하는 캡 모자입니다.",
+			AssetURL:    "cap",
+			RenderConfig: &domain.RewardRenderConfig{
+				Slot:     domain.EquipmentSlotHead,
+				OffsetX:  0,
+				OffsetY:  0,
+				Scale:    1,
+				Rotation: 0,
+				ZIndex:   30,
+			},
+		},
+	}
 }
 
 func backfillCharacterEquipment(db *gorm.DB) {
