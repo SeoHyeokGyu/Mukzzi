@@ -418,6 +418,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
+                      interval: 1.0,
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
                         if (index < 0 || index >= weekly.length) {
