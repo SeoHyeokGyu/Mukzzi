@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"gorm.io/gorm"
@@ -215,43 +216,7 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 
 	ctx := context.Background()
 
-	var masteryUpdate *domain.MasteryUpdate
-	// 칭호 부여 체크
-	var grantedTitle *domain.Title
-	var menuID int64
-	if input.MenuID != nil {
-		menuID = *input.MenuID
-	}
-	updatedMastery, err := u.masteryTracker.OnMealCreated(ctx, input.UserID, menuID)
-	if err != nil {
-		slog.Error("마스터리 업데이트 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
-	} else if updatedMastery != nil {
-		masteryUpdate = &domain.MasteryUpdate{
-			MenuName:     input.MenuName,
-			EatCount:     updatedMastery.EatCount,
-			Grade:        string(updatedMastery.Grade),
-			GradeChanged: true,
-		}
-		grantedTitle, err = u.titleGranter.OnMasteryGradeChanged(ctx, input.UserID, updatedMastery.Grade)
-		if err != nil {
-			slog.Error("칭호 부여 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
-			grantedTitle = nil
-		}
-	}
-
-	// streak 갱신
-	if err := u.userUc.UpdateStreakOnMeal(input.UserID, input.RecordedAt); err != nil {
-		slog.Error("streak 갱신 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
-	}
-
-	// 캐릭터 외형 재계산 (당일 영양소 기준)
-	var appearanceEvent *domain.AppearanceChangedEvent
-	appearanceEvent, err = u.userUc.RecalcAppearance(input.UserID, input.RecordedAt)
-	if err != nil {
-		slog.Error("외형 재계산 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
-	}
-
-	// 퀘스트 진행도 갱신
+	// 퀘스트 진행도 갱신을 위한 이벤트 객체 준비
 	event := domain.Event{
 		Type:      domain.EventMealCreated,
 		UserID:    input.UserID,
@@ -265,15 +230,81 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 			"fat":       output.Meal.Nutrition.Fat,
 		},
 	}
-	
+
 	// 이벤트 발행은 비동기로 처리 (성능 향상)
 	go u.eventBus.Publish(event)
 
-	progressedQuests, err := u.questUc.HandleEvent(ctx, event)
-	if err != nil {
-		slog.Error("퀘스트 업데이트 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
-		progressedQuests = []domain.QuestProgress{}
-	}
+	// 병렬 동시 처리를 위한 WaitGroup 및 변수 정의
+	var wg sync.WaitGroup
+	
+	var masteryUpdate *domain.MasteryUpdate
+	var grantedTitle *domain.Title
+	var appearanceEvent *domain.AppearanceChangedEvent
+	var progressedQuests []domain.QuestProgress
+
+	// 1. 마스터리 & 칭호 업데이트 병렬 처리
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var menuID int64
+		if input.MenuID != nil {
+			menuID = *input.MenuID
+		}
+		updatedMastery, err := u.masteryTracker.OnMealCreated(ctx, input.UserID, menuID)
+		if err != nil {
+			slog.Error("마스터리 업데이트 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
+			return
+		}
+		if updatedMastery != nil {
+			masteryUpdate = &domain.MasteryUpdate{
+				MenuName:     input.MenuName,
+				EatCount:     updatedMastery.EatCount,
+				Grade:        string(updatedMastery.Grade),
+				GradeChanged: true,
+			}
+			var tErr error
+			grantedTitle, tErr = u.titleGranter.OnMasteryGradeChanged(ctx, input.UserID, updatedMastery.Grade)
+			if tErr != nil {
+				slog.Error("칭호 부여 실패", slog.Int64("user_id", input.UserID), slog.Any("error", tErr))
+				grantedTitle = nil
+			}
+		}
+	}()
+
+	// 2. 스트릭(Streak) 갱신 병렬 처리
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := u.userUc.UpdateStreakOnMeal(input.UserID, input.RecordedAt); err != nil {
+			slog.Error("streak 갱신 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
+		}
+	}()
+
+	// 3. 캐릭터 외형 재계산 병렬 처리 (당일 영양소 기준)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var err error
+		appearanceEvent, err = u.userUc.RecalcAppearance(input.UserID, input.RecordedAt)
+		if err != nil {
+			slog.Error("외형 재계산 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
+		}
+	}()
+
+	// 4. 퀘스트 진행도 갱신 병렬 처리
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var err error
+		progressedQuests, err = u.questUc.HandleEvent(ctx, event)
+		if err != nil {
+			slog.Error("퀘스트 업데이트 실패", slog.Int64("user_id", input.UserID), slog.Any("error", err))
+			progressedQuests = []domain.QuestProgress{}
+		}
+	}()
+
+	// 모든 비동기 병렬 작업 완료 대기
+	wg.Wait()
 
 	// 뱃지 부여 체크 및 알림 생성도 비동기로 처리 (응답 속도 개선)
 	go func() {

@@ -99,47 +99,47 @@ class _MealCalendarPageState extends ConsumerState<MealCalendarPage> {
               : null;
           final selectedMeals = selectedKey != null ? (mealsByDate[selectedKey] ?? <MealRecord>[]) : <MealRecord>[];
 
-          return Column(
-            children: [
-              // ── 월 네비게이션 ──
-              _MonthHeader(
-                focusedMonth: _focusedMonth,
-                onPrev: _prevMonth,
-                onNext: _nextMonth,
-                tokens: tokens,
-              ),
-
-              // ── 요일 헤더 ──
-              _WeekdayRow(tokens: tokens),
-
-              // ── 달력 그리드 ──
-              _CalendarGrid(
-                focusedMonth: _focusedMonth,
-                mealsByDate: mealsByDate,
-                selectedDay: _selectedDay,
-                onDayTap: (day) => setState(() {
-                  _selectedDay = _selectedDay != null &&
-                      DateFormat('yyyy-MM-dd').format(_selectedDay!) ==
-                          DateFormat('yyyy-MM-dd').format(day)
-                      ? null
-                      : day;
-                }),
-                tokens: tokens,
-              ),
-
-              const Divider(height: 1),
-
-              // ── 선택된 날 식사 목록 ──
-              Expanded(
-                child: _selectedDay == null
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                // ── 월 네비게이션 ──
+                _MonthHeader(
+                  focusedMonth: _focusedMonth,
+                  onPrev: _prevMonth,
+                  onNext: _nextMonth,
+                  tokens: tokens,
+                ),
+              
+                // ── 요일 헤더 ──
+                _WeekdayRow(tokens: tokens),
+              
+                // ── 달력 그리드 ──
+                _CalendarGrid(
+                  focusedMonth: _focusedMonth,
+                  mealsByDate: mealsByDate,
+                  selectedDay: _selectedDay,
+                  onDayTap: (day) => setState(() {
+                    _selectedDay = _selectedDay != null &&
+                        DateFormat('yyyy-MM-dd').format(_selectedDay!) ==
+                            DateFormat('yyyy-MM-dd').format(day)
+                        ? null
+                        : day;
+                  }),
+                  tokens: tokens,
+                ),
+              
+                const Divider(height: 1),
+              
+                // ── 선택된 날 식사 목록 ──
+                _selectedDay == null
                     ? _CalendarSummary(mealsByDate: mealsByDate, tokens: tokens)
                     : _DayMealList(
                   day: _selectedDay!,
                   meals: selectedMeals,
                   tokens: tokens,
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),
@@ -410,17 +410,20 @@ class _CalendarSummary extends StatelessWidget {
     final totalMeals = mealsByDate.values.fold(0, (sum, list) => sum + list.length);
 
     if (totalMeals == 0) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.calendar_today_outlined, size: 48, color: tokens.textMuted),
-            const SizedBox(height: 12),
-            Text('이번 달 기록이 없어요', style: TextStyle(color: tokens.textSub)),
-            const SizedBox(height: 4),
-            Text('날짜를 탭하면 상세 기록을 볼 수 있어요',
-                style: TextStyle(fontSize: 12, color: tokens.textMuted)),
-          ],
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.calendar_today_outlined, size: 48, color: tokens.textMuted),
+              const SizedBox(height: 12),
+              Text('이번 달 기록이 없어요', style: TextStyle(color: tokens.textSub)),
+              const SizedBox(height: 4),
+              Text('날짜를 탭하면 상세 기록을 볼 수 있어요',
+                  style: TextStyle(fontSize: 12, color: tokens.textMuted)),
+            ],
+          ),
         ),
       );
     }
@@ -530,6 +533,7 @@ class _DayMealList extends StatelessWidget {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
@@ -550,25 +554,29 @@ class _DayMealList extends StatelessWidget {
             ],
           ),
         ),
-        Expanded(
-          child: meals.isEmpty
-              ? Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.no_meals, size: 40, color: tokens.textMuted),
-                const SizedBox(height: 8),
-                Text('기록된 식사가 없어요', style: TextStyle(color: tokens.textMuted, fontSize: 13)),
-              ],
+        if (meals.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 40),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.no_meals, size: 40, color: tokens.textMuted),
+                  const SizedBox(height: 8),
+                  Text('기록된 식사가 없어요', style: TextStyle(color: tokens.textMuted, fontSize: 13)),
+                ],
+              ),
             ),
           )
-              : ListView.separated(
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             itemCount: meals.length,
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (_, i) => _MealItem(meal: meals[i], tokens: tokens),
           ),
-        ),
       ],
     );
   }
