@@ -141,6 +141,20 @@ func TestUserUsecase_EquipItemBySlot(t *testing.T) {
 		assert.Equal(t, int64(502), equipment[0].RewardID)
 	})
 
+	t.Run("빈 문자열 reward ID도 슬롯 해제로 처리한다", func(t *testing.T) {
+		uc, db, userID := setupEquipmentTest(t)
+		createOwnedReward(t, db, userID, 701, domain.EquipmentSlotHead, "CAP")
+
+		rewardID := "701"
+		emptyID := ""
+		require.NoError(t, uc.EquipItem(userID, domain.EquipmentSlotHead, &rewardID))
+		require.NoError(t, uc.EquipItem(userID, domain.EquipmentSlotHead, &emptyID))
+
+		var equipment []domain.CharacterEquipment
+		require.NoError(t, db.Where("user_id = ?", userID).Find(&equipment).Error)
+		require.Empty(t, equipment)
+	})
+
 	t.Run("요청 슬롯과 보상 슬롯이 다르면 거부한다", func(t *testing.T) {
 		uc, db, userID := setupEquipmentTest(t)
 		createOwnedReward(t, db, userID, 601, domain.EquipmentSlotHead, "CAP")
