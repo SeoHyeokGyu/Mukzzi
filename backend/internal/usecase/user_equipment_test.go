@@ -155,6 +155,44 @@ func TestUserUsecase_EquipItemBySlot(t *testing.T) {
 		require.Empty(t, equipment)
 	})
 
+	t.Run("HEAD 슬롯 장착과 해제는 레거시 액세서리 컬럼도 동기화한다", func(t *testing.T) {
+		uc, db, userID := setupEquipmentTest(t)
+		createOwnedReward(t, db, userID, 801, domain.EquipmentSlotHead, "CAP")
+
+		rewardID := "801"
+		require.NoError(t, uc.EquipItem(userID, domain.EquipmentSlotHead, &rewardID))
+
+		var equipped domain.Character
+		require.NoError(t, db.Where("user_id = ?", userID).First(&equipped).Error)
+		require.NotNil(t, equipped.EquippedAccessoryID)
+		assert.Equal(t, int64(801), *equipped.EquippedAccessoryID)
+
+		require.NoError(t, uc.EquipItem(userID, domain.EquipmentSlotHead, nil))
+
+		var unequipped domain.Character
+		require.NoError(t, db.Where("user_id = ?", userID).First(&unequipped).Error)
+		assert.Nil(t, unequipped.EquippedAccessoryID)
+	})
+
+	t.Run("BACKGROUND 슬롯 장착과 해제는 레거시 배경 컬럼도 동기화한다", func(t *testing.T) {
+		uc, db, userID := setupEquipmentTest(t)
+		createOwnedReward(t, db, userID, 901, domain.EquipmentSlotBackground, "BG")
+
+		rewardID := "901"
+		require.NoError(t, uc.EquipItem(userID, domain.EquipmentSlotBackground, &rewardID))
+
+		var equipped domain.Character
+		require.NoError(t, db.Where("user_id = ?", userID).First(&equipped).Error)
+		require.NotNil(t, equipped.EquippedBackgroundID)
+		assert.Equal(t, int64(901), *equipped.EquippedBackgroundID)
+
+		require.NoError(t, uc.EquipItem(userID, domain.EquipmentSlotBackground, nil))
+
+		var unequipped domain.Character
+		require.NoError(t, db.Where("user_id = ?", userID).First(&unequipped).Error)
+		assert.Nil(t, unequipped.EquippedBackgroundID)
+	})
+
 	t.Run("요청 슬롯과 보상 슬롯이 다르면 거부한다", func(t *testing.T) {
 		uc, db, userID := setupEquipmentTest(t)
 		createOwnedReward(t, db, userID, 601, domain.EquipmentSlotHead, "CAP")

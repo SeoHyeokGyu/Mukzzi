@@ -1,5 +1,6 @@
 import "package:showcaseview/showcaseview.dart";
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,6 +28,18 @@ import 'package:mukzzi/src/features/meal_record/data/models/meal_model.dart';
 import 'package:mukzzi/src/features/meal_record/presentation/providers/meal_provider.dart';
 import 'package:mukzzi/src/features/quest/domain/entities/quest.dart';
 import 'package:mukzzi/src/features/quest/presentation/providers/quest_provider.dart';
+
+@visibleForTesting
+bool isShowcaseTargetReady(GlobalKey key) {
+  final context = key.currentContext;
+  if (context == null) return false;
+
+  final renderObject = context.findRenderObject();
+  return renderObject is RenderBox &&
+      renderObject.attached &&
+      renderObject.hasSize &&
+      !renderObject.size.isEmpty;
+}
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -62,10 +75,31 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     if (hasTutorialQuest) {
       _tutorialStarted = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ShowcaseView.get().startShowCase([_feedMukzziKey]);
-      });
+      _startFeedMukzziShowcaseWhenReady();
     }
+  }
+
+  void _startFeedMukzziShowcaseWhenReady({int attempt = 0}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (!mounted) return;
+
+        if (!isShowcaseTargetReady(_feedMukzziKey)) {
+          if (attempt < 3) {
+            _startFeedMukzziShowcaseWhenReady(attempt: attempt + 1);
+          } else {
+            _tutorialStarted = false;
+          }
+          return;
+        }
+
+        try {
+          ShowcaseView.get().startShowCase([_feedMukzziKey]);
+        } catch (_) {
+          _tutorialStarted = false;
+        }
+      });
+    });
   }
 
   @override
