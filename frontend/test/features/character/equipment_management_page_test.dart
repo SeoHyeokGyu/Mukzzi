@@ -56,6 +56,18 @@ class _FakeCharacterRepository extends CharacterRepository {
   }
 }
 
+class _FailingCharacterRepository extends _FakeCharacterRepository {
+  _FailingCharacterRepository(super.character);
+
+  @override
+  Future<void> equipItem({
+    required String slot,
+    required String? rewardId,
+  }) async {
+    throw Exception('Network Error');
+  }
+}
+
 final _adminUser = UserModel(
   id: 'admin-user',
   username: 'admin',
@@ -291,6 +303,30 @@ void main() {
 
       // 도감 화면으로 이동했는지 검증
       expect(find.text('도감 화면'), findsOneWidget);
+    });
+
+    testWidgets('장착 실패 시 상태가 롤백되고 에러 스낵바가 뜬다', (tester) async {
+      final headReward = _reward(id: '1', name: '머리 왕관', slot: EquipmentSlot.head);
+      final failingRepo = _FailingCharacterRepository(_character());
+
+      await tester.pumpWidget(
+        _wrap(characterRepository: failingRepo, rewards: [headReward]),
+      );
+      await tester.pump();
+
+      // 탭하여 장착 시도
+      await tester.tap(find.text('장착'));
+      
+      // API 완료 전 즉각 장착 반영 검증 (낙관적 업데이트 확인)
+      await tester.pump();
+      expect(find.text('장착중'), findsOneWidget);
+
+      // 프레임 진행하여 네트워크 에러 처리 완료
+      await tester.pumpAndSettle();
+
+      // 실패 후 롤백되어 다시 '장착' 버튼이 보이고 스낵바 에러가 떠야 함
+      expect(find.text('장착'), findsOneWidget);
+      expect(find.text('장착에 실패했습니다.'), findsOneWidget);
     });
   });
 }
