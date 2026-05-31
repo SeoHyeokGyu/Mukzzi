@@ -82,15 +82,6 @@ class CharacterPage extends ConsumerWidget {
                     equippedAccessory: char?.equippedAccessory?.assetUrl,
                     equipment: char?.equipment ?? const {},
                   ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: () => context.push('/character/equipment?tab=item'),
-                      icon: const Icon(Icons.checkroom_outlined),
-                      label: const Text('장착 관리'),
-                    ),
-                  ),
                   if (isAdmin) ...[
                     const SizedBox(height: 16),
                     SingleChildScrollView(
