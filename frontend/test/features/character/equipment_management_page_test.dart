@@ -218,5 +218,30 @@ void main() {
         ],
       );
     });
+
+    testWidgets('획득한 아이템만 보기 토글이 기본 활성화되어 미획득 아이템은 숨겨지고 해제 시 노출된다', (tester) async {
+      final acquiredReward = _reward(id: '1', name: '획득 왕관', slot: EquipmentSlot.head, acquired: true);
+      final lockedReward = _reward(id: '2', name: '잠금 안경', slot: EquipmentSlot.face, acquired: false);
+
+      await tester.pumpWidget(
+        _wrap(
+          characterRepository: _FakeCharacterRepository(_character()),
+          rewards: [acquiredReward, lockedReward],
+        ),
+      );
+      await tester.pump();
+
+      // 기본 활성화 상태이므로 획득한 것만 보여야 함
+      expect(find.text('획득 왕관'), findsOneWidget);
+      expect(find.text('잠금 안경'), findsNothing);
+
+      // 토글 버튼을 탭하여 비활성화
+      await tester.tap(find.text('획득한 아이템만'));
+      await tester.pump();
+
+      // 이제 미획득 아이템도 노출되어야 함
+      expect(find.text('획득 왕관'), findsOneWidget);
+      expect(find.text('잠금 안경'), findsOneWidget);
+    });
   });
 }
