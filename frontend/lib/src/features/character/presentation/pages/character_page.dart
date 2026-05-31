@@ -146,7 +146,28 @@ class CharacterPage extends ConsumerWidget {
             const SizedBox(height: 24),
 
             // 장착 중
-            Text('장착 중', style: _sectionStyle(context, tokens)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('장착 중', style: _sectionStyle(context, tokens)),
+                TextButton(
+                  onPressed: () => context.push('/character/equipment?tab=item'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    '변경',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: tokens.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 10),
             BentoCard(
               borderRadius: BorderRadius.circular(tokens.rCard),
@@ -158,7 +179,6 @@ class CharacterPage extends ConsumerWidget {
                           data: (t) => t?.name ?? '없음',
                           orElse: () => '없음',
                         ),
-                    onTap: () => context.push('/character/equipment?tab=title'),
                     tokens: tokens,
                   ),
                   Divider(
@@ -166,7 +186,6 @@ class CharacterPage extends ConsumerWidget {
                   _EquipmentItem(
                     label: '배경',
                     value: char?.equippedBackground?.name ?? '기본 배경',
-                    onTap: () => context.push('/character/equipment?tab=item&slot=background'),
                     tokens: tokens,
                   ),
                   Divider(
@@ -174,7 +193,6 @@ class CharacterPage extends ConsumerWidget {
                   _EquipmentItem(
                     label: '악세서리',
                     value: char?.equippedAccessory?.name ?? '없음',
-                    onTap: () => context.push('/character/equipment?tab=item&slot=head'),
                     tokens: tokens,
                   ),
                 ],
@@ -267,40 +285,27 @@ class CharacterPage extends ConsumerWidget {
 class _EquipmentItem extends StatelessWidget {
   final String label;
   final String value;
-  final VoidCallback onTap;
   final AppColorTokens tokens;
 
   const _EquipmentItem({
     required this.label,
     required this.value,
-    required this.onTap,
     required this.tokens,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label,
-                style: TextStyle(fontSize: 15, color: tokens.textPrimary)),
-            Row(
-              children: [
-                if (value.isNotEmpty)
-                  Text(value,
-                      style: TextStyle(fontSize: 14, color: tokens.textSub)),
-                const SizedBox(width: 6),
-                Icon(Icons.arrow_forward_ios,
-                    size: 13, color: tokens.textMuted),
-              ],
-            ),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: TextStyle(fontSize: 15, color: tokens.textPrimary)),
+          if (value.isNotEmpty)
+            Text(value,
+                style: TextStyle(fontSize: 14, color: tokens.textSub)),
+        ],
       ),
     );
   }
