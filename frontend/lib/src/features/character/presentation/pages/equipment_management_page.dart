@@ -23,6 +23,7 @@ class EquipmentManagementPage extends ConsumerStatefulWidget {
 class _EquipmentManagementPageState
     extends ConsumerState<EquipmentManagementPage> {
   EquipmentSlot? _selectedSlot;
+  bool _showAcquiredOnly = true;
   bool _isSubmitting = false;
 
   Future<void> _toggleEquipment({
@@ -130,13 +131,32 @@ class _EquipmentManagementPageState
             data: (rewards) {
               final candidates = rewards.where((reward) {
                 final slot = reward.renderConfig?.slot;
-                if (!reward.acquired || slot == null) return false;
+                if (slot == null) return false;
+
+                // 획득 여부 필터
+                if (_showAcquiredOnly && !reward.acquired) return false;
+
                 return _selectedSlot == null || slot == _selectedSlot;
               }).toList();
 
               return Column(
                 children: [
                   _CharacterPreview(character: character, tokens: tokens),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('획득한 아이템만'),
+                          selected: _showAcquiredOnly,
+                          onSelected: (val) => setState(() => _showAcquiredOnly = val),
+                        ),
+                        // 최신순 정렬 버튼 등의 Placeholder 혹은 단순 텍스트
+                        Text('최신순', style: TextStyle(color: tokens.textMuted, fontSize: 12)),
+                      ],
+                    ),
+                  ),
                   _SlotSelector(
                     selectedSlot: _selectedSlot,
                     equipment: character.equipment,
