@@ -86,7 +86,7 @@ class CharacterPage extends ConsumerWidget {
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
-                      onPressed: () => context.push('/character/equipment'),
+                      onPressed: () => context.push('/character/equipment?tab=item'),
                       icon: const Icon(Icons.checkroom_outlined),
                       label: const Text('장착 관리'),
                     ),
@@ -167,7 +167,7 @@ class CharacterPage extends ConsumerWidget {
                           data: (t) => t?.name ?? '없음',
                           orElse: () => '없음',
                         ),
-                    onTap: () => context.push('/character/titles'),
+                    onTap: () => context.push('/character/equipment?tab=title'),
                     tokens: tokens,
                   ),
                   Divider(
@@ -175,7 +175,7 @@ class CharacterPage extends ConsumerWidget {
                   _EquipmentItem(
                     label: '배경',
                     value: char?.equippedBackground?.name ?? '기본 배경',
-                    onTap: () => context.push('/character/equipment'),
+                    onTap: () => context.push('/character/equipment?tab=item&slot=background'),
                     tokens: tokens,
                   ),
                   Divider(
@@ -183,7 +183,7 @@ class CharacterPage extends ConsumerWidget {
                   _EquipmentItem(
                     label: '악세서리',
                     value: char?.equippedAccessory?.name ?? '없음',
-                    onTap: () => context.push('/character/equipment'),
+                    onTap: () => context.push('/character/equipment?tab=item&slot=head'),
                     tokens: tokens,
                   ),
                 ],

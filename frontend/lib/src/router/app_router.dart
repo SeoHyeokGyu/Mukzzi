@@ -14,7 +14,6 @@ import '../features/notification/presentation/pages/notification_list_page.dart'
 import '../features/character/presentation/pages/character_page.dart';
 import '../features/character/presentation/pages/badge_list_page.dart';
 import '../features/character/presentation/pages/mastery_list_page.dart';
-import '../features/character/presentation/pages/title_list_page.dart';
 import '../features/character/presentation/pages/reward_list_page.dart';
 import '../features/character/presentation/pages/character_collection_page.dart';
 import '../features/character/presentation/pages/equipment_management_page.dart';
@@ -186,14 +185,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   builder: (context, state) => const CharacterCollectionPage(),
                 ),
                 GoRoute(
-                  path: 'titles',
-                  name: 'character-titles',
-                  builder: (context, state) => const TitleListPage(),
-                ),
-                GoRoute(
                   path: 'equipment',
                   name: 'character-equipment',
-                  builder: (context, state) => const EquipmentManagementPage(),
+                  builder: (context, state) {
+                    final tab = state.uri.queryParameters['tab'];
+                    final slot = state.uri.queryParameters['slot'];
+                    return EquipmentManagementPage(
+                      initialTab: tab,
+                      initialSlot: slot,
+                    );
+                  },
                 ),
                 GoRoute(
                   path: 'rewards',
@@ -256,7 +257,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 GoRoute(
                   path: 'titles',
                   name: 'profile-titles',
-                  builder: (context, state) => const TitleListPage(),
+                  builder: (context, state) => const EquipmentManagementPage(
+                    initialTab: 'title',
+                  ),
                 ),
                 GoRoute(
                   path: 'rewards',

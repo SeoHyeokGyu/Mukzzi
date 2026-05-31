@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/collection_states.dart';
@@ -11,11 +12,20 @@ import '../../../../core/widgets/mukzzi_character.dart';
 import '../../../profile/presentation/providers/user_provider.dart';
 import '../../data/models/character_model.dart';
 import '../../domain/models/reward_model.dart';
+import '../../domain/models/title_model.dart';
 import '../providers/character_provider.dart';
 import '../providers/reward_provider.dart';
+import '../providers/title_provider.dart';
 
 class EquipmentManagementPage extends ConsumerStatefulWidget {
-  const EquipmentManagementPage({super.key});
+  final String? initialTab;
+  final String? initialSlot;
+
+  const EquipmentManagementPage({
+    super.key,
+    this.initialTab,
+    this.initialSlot,
+  });
 
   @override
   ConsumerState<EquipmentManagementPage> createState() =>
@@ -23,11 +33,49 @@ class EquipmentManagementPage extends ConsumerStatefulWidget {
 }
 
 class _EquipmentManagementPageState
-    extends ConsumerState<EquipmentManagementPage> {
+    extends ConsumerState<EquipmentManagementPage>
+    with SingleTickerProviderStateMixin {
+  TabController? _tabController;
+  final ScrollController _slotScrollController = ScrollController();
   CharacterModel? _tempCharacter;
   EquipmentSlot? _selectedSlot;
   bool _showAcquiredOnly = true;
   bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialTabIndex = widget.initialTab == 'title' ? 0 : 1;
+    _tabController = TabController(length: 2, vsync: this, initialIndex: initialTabIndex);
+
+    if (widget.initialSlot != null) {
+      _selectedSlot = EquipmentSlot.fromJson(widget.initialSlot);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToSelectedSlot();
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    _slotScrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToSelectedSlot() {
+    if (_selectedSlot == null || !_slotScrollController.hasClients) return;
+    final index = EquipmentSlot.values.indexOf(_selectedSlot!);
+    if (index == -1) return;
+    final targetIndex = index + 1;
+    final offset = targetIndex * 90.0 - 40.0;
+    _slotScrollController.animateTo(
+      offset.clamp(0.0, _slotScrollController.position.maxScrollExtent),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+  }
 
   Future<void> _toggleEquipment({
     required RewardModel reward,
@@ -142,109 +190,180 @@ class _EquipmentManagementPageState
     final rewardsAsync = ref.watch(rewardListProvider);
 
     return GradientScaffold(
-      appBar: AppBar(title: const Text('장착 관리')),
-      body: characterAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => CollectionErrorState(onRetry: _invalidateCharacters),
-        data: (character) {
-          if (character == null) {
-            return const CollectionEmptyState(
-              icon: Icons.person_off_outlined,
-              title: '캐릭터를 불러오지 못했어요',
-              subtitle: '캐릭터가 생성된 뒤 장착을 관리할 수 있어요',
-            );
-          }
+      appBar: AppBar(
+        title: const Text('장착 관리'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: '칭호'),
+            Tab(text: '아이템'),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildTitleTab(tokens),
+          _buildItemTab(characterAsync, rewardsAsync, tokens),
+        ],
+      ),
+    );
+  }
 
-          if (_tempCharacter == null) {
-            _tempCharacter = character;
-          }
+  Widget _buildTitleTab(AppColorTokens tokens) {
+    final titlesAsync = ref.watch(titleListProvider);
+    return titlesAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => CollectionErrorState(
+        onRetry: () => ref.invalidate(titleListProvider),
+      ),
+      data: (titles) {
+        if (titles.isEmpty) {
+          return const CollectionEmptyState(
+            icon: Icons.workspace_premium,
+            title: '아직 칭호가 없어요',
+            subtitle: '다양한 도전을 달성하면 칭호를 얻을 수 있어요',
+          );
+        }
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: titles.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          itemBuilder: (_, i) => _TitleCard(
+            title: titles[i],
+            onEquip: () => _handleEquipTitle(context, titles[i]),
+          ),
+        );
+      },
+    );
+  }
 
-          return rewardsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => CollectionErrorState(
-              onRetry: () => ref.invalidate(rewardListProvider),
-            ),
-            data: (rewards) {
-              final candidates = rewards.where((reward) {
-                final slot = reward.renderConfig?.slot;
-                if (slot == null) return false;
+  Future<void> _handleEquipTitle(BuildContext context, TitleModel title) async {
+    final repo = ref.read(titleRepositoryProvider);
+    try {
+      if (title.isEquipped) {
+        await repo.equipTitle(null);
+      } else {
+        await repo.equipTitle(title.id);
+      }
+      ref.invalidate(titleListProvider);
+    } catch (e) {
+      debugPrint('[EquipmentManagementPage] equipTitle error: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('처리 중 오류가 발생했어요')),
+        );
+      }
+    }
+  }
 
-                // 획득 여부 필터
-                if (_showAcquiredOnly && !reward.acquired) return false;
+  Widget _buildItemTab(
+    AsyncValue<CharacterModel?> characterAsync,
+    AsyncValue<List<RewardModel>> rewardsAsync,
+    AppColorTokens tokens,
+  ) {
+    return characterAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => CollectionErrorState(onRetry: _invalidateCharacters),
+      data: (character) {
+        if (character == null) {
+          return const CollectionEmptyState(
+            icon: Icons.person_off_outlined,
+            title: '캐릭터를 불러오지 못했어요',
+            subtitle: '캐릭터가 생성된 뒤 장착을 관리할 수 있어요',
+          );
+        }
 
-                return _selectedSlot == null || slot == _selectedSlot;
-              }).toList();
+        if (_tempCharacter == null) {
+          _tempCharacter = character;
+        }
 
-              return Column(
-                children: [
-                  _CharacterPreview(character: _tempCharacter!, tokens: tokens),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        ChoiceChip(
-                          label: const Text('획득한 아이템만'),
-                          selected: _showAcquiredOnly,
-                          onSelected: (val) => setState(() => _showAcquiredOnly = val),
-                        ),
-                        // 최신순 정렬 버튼 등의 Placeholder 혹은 단순 텍스트
-                        Text('최신순', style: TextStyle(color: tokens.textMuted, fontSize: 12)),
-                      ],
-                    ),
+        return rewardsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, __) => CollectionErrorState(
+            onRetry: () => ref.invalidate(rewardListProvider),
+          ),
+          data: (rewards) {
+            final candidates = rewards.where((reward) {
+              final slot = reward.renderConfig?.slot;
+              if (slot == null) return false;
+
+              // 획득 여부 필터
+              if (_showAcquiredOnly && !reward.acquired) return false;
+
+              return _selectedSlot == null || slot == _selectedSlot;
+            }).toList();
+
+            return Column(
+              children: [
+                _CharacterPreview(character: _tempCharacter!, tokens: tokens),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('획득한 아이템만'),
+                        selected: _showAcquiredOnly,
+                        onSelected: (val) => setState(() => _showAcquiredOnly = val),
+                      ),
+                      // 최신순 정렬 버튼 등의 Placeholder 혹은 단순 텍스트
+                      Text('최신순', style: TextStyle(color: tokens.textMuted, fontSize: 12)),
+                    ],
                   ),
-                  _SlotSelector(
-                    selectedSlot: _selectedSlot,
-                    equipment: _tempCharacter!.equipment,
-                    tokens: tokens,
-                    onSelected: (slot) => setState(() => _selectedSlot = slot),
-                  ),
-                  Expanded(
-                    child: candidates.isEmpty
-                        ? const CollectionEmptyState(
-                            icon: Icons.inventory_2_outlined,
-                            title: '장착할 수 있는 아이템이 없어요',
-                            subtitle: '획득한 장착 아이템이 여기에 표시돼요',
-                          )
-                        : Center(
-                            child: SizedBox(
-                              width: 480,
-                              child: GridView.builder(
-                                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 10,
-                                  mainAxisSpacing: 10,
-                                  childAspectRatio: 0.78,
-                                ),
-                                itemCount: candidates.length,
-                                itemBuilder: (context, index) {
-                                  final reward = candidates[index];
-                                  final slot = reward.renderConfig!.slot;
-                                  final isEquipped =
-                                      _tempCharacter!.equipment[slot]?.id == reward.id;
-                                  return _EquipmentRewardCard(
-                                    reward: reward,
-                                    slot: slot,
-                                    isEquipped: isEquipped,
-                                    isSubmitting: _isSubmitting,
-                                    tokens: tokens,
-                                    onTap: () => _toggleEquipment(
-                                      reward: reward,
-                                      isEquipped: isEquipped,
-                                    ),
-                                  );
-                                },
+                ),
+                _SlotSelector(
+                  selectedSlot: _selectedSlot,
+                  equipment: _tempCharacter!.equipment,
+                  tokens: tokens,
+                  scrollController: _slotScrollController,
+                  onSelected: (slot) => setState(() => _selectedSlot = slot),
+                ),
+                Expanded(
+                  child: candidates.isEmpty
+                      ? const CollectionEmptyState(
+                          icon: Icons.inventory_2_outlined,
+                          title: '장착할 수 있는 아이템이 없어요',
+                          subtitle: '획득한 장착 아이템이 여기에 표시돼요',
+                        )
+                      : Center(
+                          child: SizedBox(
+                            width: 480,
+                            child: GridView.builder(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
+                                childAspectRatio: 0.78,
                               ),
+                              itemCount: candidates.length,
+                              itemBuilder: (context, index) {
+                                final reward = candidates[index];
+                                final slot = reward.renderConfig!.slot;
+                                final isEquipped =
+                                    _tempCharacter!.equipment[slot]?.id == reward.id;
+                                return _EquipmentRewardCard(
+                                  reward: reward,
+                                  slot: slot,
+                                  isEquipped: isEquipped,
+                                  isSubmitting: _isSubmitting,
+                                  tokens: tokens,
+                                  onTap: () => _toggleEquipment(
+                                    reward: reward,
+                                    isEquipped: isEquipped,
+                                  ),
+                                );
+                              },
                             ),
                           ),
-                  ),
-                ],
-              );
-            },
-          );
-        },
-      ),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -302,40 +421,59 @@ class _SlotSelector extends StatelessWidget {
     required this.equipment,
     required this.tokens,
     required this.onSelected,
+    required this.scrollController,
   });
 
   final EquipmentSlot? selectedSlot;
   final Map<EquipmentSlot, RewardModel> equipment;
   final AppColorTokens tokens;
   final ValueChanged<EquipmentSlot?> onSelected;
+  final ScrollController scrollController;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: 48,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        children: [
-          _SlotChip(
-            label: '전체',
-            icon: Icons.apps,
-            selected: selectedSlot == null,
-            equipped: equipment.isNotEmpty,
-            tokens: tokens,
-            onTap: () => onSelected(null),
-          ),
-          ...EquipmentSlot.values.map(
-            (slot) => _SlotChip(
-              label: slot.label,
-              icon: slot.icon,
-              selected: selectedSlot == slot,
-              equipped: equipment.containsKey(slot),
+      child: ShaderMask(
+        shaderCallback: (Rect bounds) {
+          return const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: <Color>[
+              Colors.transparent,
+              Colors.black,
+              Colors.black,
+              Colors.transparent,
+            ],
+            stops: <double>[0.0, 0.05, 0.95, 1.0],
+          ).createShader(bounds);
+        },
+        blendMode: BlendMode.dstIn,
+        child: ListView(
+          controller: scrollController,
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          children: [
+            _SlotChip(
+              label: '전체',
+              icon: Icons.apps,
+              selected: selectedSlot == null,
+              equipped: equipment.isNotEmpty,
               tokens: tokens,
-              onTap: () => onSelected(slot),
+              onTap: () => onSelected(null),
             ),
-          ),
-        ],
+            ...EquipmentSlot.values.map(
+              (slot) => _SlotChip(
+                label: slot.label,
+                icon: slot.icon,
+                selected: selectedSlot == slot,
+                equipped: equipment.containsKey(slot),
+                tokens: tokens,
+                onTap: () => onSelected(slot),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -615,6 +753,117 @@ class _ActionLabel extends StatelessWidget {
           fontWeight: FontWeight.w700,
           color: isEquipped ? tokens.textSub : tokens.primary,
         ),
+      ),
+    );
+  }
+}
+
+class _TitleCard extends StatelessWidget {
+  final TitleModel title;
+  final VoidCallback onEquip;
+
+  const _TitleCard({required this.title, required this.onEquip});
+
+  @override
+  Widget build(BuildContext context) {
+    final acquired = title.acquired;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AppColors.cardShadow,
+        border: title.isEquipped
+            ? Border.all(color: AppColors.orange.withValues(alpha: 0.5), width: 1.5)
+            : null,
+      ),
+      child: Row(
+        children: [
+          // 칭호 아이콘
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: acquired
+                  ? AppColors.softPeach
+                  : AppColors.surfaceDark,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              Icons.workspace_premium,
+              size: 26,
+              color: acquired ? AppColors.orange : AppColors.iconDisabled,
+            ),
+          ),
+          const SizedBox(width: 14),
+          // 칭호 정보
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      title.name,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: acquired ? AppColors.textPrimary : AppColors.textTertiary,
+                      ),
+                    ),
+                    if (title.isEquipped) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.softPeach,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          '장착 중',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.orange,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  title.description,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+                if (acquired && title.achievedAt != null) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    DateFormat('yyyy.MM.dd').format(title.achievedAt!.toLocal()),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // 장착 버튼
+          if (acquired)
+            TextButton(
+              onPressed: onEquip,
+              style: TextButton.styleFrom(
+                foregroundColor: title.isEquipped ? AppColors.textSecondary : AppColors.orange,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              child: Text(title.isEquipped ? '해제' : '장착'),
+            ),
+        ],
       ),
     );
   }

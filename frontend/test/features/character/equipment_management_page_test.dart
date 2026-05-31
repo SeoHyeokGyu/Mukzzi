@@ -9,9 +9,12 @@ import 'package:mukzzi/src/core/widgets/mukzzi_character.dart';
 import 'package:mukzzi/src/features/character/data/models/character_model.dart';
 import 'package:mukzzi/src/features/character/data/repositories/character_repository.dart';
 import 'package:mukzzi/src/features/character/domain/models/reward_model.dart';
+import 'package:mukzzi/src/features/character/domain/models/title_model.dart';
+import 'package:mukzzi/src/features/character/data/repositories/title_repository.dart';
 import 'package:mukzzi/src/features/character/presentation/pages/equipment_management_page.dart';
 import 'package:mukzzi/src/features/character/presentation/providers/character_provider.dart';
 import 'package:mukzzi/src/features/character/presentation/providers/reward_provider.dart';
+import 'package:mukzzi/src/features/character/presentation/providers/title_provider.dart';
 import 'package:mukzzi/src/features/profile/data/models/user_model.dart';
 import 'package:mukzzi/src/features/profile/data/repositories/user_repository.dart';
 import 'package:mukzzi/src/features/profile/presentation/providers/user_provider.dart';
@@ -54,6 +57,16 @@ class _FakeCharacterRepository extends CharacterRepository {
   }) async {
     equipCalls.add((slot: slot, rewardId: rewardId));
   }
+}
+
+class _FakeTitleRepository extends TitleRepository {
+  _FakeTitleRepository() : super(ApiClient(_FakeTokenStorage()));
+
+  @override
+  Future<List<TitleModel>> getTitles() async => [];
+
+  @override
+  Future<void> equipTitle(String? titleId) async {}
 }
 
 class _FailingCharacterRepository extends _FakeCharacterRepository {
@@ -135,6 +148,8 @@ Widget _wrap({
         (ref) => characterRepository.getMyCharacter(),
       ),
       rewardListProvider.overrideWith((ref) async => rewards),
+      titleRepositoryProvider.overrideWithValue(_FakeTitleRepository()),
+      titleListProvider.overrideWith((ref) async => <TitleModel>[]),
     ],
     child: router != null
         ? MaterialApp.router(
