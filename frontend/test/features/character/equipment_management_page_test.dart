@@ -64,6 +64,7 @@ class _FailingCharacterRepository extends _FakeCharacterRepository {
     required String slot,
     required String? rewardId,
   }) async {
+    await Future.delayed(const Duration(milliseconds: 1));
     throw Exception('Network Error');
   }
 }
@@ -321,6 +322,8 @@ void main() {
       await tester.pump();
       expect(find.text('장착중'), findsOneWidget);
 
+      // 1ms의 딜레이에 대응하여 롤백 진행 대기
+      await tester.pump(const Duration(milliseconds: 1));
       // 프레임 진행하여 네트워크 에러 처리 완료
       await tester.pumpAndSettle();
 

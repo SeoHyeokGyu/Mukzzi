@@ -24,6 +24,7 @@ class EquipmentManagementPage extends ConsumerStatefulWidget {
 
 class _EquipmentManagementPageState
     extends ConsumerState<EquipmentManagementPage> {
+  CharacterModel? _tempCharacter;
   EquipmentSlot? _selectedSlot;
   bool _showAcquiredOnly = true;
   bool _isSubmitting = false;
@@ -35,9 +36,23 @@ class _EquipmentManagementPageState
     if (_isSubmitting) return;
 
     final slot = reward.renderConfig?.slot;
-    if (slot == null) return;
+    if (slot == null || _tempCharacter == null) return;
 
-    setState(() => _isSubmitting = true);
+    final originalCharacter = _tempCharacter!;
+    
+    // 로컬 상태 낙관적 즉시 업데이트
+    final updatedEquipment = Map<EquipmentSlot, RewardModel>.from(originalCharacter.equipment);
+    if (isEquipped) {
+      updatedEquipment.remove(slot);
+    } else {
+      updatedEquipment[slot] = reward;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _tempCharacter = originalCharacter.copyWith(equipment: updatedEquipment);
+    });
+
     try {
       final repository = ref.read(characterRepositoryProvider);
       await repository.equipItem(
@@ -60,12 +75,18 @@ class _EquipmentManagementPageState
       }
     } catch (_) {
       if (!mounted) return;
+      // 실패 시 즉시 롤백
+      setState(() {
+        _tempCharacter = originalCharacter;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(isEquipped ? '해제에 실패했습니다.' : '장착에 실패했습니다.')),
       );
     } finally {
       if (mounted) {
-        setState(() => _isSubmitting = false);
+        setState(() {
+          _isSubmitting = false;
+        });
       }
     }
   }
@@ -76,7 +97,10 @@ class _EquipmentManagementPageState
   }) async {
     if (!mounted || _isSubmitting) return;
 
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+    });
+
     try {
       final repository = ref.read(characterRepositoryProvider);
       await repository.equipItem(slot: slot.value, rewardId: rewardId);
@@ -89,12 +113,18 @@ class _EquipmentManagementPageState
       );
     } finally {
       if (mounted) {
-        setState(() => _isSubmitting = false);
+        setState(() {
+          _isSubmitting = false;
+        });
       }
     }
   }
 
   void _invalidateCharacters() {
+    if (!mounted) return;
+    setState(() {
+      _tempCharacter = null;
+    });
     ref.invalidate(characterProvider);
     ref.invalidate(testCharacterProvider);
   }
@@ -125,6 +155,10 @@ class _EquipmentManagementPageState
             );
           }
 
+          if (_tempCharacter == null) {
+            _tempCharacter = character;
+          }
+
           return rewardsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, __) => CollectionErrorState(
@@ -143,7 +177,7 @@ class _EquipmentManagementPageState
 
               return Column(
                 children: [
-                  _CharacterPreview(character: character, tokens: tokens),
+                  _CharacterPreview(character: _tempCharacter!, tokens: tokens),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Row(
@@ -161,7 +195,7 @@ class _EquipmentManagementPageState
                   ),
                   _SlotSelector(
                     selectedSlot: _selectedSlot,
-                    equipment: character.equipment,
+                    equipment: _tempCharacter!.equipment,
                     tokens: tokens,
                     onSelected: (slot) => setState(() => _selectedSlot = slot),
                   ),
@@ -188,7 +222,7 @@ class _EquipmentManagementPageState
                                   final reward = candidates[index];
                                   final slot = reward.renderConfig!.slot;
                                   final isEquipped =
-                                      character.equipment[slot]?.id == reward.id;
+                                      _tempCharacter!.equipment[slot]?.id == reward.id;
                                   return _EquipmentRewardCard(
                                     reward: reward,
                                     slot: slot,
