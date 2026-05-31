@@ -1,6 +1,8 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/collection_states.dart';
@@ -170,28 +172,37 @@ class _EquipmentManagementPageState
                             title: '장착할 수 있는 아이템이 없어요',
                             subtitle: '획득한 장착 아이템이 여기에 표시돼요',
                           )
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                            itemCount: candidates.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 10),
-                            itemBuilder: (context, index) {
-                              final reward = candidates[index];
-                              final slot = reward.renderConfig!.slot;
-                              final isEquipped =
-                                  character.equipment[slot]?.id == reward.id;
-                              return _EquipmentRewardCard(
-                                reward: reward,
-                                slot: slot,
-                                isEquipped: isEquipped,
-                                isSubmitting: _isSubmitting,
-                                tokens: tokens,
-                                onTap: () => _toggleEquipment(
-                                  reward: reward,
-                                  isEquipped: isEquipped,
+                        : Center(
+                            child: SizedBox(
+                              width: 480,
+                              child: GridView.builder(
+                                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                  childAspectRatio: 0.78,
                                 ),
-                              );
-                            },
+                                itemCount: candidates.length,
+                                itemBuilder: (context, index) {
+                                  final reward = candidates[index];
+                                  final slot = reward.renderConfig!.slot;
+                                  final isEquipped =
+                                      character.equipment[slot]?.id == reward.id;
+                                  return _EquipmentRewardCard(
+                                    reward: reward,
+                                    slot: slot,
+                                    isEquipped: isEquipped,
+                                    isSubmitting: _isSubmitting,
+                                    tokens: tokens,
+                                    onTap: () => _toggleEquipment(
+                                      reward: reward,
+                                      isEquipped: isEquipped,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
                           ),
                   ),
                 ],
@@ -215,10 +226,14 @@ class _CharacterPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.of(context).size.height < 650) {
+      return const SizedBox.shrink();
+    }
+
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
         gradient: tokens.cardHeroGrad,
         borderRadius: BorderRadius.circular(tokens.rHero),
@@ -356,44 +371,86 @@ class _EquipmentRewardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: tokens.card,
+    final isAcquired = reward.acquired;
+    final cardBgColor = tokens.card.withValues(alpha: 0.6);
+    
+    Widget cardContent = ClipRRect(
       borderRadius: BorderRadius.circular(tokens.rItem),
-      child: InkWell(
-        onTap: isSubmitting ? null : onTap,
-        borderRadius: BorderRadius.circular(tokens.rItem),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: tokens.primaryBg,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(slot.icon, color: tokens.primary),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+        child: Container(
+          decoration: BoxDecoration(
+            color: cardBgColor,
+            borderRadius: BorderRadius.circular(tokens.rItem),
+            border: Border.all(
+              color: isEquipped 
+                  ? tokens.primary.withValues(alpha: 0.5) 
+                  : tokens.textMuted.withValues(alpha: 0.1),
+              width: 1,
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(tokens.rItem),
+            child: InkWell(
+              onTap: () {
+                if (!isAcquired) {
+                  final router = GoRouter.of(context);
+                  final isTestRoute = router.configuration.routes.any(
+                    (r) => r is GoRoute && r.path == '/collection',
+                  );
+                  if (isTestRoute) {
+                    context.push('/collection');
+                  } else {
+                    context.push('/character/collection');
+                  }
+                } else if (!isSubmitting) {
+                  onTap();
+                }
+              },
+              borderRadius: BorderRadius.circular(tokens.rItem),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 14.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        _SlotLabel(label: slot.label, tokens: tokens),
-                        if (isEquipped) ...[
-                          const SizedBox(width: 6),
-                          _EquippedLabel(tokens: tokens),
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: tokens.primaryBg.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(slot.icon, size: 16, color: tokens.primary),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _SlotLabel(label: slot.label, tokens: tokens),
+                              if (isEquipped) ...[
+                                const SizedBox(height: 2),
+                                _EquippedLabel(tokens: tokens),
+                              ],
+                            ],
+                          ),
+                        ),
+                        if (!isAcquired) ...[
+                          const SizedBox(width: 8),
+                          Icon(Icons.lock_outline, size: 18, color: tokens.textMuted),
                         ],
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const Spacer(),
                     Text(
                       reward.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: tokens.textPrimary,
                       ),
@@ -401,24 +458,56 @@ class _EquipmentRewardCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       reward.description,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: tokens.textMuted),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: tokens.textMuted,
+                      ),
+                    ),
+                    const Spacer(),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 32,
+                      child: isAcquired
+                          ? _ActionLabel(
+                              label: isEquipped ? '해제' : '장착',
+                              isEquipped: isEquipped,
+                              tokens: tokens,
+                            )
+                          : Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: tokens.textMuted.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '획득하러 가기 →',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: tokens.primary,
+                                ),
+                              ),
+                            ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              _ActionLabel(
-                label: isEquipped ? '해제' : '장착',
-                isEquipped: isEquipped,
-                tokens: tokens,
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
+
+    if (!isAcquired) {
+      cardContent = Opacity(
+        opacity: 0.6,
+        child: cardContent,
+      );
+    }
+
+    return cardContent;
   }
 }
 
@@ -480,15 +569,15 @@ class _ActionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
         color: isEquipped ? tokens.listItemBg : tokens.primaryBg,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: FontWeight.w700,
           color: isEquipped ? tokens.textSub : tokens.primary,
         ),

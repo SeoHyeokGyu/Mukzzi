@@ -282,6 +282,7 @@ void main() {
       await tester.pump();
 
       // 자물쇠 아이콘 및 이동 버튼 검증
+      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
       expect(find.text('획득하러 가기 →'), findsOneWidget);
 
       // 이동 버튼 탭
