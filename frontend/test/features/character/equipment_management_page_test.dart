@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mukzzi/src/core/network/api_client.dart';
 import 'package:mukzzi/src/core/storage/token_storage.dart';
 import 'package:mukzzi/src/core/theme/app_theme.dart';
@@ -55,6 +56,19 @@ class _FakeCharacterRepository extends CharacterRepository {
   }
 }
 
+class _FailingCharacterRepository extends _FakeCharacterRepository {
+  _FailingCharacterRepository(super.character);
+
+  @override
+  Future<void> equipItem({
+    required String slot,
+    required String? rewardId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 1));
+    throw Exception('Network Error');
+  }
+}
+
 final _adminUser = UserModel(
   id: 'admin-user',
   username: 'admin',
@@ -106,6 +120,7 @@ CharacterModel _character(
 Widget _wrap({
   required _FakeCharacterRepository characterRepository,
   required List<RewardModel> rewards,
+  GoRouter? router,
 }) {
   final userRepository = _FakeUserRepository();
 
@@ -121,10 +136,15 @@ Widget _wrap({
       ),
       rewardListProvider.overrideWith((ref) async => rewards),
     ],
-    child: MaterialApp(
-      theme: AppTheme.darkTheme,
-      home: const EquipmentManagementPage(),
-    ),
+    child: router != null
+        ? MaterialApp.router(
+            theme: AppTheme.darkTheme,
+            routerConfig: router,
+          )
+        : MaterialApp(
+            theme: AppTheme.darkTheme,
+            home: const EquipmentManagementPage(),
+          ),
   );
 }
 
@@ -217,6 +237,99 @@ void main() {
           (slot: 'HEAD', rewardId: '1'),
         ],
       );
+    });
+
+    testWidgets('획득한 아이템만 보기 토글이 기본 활성화되어 미획득 아이템은 숨겨지고 해제 시 노출된다', (tester) async {
+      final acquiredReward = _reward(id: '1', name: '획득 왕관', slot: EquipmentSlot.head, acquired: true);
+      final lockedReward = _reward(id: '2', name: '잠금 안경', slot: EquipmentSlot.face, acquired: false);
+
+      await tester.pumpWidget(
+        _wrap(
+          characterRepository: _FakeCharacterRepository(_character()),
+          rewards: [acquiredReward, lockedReward],
+        ),
+      );
+      await tester.pump();
+
+      // 기본 활성화 상태이므로 획득한 것만 보여야 함
+      expect(find.text('획득 왕관'), findsOneWidget);
+      expect(find.text('잠금 안경'), findsNothing);
+
+      // 토글 버튼을 탭하여 비활성화
+      await tester.tap(find.text('획득한 아이템만'));
+      await tester.pump();
+
+      // 이제 미획득 아이템도 노출되어야 함
+      expect(find.text('획득 왕관'), findsOneWidget);
+      expect(find.text('잠금 안경'), findsOneWidget);
+    });
+
+    testWidgets('미획득 아이템 카드에는 획득처로의 이동 유도 버튼이 표시된다', (tester) async {
+      final lockedReward = _reward(id: '2', name: '잠금 안경', slot: EquipmentSlot.face, acquired: false);
+
+      final router = GoRouter(
+        initialLocation: '/equipment',
+        routes: [
+          GoRoute(
+            path: '/equipment',
+            builder: (context, state) => const EquipmentManagementPage(),
+          ),
+          GoRoute(
+            path: '/collection',
+            builder: (context, state) => const Scaffold(body: Text('도감 화면')),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _wrap(
+          characterRepository: _FakeCharacterRepository(_character()),
+          rewards: [lockedReward],
+          router: router,
+        ),
+      );
+      await tester.pump();
+
+      // 획득 필터 해제
+      await tester.tap(find.text('획득한 아이템만'));
+      await tester.pump();
+
+      // 자물쇠 아이콘 및 이동 버튼 검증
+      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+      expect(find.text('획득하러 가기 →'), findsOneWidget);
+
+      // 이동 버튼 탭
+      await tester.tap(find.text('획득하러 가기 →'));
+      await tester.pumpAndSettle();
+
+      // 도감 화면으로 이동했는지 검증
+      expect(find.text('도감 화면'), findsOneWidget);
+    });
+
+    testWidgets('장착 실패 시 상태가 롤백되고 에러 스낵바가 뜬다', (tester) async {
+      final headReward = _reward(id: '1', name: '머리 왕관', slot: EquipmentSlot.head);
+      final failingRepo = _FailingCharacterRepository(_character());
+
+      await tester.pumpWidget(
+        _wrap(characterRepository: failingRepo, rewards: [headReward]),
+      );
+      await tester.pump();
+
+      // 탭하여 장착 시도
+      await tester.tap(find.text('장착'));
+      
+      // API 완료 전 즉각 장착 반영 검증 (낙관적 업데이트 확인)
+      await tester.pump();
+      expect(find.text('장착중'), findsOneWidget);
+
+      // 1ms의 딜레이에 대응하여 롤백 진행 대기
+      await tester.pump(const Duration(milliseconds: 1));
+      // 프레임 진행하여 네트워크 에러 처리 완료
+      await tester.pumpAndSettle();
+
+      // 실패 후 롤백되어 다시 '장착' 버튼이 보이고 스낵바 에러가 떠야 함
+      expect(find.text('장착'), findsOneWidget);
+      expect(find.text('장착에 실패했습니다.'), findsOneWidget);
     });
   });
 }
