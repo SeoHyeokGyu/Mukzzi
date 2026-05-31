@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mukzzi/src/core/network/api_client.dart';
 import 'package:mukzzi/src/core/storage/token_storage.dart';
 import 'package:mukzzi/src/core/theme/app_theme.dart';
@@ -106,6 +107,7 @@ CharacterModel _character(
 Widget _wrap({
   required _FakeCharacterRepository characterRepository,
   required List<RewardModel> rewards,
+  GoRouter? router,
 }) {
   final userRepository = _FakeUserRepository();
 
@@ -121,10 +123,15 @@ Widget _wrap({
       ),
       rewardListProvider.overrideWith((ref) async => rewards),
     ],
-    child: MaterialApp(
-      theme: AppTheme.darkTheme,
-      home: const EquipmentManagementPage(),
-    ),
+    child: router != null
+        ? MaterialApp.router(
+            theme: AppTheme.darkTheme,
+            routerConfig: router,
+          )
+        : MaterialApp(
+            theme: AppTheme.darkTheme,
+            home: const EquipmentManagementPage(),
+          ),
   );
 }
 
@@ -242,6 +249,47 @@ void main() {
       // 이제 미획득 아이템도 노출되어야 함
       expect(find.text('획득 왕관'), findsOneWidget);
       expect(find.text('잠금 안경'), findsOneWidget);
+    });
+
+    testWidgets('미획득 아이템 카드에는 획득처로의 이동 유도 버튼이 표시된다', (tester) async {
+      final lockedReward = _reward(id: '2', name: '잠금 안경', slot: EquipmentSlot.face, acquired: false);
+
+      final router = GoRouter(
+        initialLocation: '/equipment',
+        routes: [
+          GoRoute(
+            path: '/equipment',
+            builder: (context, state) => const EquipmentManagementPage(),
+          ),
+          GoRoute(
+            path: '/collection',
+            builder: (context, state) => const Scaffold(body: Text('도감 화면')),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _wrap(
+          characterRepository: _FakeCharacterRepository(_character()),
+          rewards: [lockedReward],
+          router: router,
+        ),
+      );
+      await tester.pump();
+
+      // 획득 필터 해제
+      await tester.tap(find.text('획득한 아이템만'));
+      await tester.pump();
+
+      // 자물쇠 아이콘 및 이동 버튼 검증
+      expect(find.text('획득하러 가기 →'), findsOneWidget);
+
+      // 이동 버튼 탭
+      await tester.tap(find.text('획득하러 가기 →'));
+      await tester.pumpAndSettle();
+
+      // 도감 화면으로 이동했는지 검증
+      expect(find.text('도감 화면'), findsOneWidget);
     });
   });
 }
