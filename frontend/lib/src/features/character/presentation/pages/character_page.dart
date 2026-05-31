@@ -285,28 +285,49 @@ class CharacterPage extends ConsumerWidget {
 class _EquipmentItem extends StatelessWidget {
   final String label;
   final String value;
+  final VoidCallback? onTap;
   final AppColorTokens tokens;
 
   const _EquipmentItem({
     required this.label,
     required this.value,
+    this.onTap,
     required this.tokens,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    final hasTap = onTap != null;
+    Widget content = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
               style: TextStyle(fontSize: 15, color: tokens.textPrimary)),
-          if (value.isNotEmpty)
-            Text(value,
-                style: TextStyle(fontSize: 14, color: tokens.textSub)),
+          Row(
+            children: [
+              if (value.isNotEmpty)
+                Text(value,
+                    style: TextStyle(fontSize: 14, color: tokens.textSub)),
+              if (hasTap) ...[
+                const SizedBox(width: 6),
+                Icon(Icons.arrow_forward_ios,
+                    size: 13, color: tokens.textMuted),
+              ],
+            ],
+          ),
         ],
       ),
     );
+
+    if (hasTap) {
+      return GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: content,
+      );
+    }
+    return content;
   }
 }
