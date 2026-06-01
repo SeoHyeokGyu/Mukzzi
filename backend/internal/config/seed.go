@@ -177,9 +177,9 @@ func SeedRewards(db *gorm.DB) {
 		}
 	}
 
-	var capReward domain.Reward
-	if err := db.Where("code = ?", "CAP_ACCESSORY").First(&capReward).Error; err != nil {
-		slog.Error("캡 액세서리 조회 실패", slog.Any("error", err))
+	var accessories []domain.Reward
+	if err := db.Where("reward_type = ?", domain.RewardAccessory).Find(&accessories).Error; err != nil {
+		slog.Error("액세서리 목록 조회 실패", slog.Any("error", err))
 		return
 	}
 
@@ -190,16 +190,18 @@ func SeedRewards(db *gorm.DB) {
 	}
 
 	for _, u := range users {
-		userReward := domain.UserReward{
-			UserID:     u.ID,
-			RewardID:   capReward.ID,
-			AchievedAt: time.Now(),
-		}
-		if err := db.Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "user_id"}, {Name: "reward_id"}},
-			DoNothing: true,
-		}).Create(&userReward).Error; err != nil {
-			slog.Error("캡 액세서리 지급 실패", slog.Int64("user_id", u.ID), slog.Any("error", err))
+		for _, acc := range accessories {
+			userReward := domain.UserReward{
+				UserID:     u.ID,
+				RewardID:   acc.ID,
+				AchievedAt: time.Now(),
+			}
+			if err := db.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "user_id"}, {Name: "reward_id"}},
+				DoNothing: true,
+			}).Create(&userReward).Error; err != nil {
+				slog.Error("액세서리 지급 실패", slog.Int64("user_id", u.ID), slog.String("code", acc.Code), slog.Any("error", err))
+			}
 		}
 	}
 
@@ -223,6 +225,81 @@ func defaultRewards() []domain.Reward {
 				Scale:    1,
 				Rotation: 0,
 				ZIndex:   30,
+			},
+		},
+		{
+			RewardType:  domain.RewardAccessory,
+			Code:        "EXPLORER_GLASSES",
+			Name:        "탐험가 안경",
+			Description: "다양한 식단을 탐험한 먹찌를 위한 안경입니다.",
+			AssetURL:    "glasses",
+			RenderConfig: &domain.RewardRenderConfig{
+				Slot:     domain.EquipmentSlotFace,
+				OffsetX:  0,
+				OffsetY:  0,
+				Scale:    1,
+				Rotation: 0,
+				ZIndex:   35,
+			},
+		},
+		{
+			RewardType:  domain.RewardAccessory,
+			Code:        "BALANCE_CROWN",
+			Name:        "균형의 왕관",
+			Description: "영양 균형을 지켜낸 먹찌에게 주어지는 왕관입니다.",
+			AssetURL:    "crown",
+			RenderConfig: &domain.RewardRenderConfig{
+				Slot:     domain.EquipmentSlotHead,
+				OffsetX:  0,
+				OffsetY:  0,
+				Scale:    1,
+				Rotation: 0,
+				ZIndex:   32,
+			},
+		},
+		{
+			RewardType:  domain.RewardAccessory,
+			Code:        "FRIENDSHIP_SCARF",
+			Name:        "우정의 머플러",
+			Description: "오랜 시간 함께해 온 먹찌를 위한 따뜻한 머플러입니다.",
+			AssetURL:    "scarf",
+			RenderConfig: &domain.RewardRenderConfig{
+				Slot:     domain.EquipmentSlotBack,
+				OffsetX:  0,
+				OffsetY:  0,
+				Scale:    1,
+				Rotation: 0,
+				ZIndex:   10,
+			},
+		},
+		{
+			RewardType:  domain.RewardAccessory,
+			Code:        "COLLECTOR_BAG",
+			Name:        "수집가 배낭",
+			Description: "다양한 외형을 수집한 먹찌가 메는 배낭입니다.",
+			AssetURL:    "bag",
+			RenderConfig: &domain.RewardRenderConfig{
+				Slot:     domain.EquipmentSlotBack,
+				OffsetX:  0,
+				OffsetY:  0,
+				Scale:    1,
+				Rotation: 0,
+				ZIndex:   5,
+			},
+		},
+		{
+			RewardType:  domain.RewardAccessory,
+			Code:        "LEGENDARY_AURA",
+			Name:        "전설의 오라",
+			Description: "최종 형태를 달성한 먹찌에게서 뿜어져 나오는 오라입니다.",
+			AssetURL:    "aura",
+			RenderConfig: &domain.RewardRenderConfig{
+				Slot:     domain.EquipmentSlotAura,
+				OffsetX:  0,
+				OffsetY:  0,
+				Scale:    1,
+				Rotation: 0,
+				ZIndex:   1,
 			},
 		},
 	}
