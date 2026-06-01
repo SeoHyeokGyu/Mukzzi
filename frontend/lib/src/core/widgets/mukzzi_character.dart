@@ -241,7 +241,8 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
   Future<bool> _assetExists(String path) async {
     if (kIsWeb) {
       try {
-        final res = await http.get(Uri.parse(path));
+        final uri = Uri.base.resolve(path);
+        final res = await http.get(uri);
         return res.statusCode == 200;
       } catch (_) {
         return false;

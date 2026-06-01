@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:mukzzi/src/core/theme/app_theme.dart';
 import 'package:mukzzi/src/core/widgets/bento_card.dart';
@@ -124,10 +125,53 @@ class CoachingSummaryCard extends ConsumerWidget {
                 child: CircularProgressIndicator(),
               ),
             ),
-            error: (err, stack) => Text(
-              err.toString(),
-              style: TextStyle(color: tokens.textMuted, fontSize: 13),
-            ),
+            error: (err, stack) {
+              final errorMessage = err.toString();
+              final isNoRecord = errorMessage.contains('식사 기록이 없어');
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isNoRecord ? '오늘 식사 기록이 없습니다' : '영양 코칭을 불러올 수 없습니다',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: tokens.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    isNoRecord
+                        ? '식사를 기록하면 먹찌가 하루 영양소 균형과 코칭 피드백을 제공합니다.'
+                        : errorMessage,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: tokens.textMuted,
+                    ),
+                  ),
+                  if (isNoRecord) ...[
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => context.go('/meal-record'),
+                        icon: const Icon(Icons.restaurant, size: 16),
+                        label: const Text('식사 기록하기'),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: tokens.primary),
+                          foregroundColor: tokens.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
         ],
       ),
