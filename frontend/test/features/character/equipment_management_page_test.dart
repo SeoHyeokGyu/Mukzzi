@@ -164,6 +164,47 @@ Widget _wrap({
 }
 
 void main() {
+  group('MukzziCharacter', () {
+    test('지원하는 장비 asset key만 SVG asset으로 렌더링한다', () {
+      expect(MukzziCharacter.isSupportedEquipmentAsset('cap'), isTrue);
+      expect(MukzziCharacter.isSupportedEquipmentAsset('glasses'), isTrue);
+      expect(
+        MukzziCharacter.isSupportedEquipmentAsset(
+          'https://example.com/head.svg',
+        ),
+        isFalse,
+      );
+      expect(MukzziCharacter.isSupportedEquipmentAsset('unknown'), isFalse);
+    });
+
+    test('웹 asset 존재 확인은 HTML fallback 응답을 SVG로 취급하지 않는다', () {
+      expect(
+        MukzziCharacter.isSvgHttpResponse(
+          statusCode: 200,
+          contentType: 'image/svg+xml',
+          body: '<svg viewBox="0 0 10 10"></svg>',
+        ),
+        isTrue,
+      );
+      expect(
+        MukzziCharacter.isSvgHttpResponse(
+          statusCode: 200,
+          contentType: 'text/html',
+          body: '<!DOCTYPE html><html></html>',
+        ),
+        isFalse,
+      );
+      expect(
+        MukzziCharacter.isSvgHttpResponse(
+          statusCode: 404,
+          contentType: 'image/svg+xml',
+          body: '<svg viewBox="0 0 10 10"></svg>',
+        ),
+        isFalse,
+      );
+    });
+  });
+
   group('EquipmentManagementPage', () {
     testWidgets('전체 탭에는 모든 장착 보상이 보이고 머리 탭에는 HEAD 보상만 보인다', (tester) async {
       final headReward = _reward(
@@ -254,9 +295,12 @@ void main() {
       );
     });
 
-    testWidgets('획득한 아이템만 보기 토글이 기본 활성화되어 미획득 아이템은 숨겨지고 해제 시 노출된다', (tester) async {
-      final acquiredReward = _reward(id: '1', name: '획득 왕관', slot: EquipmentSlot.head, acquired: true);
-      final lockedReward = _reward(id: '2', name: '잠금 안경', slot: EquipmentSlot.face, acquired: false);
+    testWidgets('획득한 아이템만 보기 토글이 기본 활성화되어 미획득 아이템은 숨겨지고 해제 시 노출된다',
+        (tester) async {
+      final acquiredReward = _reward(
+          id: '1', name: '획득 왕관', slot: EquipmentSlot.head, acquired: true);
+      final lockedReward = _reward(
+          id: '2', name: '잠금 안경', slot: EquipmentSlot.face, acquired: false);
 
       await tester.pumpWidget(
         _wrap(
@@ -280,7 +324,8 @@ void main() {
     });
 
     testWidgets('미획득 아이템 카드에는 획득처로의 이동 유도 버튼이 표시된다', (tester) async {
-      final lockedReward = _reward(id: '2', name: '잠금 안경', slot: EquipmentSlot.face, acquired: false);
+      final lockedReward = _reward(
+          id: '2', name: '잠금 안경', slot: EquipmentSlot.face, acquired: false);
 
       final router = GoRouter(
         initialLocation: '/equipment',
@@ -322,7 +367,8 @@ void main() {
     });
 
     testWidgets('장착 실패 시 상태가 롤백되고 에러 스낵바가 뜬다', (tester) async {
-      final headReward = _reward(id: '1', name: '머리 왕관', slot: EquipmentSlot.head);
+      final headReward =
+          _reward(id: '1', name: '머리 왕관', slot: EquipmentSlot.head);
       final failingRepo = _FailingCharacterRepository(_character());
 
       await tester.pumpWidget(
@@ -332,7 +378,7 @@ void main() {
 
       // 탭하여 장착 시도
       await tester.tap(find.text('장착'));
-      
+
       // API 완료 전 즉각 장착 반영 검증 (낙관적 업데이트 확인)
       await tester.pump();
       expect(find.text('장착중'), findsOneWidget);
@@ -345,6 +391,24 @@ void main() {
       // 실패 후 롤백되어 다시 '장착' 버튼이 보이고 스낵바 에러가 떠야 함
       expect(find.text('장착'), findsOneWidget);
       expect(find.text('장착에 실패했습니다.'), findsOneWidget);
+    });
+
+    testWidgets('알 수 없는 장비 assetUrl은 SVG 로드를 시도하지 않는다', (tester) async {
+      final invalidReward = _reward(
+        id: 'head',
+        name: '외부 URL 왕관',
+        slot: EquipmentSlot.head,
+      );
+      final repository = _FakeCharacterRepository(
+        _character(equipment: {EquipmentSlot.head: invalidReward}),
+      );
+
+      await tester.pumpWidget(
+        _wrap(characterRepository: repository, rewards: [invalidReward]),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
     });
   });
 }

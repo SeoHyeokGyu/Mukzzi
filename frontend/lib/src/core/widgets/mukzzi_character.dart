@@ -103,6 +103,15 @@ extension CharacterStateLabel on CharacterState {
 }
 
 class MukzziCharacter extends StatelessWidget {
+  static const _supportedEquipmentAssets = {
+    'aura',
+    'bag',
+    'cap',
+    'crown',
+    'glasses',
+    'scarf',
+  };
+
   final CharacterState state;
   final double size;
   final bool showAccessory;
@@ -118,6 +127,26 @@ class MukzziCharacter extends StatelessWidget {
     this.equipment = const {},
   }) : assert(size >= 60,
             'MukzziCharacter: size < 60 renders detail-loss. Use at least 80 for best results.');
+
+  static bool isSupportedEquipmentAsset(String assetUrl) {
+    return _supportedEquipmentAssets.contains(assetUrl);
+  }
+
+  static bool isSvgHttpResponse({
+    required int statusCode,
+    required String? contentType,
+    required String body,
+  }) {
+    if (statusCode != 200) return false;
+
+    final normalizedType = contentType?.split(';').first.trim().toLowerCase();
+    if (normalizedType == 'image/svg+xml') return true;
+
+    final trimmedBody = body.trimLeft();
+    return normalizedType != 'text/html' &&
+        (trimmedBody.startsWith('<svg') ||
+            trimmedBody.startsWith('<?xml') && trimmedBody.contains('<svg'));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -224,7 +253,8 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
   String? _resolvedStateKey;
 
   String _accessoryAssetName() {
-    return widget.equippedAccessory ?? '';
+    final name = widget.equippedAccessory ?? '';
+    return MukzziCharacter.isSupportedEquipmentAsset(name) ? name : '';
   }
 
   String _buildPath(String layer, String stateKey) {
@@ -243,7 +273,11 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
       try {
         final uri = Uri.base.resolve(path);
         final res = await http.get(uri);
-        return res.statusCode == 200;
+        return MukzziCharacter.isSvgHttpResponse(
+          statusCode: res.statusCode,
+          contentType: res.headers['content-type'],
+          body: res.body,
+        );
       } catch (_) {
         return false;
       }
@@ -325,7 +359,10 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
 
   List<RewardModel> _equipmentLayers() {
     final rewards = widget.equipment.values
-        .where((reward) => reward.assetUrl.isNotEmpty)
+        .where(
+          (reward) =>
+              MukzziCharacter.isSupportedEquipmentAsset(reward.assetUrl),
+        )
         .toList();
     if (rewards.isEmpty &&
         widget.showAccessory &&

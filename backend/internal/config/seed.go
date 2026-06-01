@@ -236,8 +236,8 @@ func defaultRewards() []domain.Reward {
 			RenderConfig: &domain.RewardRenderConfig{
 				Slot:     domain.EquipmentSlotFace,
 				OffsetX:  0,
-				OffsetY:  0,
-				Scale:    1,
+				OffsetY:  -0.05,
+				Scale:    0.78,
 				Rotation: 0,
 				ZIndex:   35,
 			},
@@ -251,8 +251,8 @@ func defaultRewards() []domain.Reward {
 			RenderConfig: &domain.RewardRenderConfig{
 				Slot:     domain.EquipmentSlotHead,
 				OffsetX:  0,
-				OffsetY:  0,
-				Scale:    1,
+				OffsetY:  -0.27,
+				Scale:    0.34,
 				Rotation: 0,
 				ZIndex:   32,
 			},
@@ -284,7 +284,7 @@ func defaultRewards() []domain.Reward {
 				OffsetY:  0,
 				Scale:    1,
 				Rotation: 0,
-				ZIndex:   5,
+				ZIndex:   -5,
 			},
 		},
 		{
@@ -299,7 +299,7 @@ func defaultRewards() []domain.Reward {
 				OffsetY:  0,
 				Scale:    1,
 				Rotation: 0,
-				ZIndex:   1,
+				ZIndex:   -10,
 			},
 		},
 	}
