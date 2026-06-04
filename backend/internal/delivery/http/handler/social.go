@@ -513,3 +513,25 @@ func (h *SocialHandler) VisitFriend(c *gin.Context) {
 		CurrentFriendshipScore: score,
 	})
 }
+
+// GetFriendsComparison 친구 비교 데이터 조회
+// @Summary      친구 비교 데이터 조회
+// @Description  나를 포함한 친구들의 누적 경험치, 연속 스트릭, 뱃지 개수 등의 비교 데이터를 가져옵니다.
+// @Tags         social
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200      {object}  Response
+// @Failure      401      {object}  Response
+// @Router       /api/social/friends/comparison [get]
+func (h *SocialHandler) GetFriendsComparison(c *gin.Context) {
+	userID, _ := c.Get("userID")
+
+	entries, err := h.socialUsecase.GetFriendsComparison(userID.(int64))
+	if err != nil {
+		InternalError(c, "친구 비교 데이터 조회에 실패했습니다.", err.Error())
+		return
+	}
+
+	Success(c, entries)
+}

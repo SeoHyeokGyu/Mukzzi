@@ -100,3 +100,15 @@ type CharacterVisit struct {
 }
 
 func (CharacterVisit) TableName() string { return "character_visits" }
+
+type ComparisonEntry struct {
+	UserID          int64  `json:"user_id,string"`
+	Nickname        string `json:"nickname"`
+	ProfileImageURL string `json:"profile_image_url"`
+	Level           int    `json:"level"`
+	Exp             int    `json:"exp"`
+	TotalExp        int64  `json:"total_exp"`
+	StreakDays      int    `json:"streak_days"`
+	EquippedTitle   string `json:"equipped_title"`
+	BadgeCount      int    `json:"badge_count"`
+}

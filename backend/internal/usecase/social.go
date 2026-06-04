@@ -52,6 +52,7 @@ type SocialUsecase interface {
 	UnblockUser(blockerID, blockedID int64) error
 	ReportUser(report *domain.Report) error
 	VisitFriend(visitorID, hostID int64, interactionType domain.InteractionType) (visitorPointEarned int, currentFriendshipScore int, err error)
+	GetFriendsComparison(userID int64) ([]domain.ComparisonEntry, error)
 
 	// Feed
 	GetSocialFeed(userID int64, filter domain.MealListFilter) ([]domain.MealRecord, int64, error)
@@ -526,4 +527,25 @@ func (u *socialUsecase) VisitFriend(visitorID, hostID int64, interactionType dom
 	})
 
 	return visitorPointEarned, currentScore, nil
+}
+
+func (u *socialUsecase) GetFriendsComparison(userID int64) ([]domain.ComparisonEntry, error) {
+	// 1. 친구 목록 조회
+	friendships, err := u.socialRepo.GetFriends(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. 친구 ID 목록 생성
+	friendIDs := make([]int64, 0, len(friendships))
+	for _, f := range friendships {
+		if f.RequesterID == userID {
+			friendIDs = append(friendIDs, f.ReceiverID)
+		} else {
+			friendIDs = append(friendIDs, f.RequesterID)
+		}
+	}
+
+	// 3. 나와 친구들의 비교 정보 통합 조회
+	return u.socialRepo.GetFriendsComparison(userID, friendIDs)
 }

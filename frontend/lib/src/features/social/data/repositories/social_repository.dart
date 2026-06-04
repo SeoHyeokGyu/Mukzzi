@@ -125,4 +125,11 @@ class SocialRepository {
     );
     return response['data'] as Map<String, dynamic>? ?? {};
   }
+
+  // 친구 비교 데이터 조회
+  Future<List<ComparisonModel>> getFriendsComparison() async {
+    final response = await _apiClient.get('/social/friends/comparison');
+    final List<dynamic> data = response['data'] as List<dynamic>? ?? [];
+    return data.map((e) => ComparisonModel.fromJson(e as Map<String, dynamic>)).toList();
+  }
 }

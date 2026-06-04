@@ -89,3 +89,41 @@ class RankingModel {
     );
   }
 }
+
+class ComparisonModel {
+  final String userId;
+  final String nickname;
+  final String? profileImageUrl;
+  final int level;
+  final int exp;
+  final int totalExp;
+  final int streakDays;
+  final int badgeCount;
+  final String? equippedTitle;
+
+  ComparisonModel({
+    required this.userId,
+    required this.nickname,
+    this.profileImageUrl,
+    required this.level,
+    required this.exp,
+    required this.totalExp,
+    required this.streakDays,
+    required this.badgeCount,
+    this.equippedTitle,
+  });
+
+  factory ComparisonModel.fromJson(Map<String, dynamic> json) {
+    return ComparisonModel(
+      userId: json['user_id']?.toString() ?? '',
+      nickname: json['nickname'] as String? ?? '',
+      profileImageUrl: json['profile_image_url'] as String?,
+      level: json['level'] as int? ?? 1,
+      exp: json['exp'] as int? ?? 0,
+      totalExp: json['total_exp'] as int? ?? 1000,
+      streakDays: json['streak_days'] as int? ?? 0,
+      badgeCount: json['badge_count'] as int? ?? 0,
+      equippedTitle: json['equipped_title'] as String?,
+    );
+  }
+}

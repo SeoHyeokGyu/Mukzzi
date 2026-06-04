@@ -38,6 +38,7 @@ type SocialRepository interface {
 	HasVisitedToday(visitorID, hostID int64, date time.Time) (bool, error)
 	IncrementFriendshipScore(userID1, userID2 int64, score int) error
 	VisitTransaction(visit *domain.CharacterVisit, visitorPoint, hostPoint, score int) error
+	GetFriendsComparison(userID int64, friendIDs []int64) ([]domain.ComparisonEntry, error)
 }
 
 type socialRepository struct {
@@ -223,4 +224,24 @@ func (r *socialRepository) VisitTransaction(visit *domain.CharacterVisit, visito
 		}
 		return nil
 	})
+}
+
+func (r *socialRepository) GetFriendsComparison(userID int64, friendIDs []int64) ([]domain.ComparisonEntry, error) {
+	var entries []domain.ComparisonEntry
+	targetIDs := append([]int64{userID}, friendIDs...)
+
+	err := r.db.Table("users").
+		Select("users.id as user_id, users.nickname, users.profile_image_url, " +
+			"COALESCE(characters.level, 1) as level, " +
+			"COALESCE(characters.exp, 0) as exp, " +
+			"COALESCE(characters.level * 1000 + characters.exp, 1000) as total_exp, " +
+			"COALESCE(characters.streak_days, 0) as streak_days, " +
+			"titles.name as equipped_title, " +
+			"(SELECT COUNT(*) FROM user_badges WHERE user_badges.user_id = users.id AND user_badges.deleted_at IS NULL) as badge_count").
+		Joins("LEFT JOIN characters ON characters.user_id = users.id AND characters.deleted_at IS NULL").
+		Joins("LEFT JOIN titles ON titles.id = users.equipped_title_id AND titles.deleted_at IS NULL").
+		Where("users.id IN (?) AND users.deleted_at IS NULL", targetIDs).
+		Find(&entries).Error
+
+	return entries, err
 }

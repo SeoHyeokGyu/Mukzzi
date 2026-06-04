@@ -8,6 +8,7 @@ import 'package:mukzzi/src/core/widgets/bento_card.dart';
 import 'package:mukzzi/src/core/widgets/collection_states.dart';
 import 'package:mukzzi/src/core/widgets/mukzzi_character.dart';
 import '../providers/social_providers.dart';
+import '../../data/models/social_models.dart';
 import '../../data/models/feed_model.dart';
 import '../../../meal_record/data/models/meal_model.dart';
 import '../../../meal_record/presentation/widgets/menu_detail_sheet.dart';
@@ -349,182 +350,461 @@ class _MealTypeBadge extends StatelessWidget {
 // 랭킹 탭
 // ─────────────────────────────────────────
 
-class _RankingTab extends ConsumerWidget {
+class _RankingTab extends ConsumerStatefulWidget {
   final AppColorTokens tokens;
   const _RankingTab({required this.tokens});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final rankingAsync = ref.watch(socialRankingProvider);
+  ConsumerState<_RankingTab> createState() => _RankingTabState();
+}
+
+class _RankingTabState extends ConsumerState<_RankingTab> {
+  bool _isFriendsComparisonMode = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = widget.tokens;
     final myUserId = ref.watch(userProvider).user?.id;
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        if (_isFriendsComparisonMode) {
+          ref.invalidate(friendsComparisonProvider);
+        } else {
+          ref.invalidate(socialRankingProvider);
+        }
+      },
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // 1. 상단 세그먼트 컨트롤
+          Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: tokens.card,
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () => setState(() => _isFriendsComparisonMode = false),
+                    borderRadius: BorderRadius.circular(99),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: !_isFriendsComparisonMode ? tokens.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '전체 랭킹',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: !_isFriendsComparisonMode ? Colors.white : tokens.textMuted,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: InkWell(
+                    onTap: () => setState(() => _isFriendsComparisonMode = true),
+                    borderRadius: BorderRadius.circular(99),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: _isFriendsComparisonMode ? tokens.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '친구 비교',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _isFriendsComparisonMode ? Colors.white : tokens.textMuted,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 2. 내용 렌더링
+          if (!_isFriendsComparisonMode)
+            _buildAllUsersRanking(tokens, myUserId)
+          else
+            _buildFriendsComparison(tokens, myUserId),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAllUsersRanking(AppColorTokens tokens, String? myUserId) {
+    final rankingAsync = ref.watch(socialRankingProvider);
 
     return rankingAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, __) => CollectionErrorState(onRetry: () => ref.invalidate(socialRankingProvider)),
       data: (ranking) {
         if (ranking.isEmpty) {
-          return const Center(child: Text('아직 랭킹 정보가 없습니다.'));
+          return const Center(child: Padding(padding: EdgeInsets.all(20), child: Text('아직 랭킹 정보가 없습니다.')));
         }
 
-        return RefreshIndicator(
-          onRefresh: () => ref.refresh(socialRankingProvider.future),
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Text(
-                '이번 주 랭킹 (경험치 기준)',
-                style: TextStyle(fontSize: 13, color: tokens.textMuted, fontWeight: FontWeight.w500),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '이번 주 랭킹 (경험치 기준)',
+              style: TextStyle(fontSize: 13, color: tokens.textMuted, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 140,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: ranking.take(5).length,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (context, i) {
+                  final r = ranking[i];
+                  final isMe = r.userId == myUserId;
+                  return Container(
+                    width: 96,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isMe ? tokens.primaryBg : tokens.card,
+                      borderRadius: BorderRadius.circular(tokens.rCard),
+                      border: isMe ? Border.all(color: tokens.primary, width: 1) : null,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '#${r.rank}',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: r.rank <= 3 ? tokens.primary : tokens.textMuted,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Center(
+                            child: MukzziCharacter(
+                              state: _stateFromPenalty(r.penaltyStatus),
+                              size: 64,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          r.nickname,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: tokens.textPrimary),
+                        ),
+                        Text(
+                          '${r.score.toInt()}일',
+                          style: TextStyle(fontSize: 10, color: tokens.textMuted),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
-              const SizedBox(height: 10),
-              SizedBox(
-                height: 140,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: ranking.take(5).length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 10),
-                  itemBuilder: (context, i) {
-                    final r = ranking[i];
-                    final isMe = r.userId == myUserId;
-                    return Container(
-                      width: 96,
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: isMe ? tokens.primaryBg : tokens.card,
-                        borderRadius: BorderRadius.circular(tokens.rCard),
-                        border: isMe ? Border.all(color: tokens.primary, width: 1) : null,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
+            ),
+            const SizedBox(height: 20),
+            Text(
+              '상위 10위 명단',
+              style: TextStyle(fontSize: 13, color: tokens.textMuted, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 10),
+            BentoCard(
+              borderRadius: BorderRadius.circular(tokens.rCard),
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                children: ranking.indexed.map((entry) {
+                  final (i, r) = entry;
+                  final isMe = r.userId == myUserId;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isMe ? tokens.primaryBg : Colors.transparent,
+                      border: i < ranking.length - 1
+                          ? Border(bottom: BorderSide(color: tokens.primary.withValues(alpha: 0.08)))
+                          : null,
+                    ),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 28,
+                          child: Text(
                             '#${r.rank}',
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 13,
                               fontWeight: FontWeight.w700,
                               color: r.rank <= 3 ? tokens.primary : tokens.textMuted,
                             ),
                           ),
-                          const SizedBox(height: 6),
-                          Container(
-                            width: 58,
-                            height: 58,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(14),
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                            child: Center(
-                              child: MukzziCharacter(
-                                state: _stateFromPenalty(r.penaltyStatus),
-                                size: 64,
-                              ),
-                            ),
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            r.nickname,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: tokens.textPrimary),
-                          ),
-                          Text(
-                            '${r.score.toInt()}일',
-                            style: TextStyle(fontSize: 10, color: tokens.textMuted),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                '상위 10위 명단',
-                style: TextStyle(fontSize: 13, color: tokens.textMuted, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 10),
-              BentoCard(
-                borderRadius: BorderRadius.circular(tokens.rCard),
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Column(
-                  children: ranking.indexed.map((entry) {
-                    final (i, r) = entry;
-                    final isMe = r.userId == myUserId;
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isMe ? tokens.primaryBg : Colors.transparent,
-                        border: i < ranking.length - 1
-                            ? Border(bottom: BorderSide(color: tokens.primary.withValues(alpha: 0.08)))
-                            : null,
-                      ),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 28,
-                            child: Text(
-                              '#${r.rank}',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: r.rank <= 3 ? tokens.primary : tokens.textMuted,
-                              ),
+                          child: Center(
+                            child: MukzziCharacter(
+                              state: _stateFromPenalty(r.penaltyStatus),
+                              size: 64,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Center(
-                              child: MukzziCharacter(
-                                state: _stateFromPenalty(r.penaltyStatus),
-                                size: 64,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${r.nickname}${isMe ? ' (나)' : ''}',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: isMe ? FontWeight.w700 : FontWeight.w500,
-                                    color: tokens.textPrimary,
-                                  ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${r.nickname}${isMe ? ' (나)' : ''}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: isMe ? FontWeight.w700 : FontWeight.w500,
+                                  color: tokens.textPrimary,
                                 ),
-                                Text('영양 달성 ${r.score.toInt()}일', style: TextStyle(fontSize: 11, color: tokens.textMuted)),
-                              ],
-                            ),
+                              ),
+                              Text('영양 달성 ${r.score.toInt()}일', style: TextStyle(fontSize: 11, color: tokens.textMuted)),
+                            ],
                           ),
-                          Text(
-                            '${r.score.toInt()}일',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: tokens.textSub),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
+                        ),
+                        Text(
+                          '${r.score.toInt()}일',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: tokens.textSub),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );
+  }
+
+  Widget _buildFriendsComparison(AppColorTokens tokens, String? myUserId) {
+    final comparisonAsync = ref.watch(friendsComparisonProvider);
+    final sortBy = ref.watch(friendsComparisonSortProvider);
+
+    return comparisonAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => CollectionErrorState(onRetry: () => ref.invalidate(friendsComparisonProvider)),
+      data: (list) {
+        if (list.isEmpty) {
+          return const Center(child: Padding(padding: EdgeInsets.all(20), child: Text('비교할 친구가 없습니다.')));
+        }
+
+        // 1. 정렬 수행
+        final sortedList = [...list];
+        switch (sortBy) {
+          case FriendsSortType.totalExp:
+            sortedList.sort((a, b) => b.totalExp.compareTo(a.totalExp));
+            break;
+          case FriendsSortType.streakDays:
+            sortedList.sort((a, b) => b.streakDays.compareTo(a.streakDays));
+            break;
+          case FriendsSortType.badgeCount:
+            sortedList.sort((a, b) => b.badgeCount.compareTo(a.badgeCount));
+            break;
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 정렬 필터 칩 목록
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildFilterChip('총 경험치순', FriendsSortType.totalExp, sortBy),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('연속 스트릭순', FriendsSortType.streakDays, sortBy),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('뱃지 개수순', FriendsSortType.badgeCount, sortBy),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '친구 지표 비교 보드',
+              style: TextStyle(fontSize: 13, color: tokens.textMuted, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 10),
+            BentoCard(
+              borderRadius: BorderRadius.circular(tokens.rCard),
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                children: sortedList.indexed.map((entry) {
+                  final (i, r) = entry;
+                  final isMe = r.userId == myUserId;
+                  final rank = i + 1;
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isMe ? tokens.primaryBg : Colors.transparent,
+                      border: isMe ? Border.all(color: tokens.primary, width: 1.5) : null,
+                      borderRadius: isMe ? BorderRadius.circular(tokens.rCard) : null,
+                    ),
+                    margin: isMe ? const EdgeInsets.symmetric(horizontal: 4, vertical: 2) : EdgeInsets.zero,
+                    child: Row(
+                      children: [
+                        // 순위/메달 뱃지
+                        SizedBox(
+                          width: 32,
+                          child: rank <= 3
+                              ? Icon(
+                                  Icons.emoji_events,
+                                  color: rank == 1
+                                      ? const Color(0xFFFFD700)
+                                      : rank == 2
+                                          ? const Color(0xFFC0C0C0)
+                                          : const Color(0xFFCD7F32),
+                                  size: 20,
+                                )
+                              : Text(
+                                  '#$rank',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: tokens.textMuted,
+                                  ),
+                                ),
+                        ),
+                        const SizedBox(width: 12),
+                        // 프로필 이미지 (여기서는 먹찌 캐릭터 기본 렌더링)
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Center(
+                            child: MukzziCharacter(
+                              state: CharacterState.normal,
+                              size: 64,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // 닉네임 및 장착 칭호
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    r.nickname,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: isMe ? FontWeight.bold : FontWeight.w500,
+                                      color: tokens.textPrimary,
+                                    ),
+                                  ),
+                                  if (isMe)
+                                    Text(
+                                      ' (나)',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: tokens.primary,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              if (r.equippedTitle != null && r.equippedTitle!.isNotEmpty)
+                                Text(
+                                  r.equippedTitle!,
+                                  style: TextStyle(fontSize: 11, color: tokens.primary, fontWeight: FontWeight.w600),
+                                ),
+                              const SizedBox(height: 4),
+                              // 세부 지표 정보 노출
+                              Text(
+                                'Lv.${r.level} (${r.exp} XP) · ${r.streakDays}일 연속 · 뱃지 ${r.badgeCount}개',
+                                style: TextStyle(fontSize: 11, color: tokens.textMuted),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // 우측 메인 지표 밸류 강조
+                        Text(
+                          _getMainStatValue(r, sortBy),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: tokens.textSub,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildFilterChip(String label, FriendsSortType type, FriendsSortType current) {
+    final isSelected = type == current;
+    final tokens = widget.tokens;
+    return FilterChip(
+      selected: isSelected,
+      label: Text(label, style: TextStyle(fontSize: 12, color: isSelected ? Colors.white : tokens.textMuted)),
+      onSelected: (_) => ref.read(friendsComparisonSortProvider.notifier).state = type,
+      selectedColor: tokens.primary,
+      backgroundColor: tokens.card,
+      checkmarkColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(99)),
+    );
+  }
+
+  String _getMainStatValue(ComparisonModel model, FriendsSortType type) {
+    switch (type) {
+      case FriendsSortType.totalExp:
+        return '${model.totalExp} XP';
+      case FriendsSortType.streakDays:
+        return '${model.streakDays}일';
+      case FriendsSortType.badgeCount:
+        return '${model.badgeCount}개';
+    }
   }
 }
 

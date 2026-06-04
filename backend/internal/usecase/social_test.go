@@ -93,6 +93,10 @@ func (m *MockSocialRepository) IncrementFriendshipScore(userID1, userID2 int64, 
 func (m *MockSocialRepository) VisitTransaction(visit *domain.CharacterVisit, visitorPoint, hostPoint, score int) error {
 	return m.Called(visit, visitorPoint, hostPoint, score).Error(0)
 }
+func (m *MockSocialRepository) GetFriendsComparison(userID int64, friendIDs []int64) ([]domain.ComparisonEntry, error) {
+	args := m.Called(userID, friendIDs)
+	return args.Get(0).([]domain.ComparisonEntry), args.Error(1)
+}
 
 // MockUserRepositoryForSocial 는 UserRepository 인터페이스를 완벽히 구현합니다.
 type MockUserRepositoryForSocial struct {
@@ -286,5 +290,60 @@ func TestSocialUsecase_VisitFriend(t *testing.T) {
 		_, _, err := uc.VisitFriend(visitorID, hostID, domain.InteractionFeed)
 
 		assert.ErrorIs(t, err, ErrAlreadyVisitedToday)
+	})
+}
+
+func TestSocialUsecase_GetFriendsComparison(t *testing.T) {
+	mockSocialRepo := new(MockSocialRepository)
+	mockUserRepo := new(MockUserRepositoryForSocial)
+	mockMealRepo := new(MockMealRepositoryForSocial)
+	mockCharRepo := new(MockCharacterRepositoryForSocial)
+	dummyRDB, _ := redismock.NewClientMock()
+
+	uc := NewSocialUsecase(mockSocialRepo, mockUserRepo, mockMealRepo, mockCharRepo, nil, nil, dummyRDB)
+
+	userID := int64(1)
+	friendID := int64(2)
+
+	t.Run("나와 친구들의 비교 데이터 조회 성공", func(t *testing.T) {
+		friendships := []domain.Friendship{
+			{
+				RequesterID: userID,
+				ReceiverID:  friendID,
+				Status:      domain.FriendshipAccepted,
+			},
+		}
+		mockSocialRepo.On("GetFriends", userID).Return(friendships, nil).Once()
+
+		expectedEntries := []domain.ComparisonEntry{
+			{
+				UserID:     userID,
+				Nickname:   "나",
+				Level:      5,
+				Exp:        100,
+				TotalExp:   5100,
+				StreakDays: 10,
+				BadgeCount: 3,
+			},
+			{
+				UserID:     friendID,
+				Nickname:   "친구",
+				Level:      3,
+				Exp:        50,
+				TotalExp:   3050,
+				StreakDays: 2,
+				BadgeCount: 1,
+			},
+		}
+		mockSocialRepo.On("GetFriendsComparison", userID, []int64{friendID}).Return(expectedEntries, nil).Once()
+
+		entries, err := uc.GetFriendsComparison(userID)
+
+		assert.NoError(t, err)
+		assert.Len(t, entries, 2)
+		assert.Equal(t, "나", entries[0].Nickname)
+		assert.Equal(t, int64(5100), entries[0].TotalExp)
+		assert.Equal(t, "친구", entries[1].Nickname)
+		mockSocialRepo.AssertExpectations(t)
 	})
 }

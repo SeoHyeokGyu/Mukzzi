@@ -40,5 +40,6 @@ func SocialRoute(rg *gin.RouterGroup, socialHandler *handler.SocialHandler) {
 		social.Use(middleware.AuthMiddleware())
 		social.GET("/feed", socialHandler.GetSocialFeed)
 		social.GET("/ranking", socialHandler.GetSocialRanking)
+		social.GET("/friends/comparison", socialHandler.GetFriendsComparison)
 	}
 }
