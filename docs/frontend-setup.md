@@ -48,30 +48,37 @@ flutter build web --release
 
 ## 디자인 시스템
 
-### 색상 토큰 (AppColors)
-모든 색상은 `lib/src/core/theme/app_theme.dart`의 `AppColors` 클래스에서 중앙화됩니다:
+### 디자인 시스템 및 테마 토큰 (Theme Tokens)
 
+이 프로젝트는 라이트 모드 및 다크 모드(하이브리드 테마) 대응을 위해 정적 `AppColors` 외에 다이나믹 테마 토큰인 `AppColorTokens` 객체를 사용합니다.
+
+#### 1. 테마 독립적 고정 색상 (`AppColors`)
+로그인 버튼 브랜드 색상이나 테마와 무관한 공통 고정 색상은 `AppColors` 클래스를 참조합니다.
 ```dart
 import 'package:mukzzi/src/core/theme/app_theme.dart';
 
-// 색상 사용
-color: AppColors.orange         // #FF6B35
-color: AppColors.peach          // #FFB347
-color: AppColors.softPeach      // #FFF0E8
+color: AppColors.orange         // #FF6B35 (강조 색상)
+color: AppColors.kakaoYellow    // #FEE500 (브랜드 색상)
 ```
 
-**주요 색상:**
-- `orange`: 메인 강조색
-- `peach`: 그라데이션 끝색
-- `softPeach`: 배경 그라데이션 끝색
-- `kakaoYellow`, `googleWhite`, `appleBlack`: 소셜 로그인 브랜드색
+#### 2. 테마 가변 토큰 (`AppColorTokens`)
+배경, 카드, 텍스트, 그라데이션 등 테마 모드(라이트/다크)에 따라 자동으로 전환되어야 하는 디자인 값은 `Theme.of(context).extension<AppColorTokens>()!`를 활용해 참조합니다.
+```dart
+import 'package:mukzzi/src/core/theme/app_theme.dart';
+
+final tokens = Theme.of(context).extension<AppColorTokens>()!;
+
+// 테마에 맞는 색상 및 그라데이션 적용
+color: tokens.bg                    // 현재 테마의 전체 배경색
+color: tokens.textPrimary           // 현재 테마의 주 텍스트 색상
+gradient: tokens.cardHeroGrad       // 프리미엄 히어로 카드용 다이내믹 그라데이션
+borderRadius: BorderRadius.circular(tokens.rCard)  // 공통 카드 둥글기 값
+```
 
 ### 그라데이션
-```dart
-gradient: AppColors.primaryGradient       // 오렌지→피치 버튼/카드
-gradient: AppColors.backgroundGradient   // 배경 전체
-gradient: AppColors.progressGradient     // 프로그레스 바
-```
+* 정적 그라데이션: `AppColors.primaryGradient` (오렌지→피치 고정)
+* 테마형 그라데이션: `tokens.bgGrad` (배경 전체), `tokens.cardHeroGrad` (캐릭터 프리뷰 카드)
+
 
 ## 공용 위젯
 

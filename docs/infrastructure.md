@@ -9,7 +9,7 @@
 | 프레임워크 | Flutter 3.24 | 단일 코드베이스로 iOS/Android/Web 동시 개발 |
 | 언어 | Dart 3.5 | Flutter 네이티브 언어, Null Safety 기본 지원 |
 | 상태관리 | Riverpod | 컴파일 타임 안전성, 의존성 주입 통합 |
-| 애니메이션 | Lottie | JSON 기반 벡터 애니메이션, After Effects/LottieFiles 에디터 연동 |
+| 그래픽스 / 애니메이션 | SVG | SvgPicture 및 Tween 애니메이션 기반 캐릭터 렌더링 |
 | 라우팅 | GoRouter | 선언적 라우팅, 딥링크 지원 |
 | HTTP | Dio | 인터셉터, 토큰 갱신 자동화 |
 | 반응형 | LayoutBuilder | 모바일/데스크톱 레이아웃 분기, 공통 로직 공유 |
@@ -32,10 +32,9 @@
 정해진 시간에 수행되어야 하는 작업들을 `robfig/cron`을 통해 관리합니다. 즉각적인 비동기 처리는 Go의 Goroutine을 사용합니다.
 
 1. 정기 및 예약 작업 (Scheduled Tasks)
-   - 매일 00:00 탈퇴 회원 물리 삭제 (30일 경과 기준) ✓ 구현됨
-   - 매일 새벽 5시 미기록 사용자 패널티 상태 갱신 ✓ 구현됨
-   - 매일 새벽 5시 일일 퀘스트 초기화 및 신규 할당 ❌ 미구현
-   - 기간 만료된 미수령 보상에 대한 자동 소멸 처리 ❌ 미구현
+   - 매일 00:00 KST 탈퇴 회원 물리 삭제 (30일 경과 기준) ✓ 구현됨
+   - 매일 00:05 KST 미기록 사용자 패널티 상태 갱신 ✓ 구현됨
+   - 매일 00:05 KST 일일/주간 퀘스트 초기화 및 신규 할당 ✓ 구현됨
 
 ### Infra
 
@@ -242,7 +241,6 @@ frontend/
 | riverpod_generator | ^2.4.3 | Riverpod 생성 도구 |
 | go_router | ^14.2.7 | 내비게이션/라우팅 |
 | dio | ^5.7.0 | HTTP 클라이언트 |
-| lottie | ^3.1.0 | JSON 기반 벡터 애니메이션 |
 | shared_preferences | ^2.3.2 | 로컬 저장소 |
 | flutter_secure_storage | ^9.2.2 | 보안 저장소 (토큰) |
 | intl | ^0.19.0 | 국제화 및 날짜 포맷 |

@@ -5,9 +5,9 @@
 기획 문서([planning.md](planning.md))의 기능 정의를 기반으로 바운디드 컨텍스트를 정의하고, 도메인 간 관계를 설계합니다.
 
 **구현 현황:**
-- ✓ **구현 완료**: Auth (기본 register/login/refresh/logout), User, Meal, Nutrition (오늘/주간), Collection (전체), Social, Notification, 패널티 시스템, 온보딩, Quest (일일/주간/업적/튜토리얼)
-- ⚠️ **부분 구현**: Menu (검색만), Auth (OAuth 미구현), Character (도메인/유스케이스만, HTTP API 미구현)
-- ❌ **미구현**: Character HTTP API (GET /characters/me 등), OAuth (Kakao/Google/Apple)
+- ⚠️ **구현 완료**: Auth (기본 register/login/refresh/logout), User, Meal, Nutrition (오늘/주간), Collection (전체), Social, Notification, 패널티 시스템, 온보딩, Quest (일일/주간/업적/튜토리얼), Character 장비 변경 API
+- ⚠️ **부분 구현**: Menu (검색만), Auth (OAuth 미구현), Character (외형 적용 API 미구현)
+- ❌ **미구현**: Character 외형 변경 API (PATCH /characters/me/appearance), OAuth (Kakao/Google/Apple)
 
 ---
 
@@ -125,19 +125,19 @@ type BaseDomain struct {
   - 파츠 재계산 시점: `POST /meals` 호출 시 당일 합산 영양소로 즉시 재계산.
   - 당일 식사 기록 없으면 파츠는 전날 마지막 상태 유지.
   - 패널티 상태: NORMAL -> HUNGRY(미기록 2일 경과) -> STARVING(미기록 3일 경과) -> WEAKENED(미기록 5일 이상). 식사 1회 기록 시 즉시 NORMAL 복구.
-  - `nutrition_achievement_days`: 당일 3대 영양소 모두 권장 범위 이내인 날의 누적 수. 자정 05:00 cron으로 전날 달성 여부를 판정하여 갱신.
+  - `nutrition_achievement_days`: 당일 3대 영양소 모두 권장 범위 이내인 날의 누적 수. 매일 00:05 cron으로 전날 달성 여부를 판정하여 갱신.
   - 달성한 외형은 도감에 기록되며, 이전 외형으로 변경 가능 (가역적).
 
 **현재 구현:**
 - ✓ Character 도메인 엔티티 정의 (PenaltyStatus, StreakDays, 파츠 필드)
-- ✓ 패널티 시스템 (`RunInactivityPenalty`) - 매일 05:00 배치로 상태 갱신
+- ✓ 패널티 시스템 (`RunInactivityPenalty`) - 매일 00:05 배치로 상태 갱신
 - ✓ 연속 기록일(Streak) 갱신 (`UpdateStreakOnMeal`)
 - ✓ 캐릭터 조회 (`GET /users/me/character`) - Redis 캐시 5분
 - ✓ CharacterCollection 자동 등록 (온보딩 시 초기 외형 등록)
 - ✓ Level/Exp/EvolutionStage 필드 제거 및 nutrition_achievement_days 필드 추가 완료
 - ✓ 식사 기록 시 당일 파츠 즉시 재계산 (`RecalcAppearance`) 구현 완료
-- ✓ nutrition_achievement_days 일일 갱신 cron (05:05 KST) 구현 완료
-- ❌ 캐릭터 외형 HTTP API 미구현 (`PATCH /characters/me/appearance`, `PATCH /characters/me/equipment`)
+- ✓ nutrition_achievement_days 일일 갱신 cron (00:05 KST) 구현 완료
+- ⚠️ 캐릭터 외형 HTTP API 부분 구현 (PATCH /characters/me/appearance 미구현, PATCH /characters/me/equipment 구현 완료)
 
 ### Meal (식사 기록) - ✓ 구현 완료
 
@@ -238,7 +238,7 @@ type BaseDomain struct {
 - 책임: 인앱 알림 목록 관리, FCM 푸시 알림 발송, 알림 읽음 처리
 - 핵심 엔티티: Notification
 - 비즈니스 규칙:
-  - 알림 유형: `FRIEND_REQUEST`, `FRIEND_ACCEPTED`, `NUDGE`, `GUESTBOOK`, `LEVEL_UP`, `BADGE_ACQUIRED`, `MEAL_TAG`, `MEAL_TAG_ACCEPTED`.
+  - 알림 유형: `FRIEND_REQUEST`, `FRIEND_ACCEPTED`, `NUDGE`, `GUESTBOOK`, `APPEARANCE_CHANGED`, `BADGE_ACQUIRED`, `MEAL_TAG`, `MEAL_TAG_ACCEPTED`, `PENALTY_CHANGED`, `QUEST_COMPLETED`.
   - **성능 최적화**: 알림 읽음 처리는 고루틴과 채널을 이용한 비동기 배칭(Batching)으로 처리하여 DB 부하를 최소화함 (5초 주기 또는 100건 누적 시 Bulk Update).
   - 인앱 알림과 FCM 푸시 알림을 병행하여 발송함.
   - 사용자 설정에 따라 알림 유형별 on/off 가능.
@@ -298,10 +298,10 @@ type BaseDomain struct {
 
 서비스 전체에서 "하루"의 기준을 통일합니다.
 
-- **날짜 경계 시각**: 매일 **05:00 KST**
-- 04:59까지의 활동은 전날에 귀속, 05:00 이후는 당일에 귀속
+- **날짜 경계 시각**: 매일 **00:00 KST**
+- 23:59까지의 활동은 전날에 귀속, 00:00 이후는 당일에 귀속
 - 퀘스트 초기화, 일일 섭취 통계(daily_intakes.date), 패널티 판정, 응원/친구요청 일일 제한 등 모든 "일일" 기준에 동일하게 적용
-- **적용 이유**: 자정(00:00) 기준으로 하면 야식을 기록하는 사용자의 경험이 분절됨. 새벽 5시는 대부분의 사용자가 수면 중인 시간대로, 자연스러운 하루 경계를 형성
+- **적용 이유**: 표준적인 하루 시간 기준을 적용하여 데이터 정합성 관리를 단순화하고 표준 자정 배치 작업과 동기화함.
 
 ---
 
@@ -349,11 +349,11 @@ type BaseDomain struct {
 | 작업 | 스케줄 | 설명 | 구현 |
 |------|--------|------|------|
 | PhysicalDeletion | 매일 00:00 | 탈퇴 후 30일 경과 회원 물리 삭제 | ✓ |
-| InactivityPenalty | 매일 05:00 | 미기록 사용자 패널티 상태 갱신 | ✓ |
-| DailyQuestReset | 매일 05:00 | 일일 퀘스트 초기화 및 신규 할당 | ❌ |
-| WeeklyQuestReset | 매주 월요일 05:00 | 주간 퀘스트 초기화 및 신규 할당 | ❌ |
-| ExpiredRewardCleanup | 매일 05:00 | 기간 만료 미수령 보상 자동 소멸 | ❌ |
-| NutritionAchievementUpdate | 매일 05:05 | 전날 영양 밸런스 달성 사용자 nutrition_achievement_days 갱신 | ❌ |
+| InactivityPenalty | 매일 00:05 | 미기록 사용자 패널티 상태 갱신 | ✓ |
+| DailyQuestReset | 매일 00:05 | 일일 퀘스트 초기화 및 신규 할당 | ✓ |
+| WeeklyQuestReset | 매주 월요일 00:05 | 주간 퀘스트 초기화 및 신규 할당 | ✓ |
+| ExpiredRewardCleanup | 매일 00:05 | 기간 만료 미수령 보상 자동 소멸 | ❌ |
+| NutritionAchievementUpdate | 매일 00:05 | 전날 영양 밸런스 달성 사용자 nutrition_achievement_days 갱신 | ✓ |
 
 ---
 
