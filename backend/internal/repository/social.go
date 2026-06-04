@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"time"
+
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"gorm.io/gorm"
 )
@@ -29,6 +31,13 @@ type SocialRepository interface {
 
 	// Report
 	CreateReport(report *domain.Report) error
+
+	// CharacterVisit
+	CreateCharacterVisit(visit *domain.CharacterVisit) error
+	GetDailyCharacterVisitCount(visitorID int64, date time.Time) (int64, error)
+	HasVisitedToday(visitorID, hostID int64, date time.Time) (bool, error)
+	IncrementFriendshipScore(userID1, userID2 int64, score int) error
+	VisitTransaction(visit *domain.CharacterVisit, visitorPoint, hostPoint, score int) error
 }
 
 type socialRepository struct {
@@ -147,4 +156,71 @@ func (r *socialRepository) DeleteGuestbook(id int64) error {
 // Report 구현
 func (r *socialRepository) CreateReport(report *domain.Report) error {
 	return r.db.Create(report).Error
+}
+
+func getKSTTodayRange(date time.Time) (time.Time, time.Time) {
+	loc := time.FixedZone("KST", 9*60*60)
+	kst := date.In(loc)
+	start := time.Date(kst.Year(), kst.Month(), kst.Day(), 0, 0, 0, 0, loc)
+	end := start.Add(24 * time.Hour)
+	return start, end
+}
+
+func (r *socialRepository) CreateCharacterVisit(visit *domain.CharacterVisit) error {
+	return r.db.Create(visit).Error
+}
+
+func (r *socialRepository) GetDailyCharacterVisitCount(visitorID int64, date time.Time) (int64, error) {
+	start, end := getKSTTodayRange(date)
+	var count int64
+	err := r.db.Model(&domain.CharacterVisit{}).
+		Where("visitor_id = ? AND created_at >= ? AND created_at < ?", visitorID, start, end).
+		Count(&count).Error
+	return count, err
+}
+
+func (r *socialRepository) HasVisitedToday(visitorID, hostID int64, date time.Time) (bool, error) {
+	start, end := getKSTTodayRange(date)
+	var count int64
+	err := r.db.Model(&domain.CharacterVisit{}).
+		Where("visitor_id = ? AND host_id = ? AND created_at >= ? AND created_at < ?", visitorID, hostID, start, end).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (r *socialRepository) IncrementFriendshipScore(userID1, userID2 int64, score int) error {
+	return r.db.Model(&domain.Friendship{}).
+		Where("(requester_id = ? AND receiver_id = ?) OR (requester_id = ? AND receiver_id = ?)", userID1, userID2, userID2, userID1).
+		Update("friendship_score", gorm.Expr("friendship_score + ?", score)).Error
+}
+
+func (r *socialRepository) VisitTransaction(visit *domain.CharacterVisit, visitorPoint, hostPoint, score int) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// 1. CharacterVisit 삽입
+		if err := tx.Create(visit).Error; err != nil {
+			return err
+		}
+		// 2. 우정 점수 증가
+		if err := tx.Model(&domain.Friendship{}).
+			Where("(requester_id = ? AND receiver_id = ?) OR (requester_id = ? AND receiver_id = ?)", visit.VisitorID, visit.HostID, visit.HostID, visit.VisitorID).
+			Update("friendship_score", gorm.Expr("friendship_score + ?", score)).Error; err != nil {
+			return err
+		}
+		// 3. 방문자 포인트 증가
+		if err := tx.Model(&domain.User{}).
+			Where("id = ?", visit.VisitorID).
+			Update("point", gorm.Expr("point + ?", visitorPoint)).Error; err != nil {
+			return err
+		}
+		// 4. 피방문자 포인트 증가
+		if err := tx.Model(&domain.User{}).
+			Where("id = ?", visit.HostID).
+			Update("point", gorm.Expr("point + ?", hostPoint)).Error; err != nil {
+			return err
+		}
+		return nil
+	})
 }

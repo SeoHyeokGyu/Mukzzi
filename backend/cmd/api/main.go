@@ -118,6 +118,55 @@ func main() {
 		})
 	})
 
+	eventBus.Subscribe(domain.EventCharacterVisited, func(ev domain.Event) {
+		slog.Info("친구 캐릭터 방문 이벤트 수신, 알림 생성", slog.Int64("visitor_id", ev.UserID))
+		hostIDRaw, ok1 := ev.Payload["host_id"]
+		interactionTypeRaw, ok2 := ev.Payload["interaction_type"]
+		if !ok1 || !ok2 {
+			slog.Error("이벤트 페이로드 누락")
+			return
+		}
+
+		var hostID int64
+		switch v := hostIDRaw.(type) {
+		case int64:
+			hostID = v
+		case float64:
+			hostID = int64(v)
+		default:
+			slog.Error("host_id의 타입이 유효하지 않습니다", slog.Any("host_id", hostIDRaw))
+			return
+		}
+
+		interactionType, ok := interactionTypeRaw.(string)
+		if !ok {
+			slog.Error("interaction_type이 string이 아닙니다")
+			return
+		}
+
+		visitor, err := userRepo.GetByID(ev.UserID)
+		if err != nil {
+			slog.Error("방문 유저 정보 조회 실패", slog.Int64("user_id", ev.UserID), slog.Any("error", err))
+			return
+		}
+
+		var actionTitle string
+		if interactionType == "FEED" {
+			actionTitle = "먹이"
+		} else {
+			actionTitle = "응원"
+		}
+
+		_ = notificationUsecase.CreateNotification(&domain.Notification{
+			UserID:   hostID,
+			SenderID: &ev.UserID,
+			Type:     domain.NotificationTypeNudge,
+			Title:    fmt.Sprintf("캐릭터 룸 %s 도착", actionTitle),
+			Content:  fmt.Sprintf("%s님이 내 먹찌에게 %s를 주었습니다!", visitor.Nickname, actionTitle),
+			LinkURL:  "/social",
+		})
+	})
+
 	// BadgeGranter 초기화 (여러 도메인에서 사용)
 	badgeGranter := usecase.NewBadgeGranter(badgeRepo, mealRepo, dailyIntakeRepo, charCollectionRepo)
 

@@ -53,3 +53,14 @@ func ToRankingResponses(entries []usecase.RankingEntry) []RankingResponse {
 	}
 	return resps
 }
+
+// VisitRequest 캐릭터 룸 방문 상호작용 요청
+type VisitRequest struct {
+	InteractionType domain.InteractionType `json:"interaction_type" binding:"required,oneof=FEED NUDGE"`
+}
+
+// VisitResponse 캐릭터 룸 방문 상호작용 응답
+type VisitResponse struct {
+	VisitorPointEarned     int `json:"visitor_point_earned"`
+	CurrentFriendshipScore int `json:"current_friendship_score"`
+}

@@ -31,6 +31,7 @@ func SocialRoute(rg *gin.RouterGroup, socialHandler *handler.SocialHandler) {
 		interaction.POST("/block", socialHandler.BlockUser)
 		interaction.DELETE("/block", socialHandler.UnblockUser)
 		interaction.POST("/report", socialHandler.ReportUser)
+		interaction.POST("/visit", socialHandler.VisitFriend)
 	}
 
 	// 11. 소셜 피드 (/api/social/feed)

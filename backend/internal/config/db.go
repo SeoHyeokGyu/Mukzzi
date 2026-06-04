@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -29,17 +30,19 @@ func InitDB() *gorm.DB {
 
 	slog.Info("데이터베이스 연결 성공", slog.String("host", host), slog.String("db", dbName))
 
-	//// 오토 마이그레이션
-	//err = db.AutoMigrate(
-	//	&domain.User{},
-	//	&domain.Badge{},
-	//	&domain.UserBadge{},
-	//	&domain.Menu{},
-	//)
-	//if err != nil {
-	//	slog.Error("마이그레이션 실패", slog.Any("error", err))
-	//	os.Exit(1)
-	//}
+	// 오토 마이그레이션
+	err = db.AutoMigrate(
+		&domain.User{},
+		&domain.Badge{},
+		&domain.UserBadge{},
+		&domain.Menu{},
+		&domain.Friendship{},
+		&domain.CharacterVisit{},
+	)
+	if err != nil {
+		slog.Error("마이그레이션 실패", slog.Any("error", err))
+		os.Exit(1)
+	}
 
 	return db
 }

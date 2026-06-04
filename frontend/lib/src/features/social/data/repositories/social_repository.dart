@@ -116,4 +116,13 @@ class SocialRepository {
     final List<dynamic> data = response['data'] as List<dynamic>? ?? [];
     return data.map((e) => RankingModel.fromJson(e as Map<String, dynamic>)).toList();
   }
+
+  // 캐릭터 룸 방문 상호작용
+  Future<Map<String, dynamic>> visitFriend(String userId, String interactionType) async {
+    final response = await _apiClient.post(
+      '/users/$userId/visit',
+      data: {'interaction_type': interactionType},
+    );
+    return response['data'] as Map<String, dynamic>? ?? {};
+  }
 }

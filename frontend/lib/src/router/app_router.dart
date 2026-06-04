@@ -25,6 +25,7 @@ import '../features/meal_record/presentation/pages/meal_calendar_page.dart';
 import '../features/social/presentation/pages/social_page.dart';
 import '../features/social/presentation/pages/other_profile_page.dart';
 import '../features/social/presentation/pages/guestbook_list_page.dart';
+import '../features/social/presentation/pages/friend_room_page.dart';
 import '../features/settings/presentation/pages/privacy_policy_page.dart';
 import '../features/settings/presentation/pages/terms_page.dart';
 import '../features/splash/presentation/pages/splash_page.dart';
@@ -230,6 +231,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         final userId = state.pathParameters['userId']!;
                         final nickname = state.uri.queryParameters['nickname'] ?? '사용자';
                         return GuestbookListPage(userId: userId, nickname: nickname);
+                      },
+                    ),
+                    GoRoute(
+                      path: 'room',
+                      name: 'friend-room',
+                      builder: (context, state) {
+                        final userId = state.pathParameters['userId']!;
+                        final nickname = state.uri.queryParameters['nickname'] ?? '친구';
+                        return FriendRoomPage(userId: userId, nickname: nickname);
                       },
                     ),
                   ],

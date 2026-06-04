@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"testing"
+	"time"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/go-redis/redismock/v9"
@@ -74,6 +75,23 @@ func (m *MockSocialRepository) DeleteGuestbook(id int64) error {
 }
 func (m *MockSocialRepository) CreateReport(r *domain.Report) error {
 	return m.Called(r).Error(0)
+}
+func (m *MockSocialRepository) CreateCharacterVisit(visit *domain.CharacterVisit) error {
+	return m.Called(visit).Error(0)
+}
+func (m *MockSocialRepository) GetDailyCharacterVisitCount(visitorID int64, date time.Time) (int64, error) {
+	args := m.Called(visitorID, date)
+	return int64(args.Int(0)), args.Error(1)
+}
+func (m *MockSocialRepository) HasVisitedToday(visitorID, hostID int64, date time.Time) (bool, error) {
+	args := m.Called(visitorID, hostID, date)
+	return args.Bool(0), args.Error(1)
+}
+func (m *MockSocialRepository) IncrementFriendshipScore(userID1, userID2 int64, score int) error {
+	return m.Called(userID1, userID2, score).Error(0)
+}
+func (m *MockSocialRepository) VisitTransaction(visit *domain.CharacterVisit, visitorPoint, hostPoint, score int) error {
+	return m.Called(visit, visitorPoint, hostPoint, score).Error(0)
 }
 
 // MockUserRepositoryForSocial 는 UserRepository 인터페이스를 완벽히 구현합니다.
@@ -184,5 +202,89 @@ func TestSocialUsecase_GetFriends(t *testing.T) {
 		assert.Len(t, friends, 1)
 		assert.Equal(t, "친구", friends[0].Nickname)
 		mockSocialRepo.AssertExpectations(t)
+	})
+}
+func TestSocialUsecase_VisitFriend(t *testing.T) {
+	mockSocialRepo := new(MockSocialRepository)
+	mockUserRepo := new(MockUserRepositoryForSocial)
+	mockMealRepo := new(MockMealRepositoryForSocial)
+	mockCharRepo := new(MockCharacterRepositoryForSocial)
+	dummyRDB, _ := redismock.NewClientMock()
+	mockEventBus := new(MockEventBus)
+
+	uc := NewSocialUsecase(mockSocialRepo, mockUserRepo, mockMealRepo, mockCharRepo, nil, mockEventBus, dummyRDB)
+
+	visitorID := int64(1)
+	hostID := int64(2)
+
+	t.Run("성공적인 방문", func(t *testing.T) {
+		mockSocialRepo.On("GetFriendship", visitorID, hostID).Return(&domain.Friendship{
+			RequesterID:     visitorID,
+			ReceiverID:      hostID,
+			Status:          domain.FriendshipAccepted,
+			FriendshipScore: 10,
+		}, nil).Once()
+
+		mockSocialRepo.On("GetDailyCharacterVisitCount", visitorID, mock.Anything).Return(2, nil).Once()
+		mockSocialRepo.On("HasVisitedToday", visitorID, hostID, mock.Anything).Return(false, nil).Once()
+
+		mockSocialRepo.On("VisitTransaction", mock.Anything, 10, 10, 1).Return(nil).Once()
+		mockSocialRepo.On("GetFriendship", visitorID, hostID).Return(&domain.Friendship{
+			RequesterID:     visitorID,
+			ReceiverID:      hostID,
+			Status:          domain.FriendshipAccepted,
+			FriendshipScore: 11,
+		}, nil).Once()
+
+		mockEventBus.On("Publish", mock.Anything).Once()
+
+		points, score, err := uc.VisitFriend(visitorID, hostID, domain.InteractionFeed)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 10, points)
+		assert.Equal(t, 11, score)
+		mockSocialRepo.AssertExpectations(t)
+		mockEventBus.AssertExpectations(t)
+	})
+
+	t.Run("비친구 에러", func(t *testing.T) {
+		mockSocialRepo.On("GetFriendship", visitorID, hostID).Return(&domain.Friendship{
+			RequesterID: visitorID,
+			ReceiverID:  hostID,
+			Status:      domain.FriendshipPending,
+		}, nil).Once()
+
+		_, _, err := uc.VisitFriend(visitorID, hostID, domain.InteractionFeed)
+
+		assert.ErrorIs(t, err, ErrNotFriend)
+	})
+
+	t.Run("일일 한도 초과 에러", func(t *testing.T) {
+		mockSocialRepo.On("GetFriendship", visitorID, hostID).Return(&domain.Friendship{
+			RequesterID: visitorID,
+			ReceiverID:  hostID,
+			Status:      domain.FriendshipAccepted,
+		}, nil).Once()
+
+		mockSocialRepo.On("GetDailyCharacterVisitCount", visitorID, mock.Anything).Return(5, nil).Once()
+
+		_, _, err := uc.VisitFriend(visitorID, hostID, domain.InteractionFeed)
+
+		assert.ErrorIs(t, err, ErrDailyInteractionLimitExceeded)
+	})
+
+	t.Run("오늘 이미 방문함 에러", func(t *testing.T) {
+		mockSocialRepo.On("GetFriendship", visitorID, hostID).Return(&domain.Friendship{
+			RequesterID: visitorID,
+			ReceiverID:  hostID,
+			Status:      domain.FriendshipAccepted,
+		}, nil).Once()
+
+		mockSocialRepo.On("GetDailyCharacterVisitCount", visitorID, mock.Anything).Return(2, nil).Once()
+		mockSocialRepo.On("HasVisitedToday", visitorID, hostID, mock.Anything).Return(true, nil).Once()
+
+		_, _, err := uc.VisitFriend(visitorID, hostID, domain.InteractionFeed)
+
+		assert.ErrorIs(t, err, ErrAlreadyVisitedToday)
 	})
 }
