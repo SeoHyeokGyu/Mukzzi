@@ -10,9 +10,10 @@ const (
 // Friendship 은 유저 간의 친구 관계 및 요청 상태를 관리합니다.
 type Friendship struct {
 	BaseDomain
-	RequesterID int64            `gorm:"index:idx_friendship,unique;not null" json:"requester_id,string"`
-	ReceiverID  int64            `gorm:"index:idx_friendship,unique;not null" json:"receiver_id,string"`
-	Status      FriendshipStatus `gorm:"type:varchar(20);default:'PENDING'" json:"status"`
+	RequesterID     int64            `gorm:"index:idx_friendship,unique;not null" json:"requester_id,string"`
+	ReceiverID      int64            `gorm:"index:idx_friendship,unique;not null" json:"receiver_id,string"`
+	Status          FriendshipStatus `gorm:"type:varchar(20);default:'PENDING'" json:"status"`
+	FriendshipScore int              `gorm:"default:0" json:"friendship_score"`
 
 	// 연관 관계
 	Requester *User `gorm:"foreignKey:RequesterID" json:"requester,omitempty"`
@@ -83,3 +84,31 @@ func (Block) TableName() string      { return "blocks" }
 func (Guestbook) TableName() string  { return "guestbooks" }
 func (Nudge) TableName() string      { return "nudges" }
 func (Report) TableName() string     { return "reports" }
+
+type InteractionType string
+
+const (
+	InteractionFeed  InteractionType = "FEED"
+	InteractionNudge InteractionType = "NUDGE"
+)
+
+type CharacterVisit struct {
+	BaseDomain
+	VisitorID       int64           `gorm:"index:idx_visitor_host_date;not null;index" json:"visitor_id,string"`
+	HostID          int64           `gorm:"index:idx_visitor_host_date;not null;index" json:"host_id,string"`
+	InteractionType InteractionType `gorm:"type:varchar(20);not null" json:"interaction_type"`
+}
+
+func (CharacterVisit) TableName() string { return "character_visits" }
+
+type ComparisonEntry struct {
+	UserID          int64  `json:"user_id,string"`
+	Nickname        string `json:"nickname"`
+	ProfileImageURL string `json:"profile_image_url"`
+	Level           int    `json:"level"`
+	Exp             int    `json:"exp"`
+	TotalExp        int64  `json:"total_exp"`
+	StreakDays      int    `json:"streak_days"`
+	EquippedTitle   string `json:"equipped_title"`
+	BadgeCount      int    `json:"badge_count"`
+}

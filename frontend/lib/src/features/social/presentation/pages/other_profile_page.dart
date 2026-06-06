@@ -101,7 +101,7 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
                       const SizedBox(height: 4),
                       Text('@${user.username}', style: const TextStyle(color: AppColors.textSecondary)),
                       const SizedBox(height: 24),
-                      _buildActionButtons(isFriend, isSent, isReceived, user.id),
+                      _buildActionButtons(isFriend, isSent, isReceived, user.id, user),
                     ],
                   ),
                 ),
@@ -133,22 +133,15 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
     );
   }
 
-  Widget _buildActionButtons(bool isFriend, bool isSent, bool isReceived, String userId) {
+  Widget _buildActionButtons(bool isFriend, bool isSent, bool isReceived, String userId, UserModel user) {
     if (isFriend) {
       return Row(
         children: [
           Expanded(
             child: OutlinedButton.icon(
-              onPressed: () async {
-                 try {
-                    await ref.read(socialRepositoryProvider).nudgeFriend(userId);
-                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('응원을 보냈어요!')));
-                  } catch (e) {
-                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('이미 오늘 응원을 보냈습니다.')));
-                  }
-              },
-              icon: const Icon(Icons.favorite, size: 18),
-              label: const Text('응원하기'),
+              onPressed: () => context.push('/social/profile/$userId/room?nickname=${user.nickname ?? user.username}'),
+              icon: const Icon(Icons.door_front_door_outlined, size: 18),
+              label: const Text('캐릭터 방문'),
             ),
           ),
           const SizedBox(width: 12),

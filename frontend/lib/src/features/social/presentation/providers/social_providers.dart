@@ -85,6 +85,14 @@ final socialRankingProvider = FutureProvider.autoDispose<List<RankingModel>>((re
   return ref.watch(socialRepositoryProvider).getSocialRanking();
 });
 
+enum FriendsSortType { totalExp, streakDays, badgeCount }
+
+final friendsComparisonSortProvider = StateProvider<FriendsSortType>((ref) => FriendsSortType.totalExp);
+
+final friendsComparisonProvider = FutureProvider.autoDispose<List<ComparisonModel>>((ref) async {
+  return ref.watch(socialRepositoryProvider).getFriendsComparison();
+});
+
 // 친구 목록
 final friendsListProvider = FutureProvider.autoDispose<List<UserModel>>((ref) async {
   return ref.watch(socialRepositoryProvider).getFriends();

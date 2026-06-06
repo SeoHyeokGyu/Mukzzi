@@ -15,6 +15,12 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+var (
+	ErrNotFriend                     = errors.New("친구 관계가 아닙니다.")
+	ErrDailyInteractionLimitExceeded = errors.New("오늘의 상호작용 한도(5회)를 초과했습니다.")
+	ErrAlreadyVisitedToday           = errors.New("오늘 이 친구의 캐릭터 룸은 이미 방문했습니다.")
+)
+
 type RankingEntry struct {
 	UserID        int64   `json:"user_id,string"`
 	Nickname      string  `json:"nickname"`
@@ -45,6 +51,8 @@ type SocialUsecase interface {
 	BlockUser(blockerID, blockedID int64) error
 	UnblockUser(blockerID, blockedID int64) error
 	ReportUser(report *domain.Report) error
+	VisitFriend(visitorID, hostID int64, interactionType domain.InteractionType) (visitorPointEarned int, currentFriendshipScore int, err error)
+	GetFriendsComparison(userID int64) ([]domain.ComparisonEntry, error)
 
 	// Feed
 	GetSocialFeed(userID int64, filter domain.MealListFilter) ([]domain.MealRecord, int64, error)
@@ -448,4 +456,96 @@ func (u *socialUsecase) GetSocialRanking(ctx context.Context) ([]RankingEntry, e
 	}
 
 	return ranking, nil
+}
+
+func (u *socialUsecase) VisitFriend(visitorID, hostID int64, interactionType domain.InteractionType) (int, int, error) {
+	if visitorID == hostID {
+		return 0, 0, errors.New("자신의 캐릭터 룸은 방문할 수 없습니다.")
+	}
+
+	// 1. 친구 여부 검증
+	friendship, err := u.socialRepo.GetFriendship(visitorID, hostID)
+	if err != nil {
+		return 0, 0, err
+	}
+	if friendship == nil || friendship.Status != domain.FriendshipAccepted {
+		return 0, 0, ErrNotFriend
+	}
+
+	now := time.Now()
+
+	// 2. 방문자 일일 누적 한도 검증
+	dailyCount, err := u.socialRepo.GetDailyCharacterVisitCount(visitorID, now)
+	if err != nil {
+		return 0, 0, err
+	}
+	if dailyCount >= 5 {
+		return 0, 0, ErrDailyInteractionLimitExceeded
+	}
+
+	// 3. 일일 1인 중복 검증
+	alreadyVisited, err := u.socialRepo.HasVisitedToday(visitorID, hostID, now)
+	if err != nil {
+		return 0, 0, err
+	}
+	if alreadyVisited {
+		return 0, 0, ErrAlreadyVisitedToday
+	}
+
+	// 4. 트랜잭션 실행 (양측 방울 10개, 우정 점수 1점 증가)
+	visit := &domain.CharacterVisit{
+		VisitorID:       visitorID,
+		HostID:          hostID,
+		InteractionType: interactionType,
+	}
+
+	visitorPointEarned := 10
+	hostPointEarned := 10
+	scoreToIncrement := 1
+
+	err = u.socialRepo.VisitTransaction(visit, visitorPointEarned, hostPointEarned, scoreToIncrement)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	// 우정 점수 최신화를 위해 Friendship 데이터 재조회
+	updatedFriendship, err := u.socialRepo.GetFriendship(visitorID, hostID)
+	currentScore := 0
+	if err == nil && updatedFriendship != nil {
+		currentScore = updatedFriendship.FriendshipScore
+	}
+
+	// 5. 이벤트 전파
+	u.eventBus.Publish(domain.Event{
+		Type:      domain.EventCharacterVisited,
+		UserID:    visitorID,
+		CreatedAt: now,
+		Payload: map[string]interface{}{
+			"host_id":          hostID,
+			"interaction_type": string(interactionType),
+		},
+	})
+
+	return visitorPointEarned, currentScore, nil
+}
+
+func (u *socialUsecase) GetFriendsComparison(userID int64) ([]domain.ComparisonEntry, error) {
+	// 1. 친구 목록 조회
+	friendships, err := u.socialRepo.GetFriends(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. 친구 ID 목록 생성
+	friendIDs := make([]int64, 0, len(friendships))
+	for _, f := range friendships {
+		if f.RequesterID == userID {
+			friendIDs = append(friendIDs, f.ReceiverID)
+		} else {
+			friendIDs = append(friendIDs, f.RequesterID)
+		}
+	}
+
+	// 3. 나와 친구들의 비교 정보 통합 조회
+	return u.socialRepo.GetFriendsComparison(userID, friendIDs)
 }

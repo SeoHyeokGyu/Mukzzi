@@ -470,3 +470,68 @@ func (h *SocialHandler) GetSocialRanking(c *gin.Context) {
 	}
 	Success(c, dto.ToRankingResponses(ranking))
 }
+
+// VisitFriend 캐릭터 룸 방문 상호작용
+// @Summary      캐릭터 룸 방문 상호작용
+// @Description  친구의 캐릭터 룸을 방문하여 먹이주기 또는 응원하기 상호작용을 진행합니다.
+// @Tags         social-interaction
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id       path      int64             true  "대상 사용자 ID"
+// @Param        request  body      dto.VisitRequest  true  "상호작용 정보"
+// @Success      200      {object}  Response
+// @Failure      400      {object}  Response
+// @Failure      401      {object}  Response
+// @Router       /api/users/{id}/visit [post]
+func (h *SocialHandler) VisitFriend(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	hostID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		BadRequest(c, "INVALID_ID", "잘못된 사용자 ID입니다.")
+		return
+	}
+
+	var req dto.VisitRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		BadRequest(c, "INVALID_REQUEST", "잘못된 요청 형식입니다.")
+		return
+	}
+
+	points, score, err := h.socialUsecase.VisitFriend(userID.(int64), hostID, req.InteractionType)
+	if err != nil {
+		if err == usecase.ErrNotFriend || err == usecase.ErrDailyInteractionLimitExceeded || err == usecase.ErrAlreadyVisitedToday {
+			BadRequest(c, "VISIT_FAILED", err.Error())
+			return
+		}
+		InternalError(c, "캐릭터 방문에 실패했습니다.", err.Error())
+		return
+	}
+
+	Success(c, dto.VisitResponse{
+		VisitorPointEarned:     points,
+		CurrentFriendshipScore: score,
+	})
+}
+
+// GetFriendsComparison 친구 비교 데이터 조회
+// @Summary      친구 비교 데이터 조회
+// @Description  나를 포함한 친구들의 누적 경험치, 연속 스트릭, 뱃지 개수 등의 비교 데이터를 가져옵니다.
+// @Tags         social
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200      {object}  Response
+// @Failure      401      {object}  Response
+// @Router       /api/social/friends/comparison [get]
+func (h *SocialHandler) GetFriendsComparison(c *gin.Context) {
+	userID, _ := c.Get("userID")
+
+	entries, err := h.socialUsecase.GetFriendsComparison(userID.(int64))
+	if err != nil {
+		InternalError(c, "친구 비교 데이터 조회에 실패했습니다.", err.Error())
+		return
+	}
+
+	Success(c, entries)
+}

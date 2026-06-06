@@ -56,8 +56,8 @@
 | streak_days | INT | NOT NULL DEFAULT 0 | 연속 기록일 |
 | nutrition_achievement_days | INT | NOT NULL DEFAULT 0 | 영양 밸런스 달성일 누적 수 |
 | last_recorded_at | TIMESTAMPTZ | NULL | 마지막 식사 기록 일시 |
-| equipped_background_id | BIGINT | FK (rewards.id), NULL | 장착 중인 배경 보상 |
-| equipped_accessory_id | BIGINT | FK (rewards.id), NULL | 장착 중인 악세서리 보상 |
+| equipped_background_id | BIGINT | FK (rewards.id), NULL | (Deprecated) 장착 중인 배경 보상 |
+| equipped_accessory_id | BIGINT | FK (rewards.id), NULL | (Deprecated) 장착 중인 악세서리 보상 |
 
 ### 사용자 신체 정보 (user_bodies)
 
@@ -151,6 +151,51 @@ FCM 푸시 알림 발송을 위한 기기 토큰을 관리합니다. 한 사용�
 | read_at | TIMESTAMPTZ | NULL | 읽은 일시 |
 | metadata | JSONB | NULL | 추가 데이터 (이벤트 관련 ID 등) |
 
+### 캐릭터 슬롯 장비 (character_equipment)
+
+사용자의 슬롯별 캐릭터 외형 장비 장착 현황을 관리합니다.
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| character_id | BIGINT | FK (characters.id), INDEX, NOT NULL | 대상 캐릭터 ID |
+| user_id | BIGINT | FK (users.id), INDEX, NOT NULL | 소유 사용자 ID |
+| slot | VARCHAR(20) | NOT NULL | 장착 슬롯 (BACKGROUND, BACK, BODY, HAND, FACE, HEAD, AURA) |
+| reward_id | BIGINT | FK (rewards.id), INDEX, NOT NULL | 장착한 보상 아이템 ID |
+| equipped_at | TIMESTAMPTZ | NOT NULL | 장착 일시 |
+
+### 식사 영양 성분 (nutritions)
+
+식사 기록 한 건당 포함된 구체적인 영양 정보입니다.
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| meal_id | BIGINT | FK (meal_records.id), UNIQUE, NOT NULL | 대상 식사 기록 ID |
+| calories | DOUBLE PRECISION | DEFAULT 0 | 칼로리 (kcal) |
+| carbs | DOUBLE PRECISION | DEFAULT 0 | 탄수화물 (g) |
+| protein | DOUBLE PRECISION | DEFAULT 0 | 단백질 (g) |
+| fat | DOUBLE PRECISION | DEFAULT 0 | 지방 (g) |
+| sodium | DOUBLE PRECISION | DEFAULT 0 | 나트륨 (mg) |
+| fiber | DOUBLE PRECISION | DEFAULT 0 | 식이섬유 (g) |
+| vitamin_score | DOUBLE PRECISION | DEFAULT 0 | 비타민 점수 |
+
+### 일일 섭취 통계 (daily_intakes)
+
+사용자별 하루 동안 섭취한 영양소 합계 데이터입니다.
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| user_id | BIGINT | FK (users.id), UNIQUE INDEX, NOT NULL | 대상 사용자 ID |
+| date | DATE | UNIQUE INDEX, NOT NULL | 섭취 날짜 |
+| total_calories | DOUBLE PRECISION | DEFAULT 0 | 일일 섭취 총 칼로리 |
+| total_carbs | DOUBLE PRECISION | DEFAULT 0 | 일일 섭취 총 탄수화물 |
+| total_protein | DOUBLE PRECISION | DEFAULT 0 | 일일 섭취 총 단백질 |
+| total_fat | DOUBLE PRECISION | DEFAULT 0 | 일일 섭취 총 지방 |
+| total_sodium | DOUBLE PRECISION | DEFAULT 0 | 일일 섭취 총 나트륨 |
+| total_fiber | DOUBLE PRECISION | DEFAULT 0 | 일일 섭취 총 식이섬유 |
+| vitamin_score | DOUBLE PRECISION | DEFAULT 0 | 일일 섭취 총 비타민 점수 |
+| meal_count | INT | DEFAULT 0 | 당일 기록한 식사 횟수 |
+| is_balanced | BOOLEAN | DEFAULT FALSE | 당일 영양 밸런스 달성 여부 |
+
 ---
 
 ## ER 다이어그램
@@ -173,6 +218,9 @@ erDiagram
     users ||--o{ reports : "reporter"
     users ||--o{ reports : "target"
     users ||--o{ notifications : "receives"
+    users ||--o{ character_equipment : "owns"
+    characters ||--o{ character_equipment : "equips"
+    character_equipment }o--|| rewards : "references"
     users ||--o{ user_badges : "earns"
     users ||--o{ user_titles : "earns"
     users ||--o{ user_rewards : "earns"
