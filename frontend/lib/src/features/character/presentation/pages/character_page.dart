@@ -8,6 +8,7 @@ import '../../../../core/widgets/gradient_scaffold.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../../core/widgets/mukzzi_character.dart';
 import '../../../profile/presentation/providers/user_provider.dart';
+import '../../domain/models/reward_model.dart';
 import '../providers/character_provider.dart';
 import '../providers/title_provider.dart';
 
@@ -181,20 +182,44 @@ class CharacterPage extends ConsumerWidget {
                         ),
                     tokens: tokens,
                   ),
-                  Divider(
-                      height: 1, color: tokens.primary.withValues(alpha: 0.08)),
-                  _EquipmentItem(
-                    label: '배경',
-                    value: char?.equippedBackground?.name ?? '기본 배경',
-                    tokens: tokens,
-                  ),
-                  Divider(
-                      height: 1, color: tokens.primary.withValues(alpha: 0.08)),
-                  _EquipmentItem(
-                    label: '악세서리',
-                    value: char?.equippedAccessory?.name ?? '없음',
-                    tokens: tokens,
-                  ),
+                  ...() {
+                    final activeSlots = [
+                      EquipmentSlot.background,
+                      EquipmentSlot.head,
+                      EquipmentSlot.face,
+                      EquipmentSlot.back,
+                      EquipmentSlot.hand,
+                      EquipmentSlot.aura,
+                    ];
+                    final equippedItems = <Widget>[];
+                    for (final slot in activeSlots) {
+                      final item = char?.equipment[slot];
+                      if (item != null) {
+                        equippedItems.add(
+                          Divider(height: 1, color: tokens.primary.withValues(alpha: 0.08)),
+                        );
+                        equippedItems.add(
+                          _EquipmentItem(
+                            label: slot.label,
+                            value: item.name,
+                            tokens: tokens,
+                          ),
+                        );
+                      } else if (slot == EquipmentSlot.background) {
+                        equippedItems.add(
+                          Divider(height: 1, color: tokens.primary.withValues(alpha: 0.08)),
+                        );
+                        equippedItems.add(
+                          _EquipmentItem(
+                            label: slot.label,
+                            value: '기본 배경',
+                            tokens: tokens,
+                          ),
+                        );
+                      }
+                    }
+                    return equippedItems;
+                  }(),
                 ],
               ),
             ),
