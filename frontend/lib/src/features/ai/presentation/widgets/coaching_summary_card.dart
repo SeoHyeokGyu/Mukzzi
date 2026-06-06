@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:mukzzi/src/core/theme/app_theme.dart';
 import 'package:mukzzi/src/core/widgets/bento_card.dart';
 import 'package:mukzzi/src/features/ai/presentation/providers/ai_provider.dart';
+import 'package:mukzzi/src/features/meal_record/presentation/providers/meal_provider.dart';
 
 class CoachingSummaryCard extends ConsumerWidget {
   final String? date; // yyyy-MM-dd
@@ -15,7 +16,34 @@ class CoachingSummaryCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
     final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final coachingAsync = ref.watch(nutritionCoachingProvider(date ?? todayStr));
+    final targetDate = date ?? todayStr;
+    final isToday = targetDate == todayStr;
+
+    Widget bodyWidget;
+
+    if (isToday) {
+      final todayMealsAsync = ref.watch(todayMealsProvider);
+
+      bodyWidget = todayMealsAsync.when(
+        data: (meals) {
+          if (meals.isEmpty) {
+            return _buildNoRecordContent(context, tokens);
+          }
+          final coachingAsync = ref.watch(nutritionCoachingProvider(todayStr));
+          return _buildCoachingContent(context, tokens, coachingAsync, todayStr, ref);
+        },
+        loading: () => const Center(
+          child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: CircularProgressIndicator(),
+          ),
+        ),
+        error: (err, stack) => _buildErrorContent(context, tokens, err.toString(), todayStr, ref),
+      );
+    } else {
+      final coachingAsync = ref.watch(nutritionCoachingProvider(targetDate));
+      bodyWidget = _buildCoachingContent(context, tokens, coachingAsync, targetDate, ref);
+    }
 
     return BentoCard(
       borderRadius: BorderRadius.circular(tokens.rCard),
@@ -42,7 +70,12 @@ class CoachingSummaryCard extends ConsumerWidget {
               ),
               IconButton(
                 icon: const Icon(Icons.refresh, size: 20),
-                onPressed: () => ref.invalidate(nutritionCoachingProvider(date ?? todayStr)),
+                onPressed: () {
+                  if (isToday) {
+                    ref.invalidate(todayMealsProvider);
+                  }
+                  ref.invalidate(nutritionCoachingProvider(targetDate));
+                },
                 visualDensity: VisualDensity.compact,
                 color: tokens.textMuted,
                 tooltip: '다시 코칭받기',
@@ -50,131 +83,189 @@ class CoachingSummaryCard extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
-          coachingAsync.when(
-            data: (data) => Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: tokens.primary, width: 3),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '${data.score}',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: tokens.primary,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        data.summary,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: tokens.textPrimary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                if (data.tips.isNotEmpty) ...[
-                  Text(
-                    '💡 내일을 위한 팁',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: tokens.textSub,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...data.tips.map((tip) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('• ', style: TextStyle(color: tokens.textMuted)),
-                            Expanded(
-                              child: Text(
-                                tip,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: tokens.textMuted,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )),
-                ]
-              ],
-            ),
-            loading: () => const Center(
-              child: Padding(
-                padding: EdgeInsets.all(20.0),
-                child: CircularProgressIndicator(),
-              ),
-            ),
-            error: (err, stack) {
-              final errorMessage = err.toString();
-              final isNoRecord = errorMessage.contains('식사 기록이 없어');
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isNoRecord ? '오늘 식사 기록이 없습니다' : '영양 코칭을 불러올 수 없습니다',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: tokens.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    isNoRecord
-                        ? '식사를 기록하면 먹찌가 하루 영양소 균형과 코칭 피드백을 제공합니다.'
-                        : errorMessage,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: tokens.textMuted,
-                    ),
-                  ),
-                  if (isNoRecord) ...[
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () => context.go('/meal-record'),
-                        icon: const Icon(Icons.restaurant, size: 16),
-                        label: const Text('식사 기록하기'),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: tokens.primary),
-                          foregroundColor: tokens.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              );
-            },
-          ),
+          bodyWidget,
         ],
       ),
+    );
+  }
+
+  Widget _buildNoRecordContent(BuildContext context, AppColorTokens tokens) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '오늘 식사 기록이 없습니다',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: tokens.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '식사를 기록하면 먹찌가 하루 영양소 균형과 코칭 피드백을 제공합니다.',
+          style: TextStyle(
+            fontSize: 12,
+            color: tokens.textMuted,
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => context.go('/meal-record'),
+            icon: const Icon(Icons.restaurant, size: 16),
+            label: const Text('식사 기록하기'),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: tokens.primary),
+              foregroundColor: tokens.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorContent(
+    BuildContext context,
+    AppColorTokens tokens,
+    String errorMessage,
+    String targetDate,
+    WidgetRef ref,
+  ) {
+    final isNoRecord = errorMessage.contains('식사 기록이 없어');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          isNoRecord ? '오늘 식사 기록이 없습니다' : '영양 코칭을 불러올 수 없습니다',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: tokens.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          isNoRecord
+              ? '식사를 기록하면 먹찌가 하루 영양소 균형과 코칭 피드백을 제공합니다.'
+              : errorMessage,
+          style: TextStyle(
+            fontSize: 12,
+            color: tokens.textMuted,
+          ),
+        ),
+        if (isNoRecord) ...[
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => context.go('/meal-record'),
+              icon: const Icon(Icons.restaurant, size: 16),
+              label: const Text('식사 기록하기'),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: tokens.primary),
+                foregroundColor: tokens.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildCoachingContent(
+    BuildContext context,
+    AppColorTokens tokens,
+    AsyncValue<dynamic> coachingAsync,
+    String targetDate,
+    WidgetRef ref,
+  ) {
+    return coachingAsync.when(
+      data: (data) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: tokens.primary, width: 3),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${data.score}',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: tokens.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  data.summary,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (data.tips.isNotEmpty) ...[
+            Text(
+              '💡 내일을 위한 팁',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: tokens.textSub,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...data.tips.map((tip) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('• ', style: TextStyle(color: tokens.textMuted)),
+                      Expanded(
+                        child: Text(
+                          tip,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: tokens.textMuted,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+          ]
+        ],
+      ),
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20.0),
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      error: (err, stack) => _buildErrorContent(context, tokens, err.toString(), targetDate, ref),
     );
   }
 }
