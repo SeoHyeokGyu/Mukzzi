@@ -677,12 +677,22 @@ func (u *userUsecase) SyncRankingToRedis(ctx context.Context) error {
 
 	u.rdb.Del(ctx, RankingWeeklyKey)
 
-	for _, char := range chars {
-		score := float64(char.NutritionAchievementDays)
-		_ = u.rdb.ZAdd(ctx, RankingWeeklyKey, redis.Z{
-			Score:  score,
+	if len(chars) == 0 {
+		return nil
+	}
+
+	zs := make([]redis.Z, len(chars))
+	for i, char := range chars {
+		zs[i] = redis.Z{
+			Score:  float64(char.NutritionAchievementDays),
 			Member: fmt.Sprintf("%d", char.UserID),
-		}).Err()
+		}
+	}
+
+	err := u.rdb.ZAdd(ctx, RankingWeeklyKey, zs...).Err()
+	if err != nil {
+		slog.Error("Redis 랭킹 ZAdd 일괄 추가 실패", slog.Any("error", err))
+		return err
 	}
 	return nil
 }

@@ -3,7 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
-	"fmt"
+	"log/slog"
 	"strconv"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
@@ -181,14 +181,24 @@ func (u *menuUsecaseImpl) SyncMenusToRedis(ctx context.Context) error {
 		return err
 	}
 
-	// 기존 ZSET 삭제 후 재구성 (또는 파이프라인 사용)
 	u.rdb.Del(ctx, menuAutocompleteKey)
 
-	for _, m := range menus {
-		err = u.rdb.ZAdd(ctx, menuAutocompleteKey, redis.Z{Score: 0, Member: m.Name}).Err()
-		if err != nil {
-			fmt.Printf("Redis ZAdd Error: %v\n", err)
+	if len(menus) == 0 {
+		return nil
+	}
+
+	zs := make([]redis.Z, len(menus))
+	for i, m := range menus {
+		zs[i] = redis.Z{
+			Score:  0,
+			Member: m.Name,
 		}
+	}
+
+	err = u.rdb.ZAdd(ctx, menuAutocompleteKey, zs...).Err()
+	if err != nil {
+		slog.Error("Redis ZAdd 메뉴 일괄 추가 실패", slog.Any("error", err))
+		return err
 	}
 	return nil
 }

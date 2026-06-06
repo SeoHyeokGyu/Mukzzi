@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -189,19 +190,23 @@ func SeedRewards(db *gorm.DB) {
 		return
 	}
 
+	var userRewards []domain.UserReward
 	for _, u := range users {
 		for _, acc := range accessories {
-			userReward := domain.UserReward{
+			userRewards = append(userRewards, domain.UserReward{
 				UserID:     u.ID,
 				RewardID:   acc.ID,
 				AchievedAt: time.Now(),
-			}
-			if err := db.Clauses(clause.OnConflict{
-				Columns:   []clause.Column{{Name: "user_id"}, {Name: "reward_id"}},
-				DoNothing: true,
-			}).Create(&userReward).Error; err != nil {
-				slog.Error("액세서리 지급 실패", slog.Int64("user_id", u.ID), slog.String("code", acc.Code), slog.Any("error", err))
-			}
+			})
+		}
+	}
+
+	if len(userRewards) > 0 {
+		if err := db.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "user_id"}, {Name: "reward_id"}},
+			DoNothing: true,
+		}).CreateInBatches(&userRewards, 200).Error; err != nil {
+			slog.Error("액세서리 일괄 지급 실패", slog.Any("error", err))
 		}
 	}
 
@@ -372,42 +377,78 @@ func backfillCharacterEquipment(db *gorm.DB) {
 		return
 	}
 
+	var existingEquipments []domain.CharacterEquipment
+	if err := db.Find(&existingEquipments).Error; err != nil {
+		slog.Error("기존 캐릭터 장비 목록 조회 실패", slog.Any("error", err))
+		return
+	}
+
+	existingMap := make(map[string]int64)
+	for _, eq := range existingEquipments {
+		key := fmt.Sprintf("%d_%s", eq.CharacterID, eq.Slot)
+		existingMap[key] = eq.RewardID
+	}
+
+	var toCreate []domain.CharacterEquipment
+	var toUpdate []domain.CharacterEquipment
+
 	now := time.Now()
 	for _, char := range chars {
 		if char.EquippedAccessoryID != nil {
-			upsertEquipmentSeed(db, char, domain.EquipmentSlotHead, *char.EquippedAccessoryID, now)
+			key := fmt.Sprintf("%d_%s", char.ID, domain.EquipmentSlotHead)
+			rewardID, ok := existingMap[key]
+			if !ok {
+				toCreate = append(toCreate, domain.CharacterEquipment{
+					CharacterID: char.ID,
+					UserID:      char.UserID,
+					Slot:        domain.EquipmentSlotHead,
+					RewardID:    *char.EquippedAccessoryID,
+					EquippedAt:  now,
+				})
+			} else if rewardID != *char.EquippedAccessoryID {
+				toUpdate = append(toUpdate, domain.CharacterEquipment{
+					CharacterID: char.ID,
+					UserID:      char.UserID,
+					Slot:        domain.EquipmentSlotHead,
+					RewardID:    *char.EquippedAccessoryID,
+					EquippedAt:  now,
+				})
+			}
 		}
 		if char.EquippedBackgroundID != nil {
-			upsertEquipmentSeed(db, char, domain.EquipmentSlotBackground, *char.EquippedBackgroundID, now)
+			key := fmt.Sprintf("%d_%s", char.ID, domain.EquipmentSlotBackground)
+			rewardID, ok := existingMap[key]
+			if !ok {
+				toCreate = append(toCreate, domain.CharacterEquipment{
+					CharacterID: char.ID,
+					UserID:      char.UserID,
+					Slot:        domain.EquipmentSlotBackground,
+					RewardID:    *char.EquippedBackgroundID,
+					EquippedAt:  now,
+				})
+			} else if rewardID != *char.EquippedBackgroundID {
+				toUpdate = append(toUpdate, domain.CharacterEquipment{
+					CharacterID: char.ID,
+					UserID:      char.UserID,
+					Slot:        domain.EquipmentSlotBackground,
+					RewardID:    *char.EquippedBackgroundID,
+					EquippedAt:  now,
+				})
+			}
 		}
 	}
-}
 
-func upsertEquipmentSeed(db *gorm.DB, char domain.Character, slot domain.EquipmentSlot, rewardID int64, now time.Time) {
-	var existing domain.CharacterEquipment
-	err := db.Where("character_id = ? AND slot = ?", char.ID, slot).First(&existing).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		equipment := domain.CharacterEquipment{
-			CharacterID: char.ID,
-			UserID:      char.UserID,
-			Slot:        slot,
-			RewardID:    rewardID,
-			EquippedAt:  now,
+	if len(toCreate) > 0 {
+		if err := db.CreateInBatches(&toCreate, 200).Error; err != nil {
+			slog.Error("캐릭터 장비 백필 벌크 생성 실패", slog.Any("error", err))
 		}
-		if err := db.Create(&equipment).Error; err != nil {
-			slog.Error("캐릭터 장비 백필 생성 실패", slog.Int64("character_id", char.ID), slog.String("slot", string(slot)), slog.Any("error", err))
-		}
-		return
 	}
-	if err != nil {
-		slog.Error("캐릭터 장비 백필 조회 실패", slog.Int64("character_id", char.ID), slog.String("slot", string(slot)), slog.Any("error", err))
-		return
-	}
-	if existing.RewardID != rewardID {
-		existing.RewardID = rewardID
-		existing.EquippedAt = now
-		if err := db.Save(&existing).Error; err != nil {
-			slog.Error("캐릭터 장비 백필 갱신 실패", slog.Int64("character_id", char.ID), slog.String("slot", string(slot)), slog.Any("error", err))
+
+	for _, eq := range toUpdate {
+		if err := db.Model(&domain.CharacterEquipment{}).
+			Where("character_id = ? AND slot = ?", eq.CharacterID, eq.Slot).
+			Update("reward_id", eq.RewardID).Error; err != nil {
+			slog.Error("캐릭터 장비 백필 개별 갱신 실패", slog.Int64("character_id", eq.CharacterID), slog.String("slot", string(eq.Slot)), slog.Any("error", err))
 		}
 	}
 }
