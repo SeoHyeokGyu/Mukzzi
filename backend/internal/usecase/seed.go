@@ -259,13 +259,6 @@ func fetchMFDS(ctx context.Context, limit int) []domain.Menu {
 	return allMenus
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 // ─────────────────────────────────────────
 // USDA
 // ─────────────────────────────────────────
@@ -395,11 +388,6 @@ func bulkUpsert(db *gorm.DB, menus []domain.Menu) (inserted, skipped int) {
 				"source":                gorm.Expr("EXCLUDED.source"),
 				"updated_at":            gorm.Expr("NOW()"),
 			}),
-			Where: clause.Where{
-				Exprs: []clause.Expression{
-					gorm.Expr("menus.source != 'USER'"),
-				},
-			},
 		}).CreateInBatches(batch, batchSize)
 
 		if result.Error != nil {
