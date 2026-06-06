@@ -200,15 +200,171 @@ func (u *aiUsecase) GetNutritionCoaching(ctx context.Context, input NutritionCoa
   "tips": ["내일을 위한 팁 1 (20자 이내)", "내일을 위한 팁 2 (20자 이내)"]
 }`, dailyIntake.TotalCalories, dailyIntake.TotalCarbs, dailyIntake.TotalProtein, dailyIntake.TotalFat, dailyIntake.MealCount)
 
-	jsonRes, err := u.geminiClient.GenerateJSON(ctx, prompt)
-	if err != nil {
-		return nil, fmt.Errorf("gemini coaching failed: %w", err)
+	var jsonRes string
+	var coachingErr error
+
+	if u.geminiClient != nil {
+		jsonRes, coachingErr = u.geminiClient.GenerateJSON(ctx, prompt)
+	} else {
+		coachingErr = fmt.Errorf("gemini client is nil")
+	}
+
+	if coachingErr != nil {
+		slog.Warn("Gemini API 호출 실패, 룰 기반 영양 코칭 Fallback 실행", slog.Any("error", coachingErr))
+		return u.generateFallbackCoaching(input.UserID, dailyIntake), nil
 	}
 
 	var output NutritionCoachingOutput
 	if err := json.Unmarshal([]byte(jsonRes), &output); err != nil {
-		return nil, fmt.Errorf("failed to parse AI response: %w", err)
+		slog.Warn("Gemini 응답 파싱 실패, 룰 기반 영양 코칭 Fallback 실행", slog.Any("error", err))
+		return u.generateFallbackCoaching(input.UserID, dailyIntake), nil
 	}
 
 	return &output, nil
+}
+
+func (u *aiUsecase) generateFallbackCoaching(userID int64, intake *domain.DailyIntake) *NutritionCoachingOutput {
+	// 1. 목표 수치 획득 (실패 시 기본값 사용)
+	targetKcal := 2000
+	targetCarbs := 300
+	targetProtein := 60
+	targetFat := 50
+
+	if u.userRepo != nil {
+		if goal, err := u.userRepo.GetNutritionGoal(userID); err == nil && goal != nil {
+			if goal.DailyKcalTarget > 0 {
+				targetKcal = goal.DailyKcalTarget
+			}
+			if goal.DailyCarbsTarget > 0 {
+				targetCarbs = goal.DailyCarbsTarget
+			}
+			if goal.DailyProteinTarget > 0 {
+				targetProtein = goal.DailyProteinTarget
+			}
+			if goal.DailyFatTarget > 0 {
+				targetFat = goal.DailyFatTarget
+			}
+		}
+	}
+
+	// 2. 섭취량 대비 도달도 계산
+	kcalRatio := intake.TotalCalories / float64(targetKcal)
+	carbsRatio := intake.TotalCarbs / float64(targetCarbs)
+	proteinRatio := intake.TotalProtein / float64(targetProtein)
+	fatRatio := intake.TotalFat / float64(targetFat)
+
+	// 점수 계산 (기본 100점에서 시작해서 목표에서 벗어날 때마다 감점)
+	score := 100.0
+
+	// 칼로리 감점 (적절 범위: 80% ~ 110%)
+	if kcalRatio < 0.8 {
+		score -= (0.8 - kcalRatio) * 50
+	} else if kcalRatio > 1.1 {
+		score -= (kcalRatio - 1.1) * 50
+	}
+
+	// 탄수화물 감점 (적절 범위: 70% ~ 120%)
+	if carbsRatio < 0.7 {
+		score -= (0.7 - carbsRatio) * 20
+	} else if carbsRatio > 1.2 {
+		score -= (carbsRatio - 1.2) * 20
+	}
+
+	// 단백질 감점 (적절 범위: 80% ~ 130%)
+	if proteinRatio < 0.8 {
+		score -= (0.8 - proteinRatio) * 30
+	} else if proteinRatio > 1.3 {
+		score -= (proteinRatio - 1.3) * 15
+	}
+
+	// 지방 감점 (적절 범위: 70% ~ 120%)
+	if fatRatio < 0.7 {
+		score -= (0.7 - fatRatio) * 20
+	} else if fatRatio > 1.2 {
+		score -= (fatRatio - 1.2) * 30
+	}
+
+	if score < 10 {
+		score = 10
+	}
+	if score > 100 {
+		score = 100
+	}
+
+	// 평가 요약 및 장/단점 생성
+	var summary string
+	var strengths []string
+	var improvements []string
+	var tips []string
+
+	// 칼로리 기준 요약
+	if kcalRatio >= 0.8 && kcalRatio <= 1.1 {
+		summary = "오늘 칼로리 섭취량이 목표 대비 아주 적절합니다!"
+		strengths = append(strengths, "목표 칼로리 준수")
+	} else if kcalRatio < 0.8 {
+		summary = "목표 칼로리보다 적게 드셨네요. 좀 더 챙겨 드세요."
+		improvements = append(improvements, "칼로리 부족")
+		tips = append(tips, "규칙적으로 세 끼 챙기기")
+	} else {
+		summary = "목표 칼로리를 초과했습니다. 조절이 필요해요."
+		improvements = append(improvements, "칼로리 과다")
+		tips = append(tips, "간식이나 음료 줄이기")
+	}
+
+	// 탄수화물
+	if carbsRatio >= 0.7 && carbsRatio <= 1.2 {
+		strengths = append(strengths, "탄수화물 적정 섭취")
+	} else if carbsRatio < 0.7 {
+		improvements = append(improvements, "탄수화물 부족")
+		tips = append(tips, "바나나, 고구마 간식 활용")
+	} else {
+		improvements = append(improvements, "탄수화물 과다")
+		tips = append(tips, "정제 탄수화물 줄이기")
+	}
+
+	// 단백질
+	if proteinRatio >= 0.8 && proteinRatio <= 1.3 {
+		strengths = append(strengths, "충분한 단백질 섭취")
+	} else if proteinRatio < 0.8 {
+		improvements = append(improvements, "단백질 부족")
+		tips = append(tips, "닭가슴살, 계란 추가하기")
+	} else {
+		strengths = append(strengths, "단백질 풍부하게 섭취")
+	}
+
+	// 지방
+	if fatRatio >= 0.7 && fatRatio <= 1.2 {
+		// pass
+	} else if fatRatio < 0.7 {
+		improvements = append(improvements, "지방 부족")
+		tips = append(tips, "견과류, 올리브유 섭취")
+	} else {
+		improvements = append(improvements, "지방 과다")
+		tips = append(tips, "튀긴 음식 줄이기")
+	}
+
+	// 팁이 부족한 경우 기본 팁 제공
+	if len(tips) == 0 {
+		tips = append(tips, "수분 섭취를 충분히 해주세요")
+		tips = append(tips, "내일도 가볍게 산책해보세요")
+	}
+
+	// 강점과 약점 개수 제한
+	if len(strengths) > 2 {
+		strengths = strengths[:2]
+	}
+	if len(improvements) > 2 {
+		improvements = improvements[:2]
+	}
+	if len(tips) > 2 {
+		tips = tips[:2]
+	}
+
+	return &NutritionCoachingOutput{
+		Summary:      summary,
+		Score:        int(score),
+		Strengths:    strengths,
+		Improvements: improvements,
+		Tips:         tips,
+	}
 }
