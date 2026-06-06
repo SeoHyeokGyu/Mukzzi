@@ -166,6 +166,7 @@ func (u *seedUsecase) SyncMenusToRedis(ctx context.Context) error {
 // ─────────────────────────────────────────
 
 // 공공데이터포털 식품영양성분DB 응답 구조
+// 공공데이터포털 식품영양성분DB 응답 구조
 type mfdsResponse struct {
 	Header struct {
 		ResultCode string `json:"resultCode"`
@@ -257,13 +258,6 @@ func fetchMFDS(ctx context.Context, limit int) []domain.Menu {
 		time.Sleep(300 * time.Millisecond)
 	}
 	return allMenus
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 // ─────────────────────────────────────────
@@ -395,11 +389,6 @@ func bulkUpsert(db *gorm.DB, menus []domain.Menu) (inserted, skipped int) {
 				"source":                gorm.Expr("EXCLUDED.source"),
 				"updated_at":            gorm.Expr("NOW()"),
 			}),
-			Where: clause.Where{
-				Exprs: []clause.Expression{
-					gorm.Expr("menus.source != 'USER'"),
-				},
-			},
 		}).CreateInBatches(batch, batchSize)
 
 		if result.Error != nil {
