@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	_ "github.com/SeoHyeokGyu/Mukzzi/backend/docs"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/config"
@@ -36,14 +37,30 @@ func main() {
 	config.InitLogger()
 
 	// DB 초기화
+	start := time.Now()
 	db := config.InitDB()
+	slog.Info("DB 초기화 완료", slog.Duration("elapsed", time.Since(start)))
+
+	start = time.Now()
 	config.SeedTitles(db)
+	slog.Info("칭호 시드 완료", slog.Duration("elapsed", time.Since(start)))
+
+	start = time.Now()
 	config.SeedBadges(db)
+	slog.Info("뱃지 시드 완료", slog.Duration("elapsed", time.Since(start)))
+
+	start = time.Now()
 	config.SeedQuests(db)
+	slog.Info("퀘스트 시드 완료", slog.Duration("elapsed", time.Since(start)))
+
+	start = time.Now()
 	config.SeedRewards(db)
+	slog.Info("보상 시드 완료", slog.Duration("elapsed", time.Since(start)))
 
 	// Redis 초기화
+	start = time.Now()
 	rdb := config.InitRedis()
+	slog.Info("Redis 초기화 완료", slog.Duration("elapsed", time.Since(start)))
 
 	// 포트 설정
 	port := os.Getenv("SERVER_PORT")
@@ -138,13 +155,19 @@ func main() {
 	preferenceHandler := handler.NewPreferenceHandler(preferenceUsecase)
 
 	// 메뉴 Redis 동기화
+	start = time.Now()
 	if err := menuUsecase.SyncMenusToRedis(context.Background()); err != nil {
 		slog.Error("메뉴 Redis 동기화 실패", slog.Any("error", err))
+	} else {
+		slog.Info("메뉴 Redis 동기화 완료", slog.Duration("elapsed", time.Since(start)))
 	}
 
 	// 랭킹 Redis 동기화
+	start = time.Now()
 	if err := userUsecase.SyncRankingToRedis(context.Background()); err != nil {
 		slog.Error("랭킹 Redis 동기화 실패", slog.Any("error", err))
+	} else {
+		slog.Info("랭킹 Redis 동기화 완료", slog.Duration("elapsed", time.Since(start)))
 	}
 
 	// Social 도메인
