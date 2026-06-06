@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="100%" height="100%">
+  <defs>
+    <linearGradient id="hatPuffGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="85%" stop-color="#f2f4f7"/>
+      <stop offset="100%" stop-color="#e1e5eb"/>
+    </linearGradient>
+    <linearGradient id="hatBandGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e6e9ee"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M410,240 C350,210 340,110 420,95 C440,60 520,50 550,95 C580,50 660,60 680,105 C740,120 730,220 670,240 Z" fill="url(#hatPuffGrad)" />
+
+  <path d="M465,115 Q500,165 470,240" stroke="#d2d7e0" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M545,100 Q545,155 545,240" stroke="#d2d7e0" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M615,115 Q585,165 615,240" stroke="#d2d7e0" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+  <path d="M400,230 Q500,245 600,230 L605,265 Q500,280 395,265 Z" fill="url(#hatBandGrad)" filter="drop-shadow(0px 4px 3px rgba(0,0,0,0.06))"/>
+</svg>
