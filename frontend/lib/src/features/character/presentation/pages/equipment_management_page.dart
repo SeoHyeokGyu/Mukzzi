@@ -170,9 +170,6 @@ class _EquipmentManagementPageState
 
   void _invalidateCharacters() {
     if (!mounted) return;
-    setState(() {
-      _tempCharacter = null;
-    });
     ref.invalidate(characterProvider);
     ref.invalidate(testCharacterProvider);
   }
@@ -182,6 +179,39 @@ class _EquipmentManagementPageState
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
     final currentUser = ref.watch(userProvider).user;
     final isAdmin = kDebugMode || currentUser?.username == 'admin';
+
+    if (isAdmin) {
+      ref.listen<AsyncValue<CharacterModel?>>(
+        testCharacterProvider,
+        (previous, next) {
+          next.whenOrNull(
+            data: (character) {
+              if (character != null && mounted) {
+                setState(() {
+                  _tempCharacter = character;
+                });
+              }
+            },
+          );
+        },
+      );
+    } else {
+      ref.listen<AsyncValue<CharacterModel>>(
+        characterProvider,
+        (previous, next) {
+          next.whenOrNull(
+            data: (character) {
+              if (mounted) {
+                setState(() {
+                  _tempCharacter = character;
+                });
+              }
+            },
+          );
+        },
+      );
+    }
+
     final AsyncValue<CharacterModel?> characterAsync = isAdmin
         ? ref.watch(testCharacterProvider)
         : ref
@@ -262,106 +292,114 @@ class _EquipmentManagementPageState
     AsyncValue<List<RewardModel>> rewardsAsync,
     AppColorTokens tokens,
   ) {
-    return characterAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => CollectionErrorState(onRetry: _invalidateCharacters),
-      data: (character) {
-        if (character == null) {
-          return const CollectionEmptyState(
-            icon: Icons.person_off_outlined,
-            title: '캐릭터를 불러오지 못했어요',
-            subtitle: '캐릭터가 생성된 뒤 장착을 관리할 수 있어요',
-          );
-        }
-
-        if (_tempCharacter == null) {
-          _tempCharacter = character;
-        }
-
-        return rewardsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => CollectionErrorState(
-            onRetry: () => ref.invalidate(rewardListProvider),
-          ),
-          data: (rewards) {
-            final candidates = rewards.where((reward) {
-              final slot = reward.renderConfig?.slot;
-              if (slot == null) return false;
-
-              // 획득 여부 필터
-              if (_showAcquiredOnly && !reward.acquired) return false;
-
-              return _selectedSlot == null || slot == _selectedSlot;
-            }).toList();
-
-            return Column(
-              children: [
-                _CharacterPreview(character: _tempCharacter!, tokens: tokens),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      ChoiceChip(
-                        label: const Text('획득한 아이템만'),
-                        selected: _showAcquiredOnly,
-                        onSelected: (val) => setState(() => _showAcquiredOnly = val),
-                      ),
-                      // 최신순 정렬 버튼 등의 Placeholder 혹은 단순 텍스트
-                      Text('최신순', style: TextStyle(color: tokens.textMuted, fontSize: 12)),
-                    ],
-                  ),
-                ),
-                _SlotSelector(
-                  selectedSlot: _selectedSlot,
-                  equipment: _tempCharacter!.equipment,
-                  tokens: tokens,
-                  scrollController: _slotScrollController,
-                  onSelected: (slot) => setState(() => _selectedSlot = slot),
-                ),
-                Expanded(
-                  child: candidates.isEmpty
-                      ? const CollectionEmptyState(
-                          icon: Icons.inventory_2_outlined,
-                          title: '장착할 수 있는 아이템이 없어요',
-                          subtitle: '획득한 장착 아이템이 여기에 표시돼요',
-                        )
-                      : Center(
-                          child: SizedBox(
-                            width: 480,
-                            child: GridView.builder(
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 10,
-                                mainAxisSpacing: 10,
-                                childAspectRatio: 0.78,
-                              ),
-                              itemCount: candidates.length,
-                              itemBuilder: (context, index) {
-                                final reward = candidates[index];
-                                final slot = reward.renderConfig!.slot;
-                                final isEquipped =
-                                    _tempCharacter!.equipment[slot]?.id == reward.id;
-                                return _EquipmentRewardCard(
-                                  reward: reward,
-                                  slot: slot,
-                                  isEquipped: isEquipped,
-                                  isSubmitting: _isSubmitting,
-                                  tokens: tokens,
-                                  onTap: () => _toggleEquipment(
-                                    reward: reward,
-                                    isEquipped: isEquipped,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                ),
-              ],
+    final character = _tempCharacter;
+    if (character == null) {
+      return characterAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, __) => CollectionErrorState(onRetry: _invalidateCharacters),
+        data: (char) {
+          if (char == null) {
+            return const CollectionEmptyState(
+              icon: Icons.person_off_outlined,
+              title: '캐릭터를 불러오지 못했어요',
+              subtitle: '캐릭터가 생성된 뒤 장착을 관리할 수 있어요',
             );
-          },
+          }
+          _tempCharacter = char;
+          return _buildItemContent(char, rewardsAsync, tokens);
+        },
+      );
+    }
+
+    return _buildItemContent(character, rewardsAsync, tokens);
+  }
+
+  Widget _buildItemContent(
+    CharacterModel character,
+    AsyncValue<List<RewardModel>> rewardsAsync,
+    AppColorTokens tokens,
+  ) {
+    return rewardsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => CollectionErrorState(
+        onRetry: () => ref.invalidate(rewardListProvider),
+      ),
+      data: (rewards) {
+        final candidates = rewards.where((reward) {
+          final slot = reward.renderConfig?.slot;
+          if (slot == null) return false;
+
+          // 획득 여부 필터
+          if (_showAcquiredOnly && !reward.acquired) return false;
+
+          return _selectedSlot == null || slot == _selectedSlot;
+        }).toList();
+
+        return Column(
+          children: [
+            _CharacterPreview(character: character, tokens: tokens),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ChoiceChip(
+                    label: const Text('획득한 아이템만'),
+                    selected: _showAcquiredOnly,
+                    onSelected: (val) => setState(() => _showAcquiredOnly = val),
+                  ),
+                  Text('최신순', style: TextStyle(color: tokens.textMuted, fontSize: 12)),
+                ],
+              ),
+            ),
+            _SlotSelector(
+              selectedSlot: _selectedSlot,
+              equipment: character.equipment,
+              tokens: tokens,
+              scrollController: _slotScrollController,
+              onSelected: (slot) => setState(() => _selectedSlot = slot),
+            ),
+            Expanded(
+              child: candidates.isEmpty
+                  ? const CollectionEmptyState(
+                      icon: Icons.inventory_2_outlined,
+                      title: '장착할 수 있는 아이템이 없어요',
+                      subtitle: '획득한 장착 아이템이 여기에 표시돼요',
+                    )
+                  : Center(
+                      child: SizedBox(
+                        width: 480,
+                        child: GridView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
+                            childAspectRatio: 1.22,
+                          ),
+                          itemCount: candidates.length,
+                          itemBuilder: (context, index) {
+                            final reward = candidates[index];
+                            final slot = reward.renderConfig!.slot;
+                            final isEquipped =
+                                character.equipment[slot]?.id == reward.id;
+                            return _EquipmentRewardCard(
+                              reward: reward,
+                              slot: slot,
+                              isEquipped: isEquipped,
+                              isSubmitting: _isSubmitting,
+                              tokens: tokens,
+                              onTap: () => _toggleEquipment(
+                                reward: reward,
+                                isEquipped: isEquipped,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+            ),
+          ],
         );
       },
     );
@@ -379,14 +417,19 @@ class _CharacterPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (MediaQuery.of(context).size.height < 650) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    if (screenHeight < 450) {
       return const SizedBox.shrink();
     }
 
+    final double charSize = screenHeight < 680 ? 90 : 130;
+    final double verticalPadding = screenHeight < 680 ? 6 : 8;
+    final double spacing = screenHeight < 680 ? 4 : 6;
+
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      margin: const EdgeInsets.fromLTRB(16, 6, 16, 4),
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: verticalPadding),
       decoration: BoxDecoration(
         gradient: tokens.cardHeroGrad,
         borderRadius: BorderRadius.circular(tokens.rHero),
@@ -396,15 +439,15 @@ class _CharacterPreview extends StatelessWidget {
           Text(
             character.name,
             style: TextStyle(
-              fontSize: 20,
+              fontSize: screenHeight < 680 ? 15 : 18,
               fontWeight: FontWeight.w700,
               color: tokens.heroText,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: spacing),
           MukzziCharacter(
             state: character.state,
-            size: 180,
+            size: charSize,
             showAccessory: character.equippedAccessory != null,
             equippedAccessory: character.equippedAccessory?.assetUrl,
             equipment: character.equipment,
@@ -433,7 +476,7 @@ class _SlotSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 48,
+      height: 40,
       child: ShaderMask(
         shaderCallback: (Rect bounds) {
           return const LinearGradient(
@@ -582,7 +625,7 @@ class _EquipmentRewardCard extends StatelessWidget {
               },
               borderRadius: BorderRadius.circular(tokens.rItem),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 14.0),
+                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
