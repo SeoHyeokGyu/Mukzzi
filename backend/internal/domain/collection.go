@@ -47,7 +47,7 @@ func (Mastery) TableName() string { return "masteries" }
 // Title 칭호 정의
 type Title struct {
 	BaseDomain
-	Code        string `gorm:"uniqueIndex:titles_code_key;not null;type:varchar(50)"`
+	Code        string `gorm:"uniqueIndex;not null;type:varchar(50)"`
 	Name        string `gorm:"not null;type:varchar(50)"`
 	Description string `gorm:"type:text"`
 }
