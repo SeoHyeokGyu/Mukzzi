@@ -140,7 +140,7 @@ class _SeedStatusCard extends ConsumerWidget {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   seedStatus.error!,
-                  style: TextStyle(fontSize: 12, color: Colors.red),
+                  style: const TextStyle(fontSize: 12, color: Colors.red),
                 ),
               ),
           ],
@@ -472,7 +472,7 @@ class _ErrorCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
-          Icon(Icons.error_outline, color: Colors.red, size: 20),
+          const Icon(Icons.error_outline, color: Colors.red, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
