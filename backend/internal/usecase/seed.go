@@ -166,7 +166,6 @@ func (u *seedUsecase) SyncMenusToRedis(ctx context.Context) error {
 // ─────────────────────────────────────────
 
 // 공공데이터포털 식품영양성분DB 응답 구조
-// 공공데이터포털 식품영양성분DB 응답 구조
 type mfdsResponse struct {
 	Header struct {
 		ResultCode string `json:"resultCode"`
