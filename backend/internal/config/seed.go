@@ -332,6 +332,36 @@ func defaultRewards() []domain.Reward {
 				ZIndex:   25,
 			},
 		},
+		{
+			RewardType:  domain.RewardAccessory,
+			Code:        "KITCHEN_BACKGROUND",
+			Name:        "주방 배경",
+			Description: "먹찌가 요리하는 아늑한 주방 배경입니다.",
+			AssetURL:    "background_kitchen",
+			RenderConfig: &domain.RewardRenderConfig{
+				Slot:     domain.EquipmentSlotBackground,
+				OffsetX:  0,
+				OffsetY:  0,
+				Scale:    1.0,
+				Rotation: 0,
+				ZIndex:   -20,
+			},
+		},
+		{
+			RewardType:  domain.RewardAccessory,
+			Code:        "WOODEN_SPOON_ACCESSORY",
+			Name:        "나무 숟가락",
+			Description: "먹찌가 손에 쥐는 친환경 나무 숟가락입니다.",
+			AssetURL:    "wooden_spoon",
+			RenderConfig: &domain.RewardRenderConfig{
+				Slot:     domain.EquipmentSlotHand,
+				OffsetX:  0,
+				OffsetY:  0,
+				Scale:    1.0,
+				Rotation: 0,
+				ZIndex:   25,
+			},
+		},
 	}
 }
 
