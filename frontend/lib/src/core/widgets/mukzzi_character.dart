@@ -185,11 +185,6 @@ class _SvgLayeredCharacter extends StatefulWidget {
 
 class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
     with SingleTickerProviderStateMixin {
-  static const _requiredLayers = ['body'];
-  static const _optionalLayers = ['accessory'];
-
-  List<String> _visibleLayers = _requiredLayers;
-
   late final AnimationController _ctrl;
   late Animation<double> _anim;
 
@@ -199,7 +194,7 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
     _ctrl = AnimationController(vsync: this, duration: _duration);
     _setupAnimation();
     _startRepeat();
-    unawaited(_resolveOptionalLayers());
+    unawaited(_resolveStateKey());
   }
 
   @override
@@ -209,8 +204,7 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
         old.showAccessory != widget.showAccessory ||
         old.equippedAccessory != widget.equippedAccessory ||
         old.equipment != widget.equipment) {
-      setState(() => _visibleLayers = _requiredLayers);
-      unawaited(_resolveOptionalLayers());
+      unawaited(_resolveStateKey());
     }
     if (old.state != widget.state) {
       _ctrl.duration = _duration;
@@ -295,25 +289,14 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
     }
   }
 
-  Future<void> _resolveOptionalLayers() async {
+  Future<void> _resolveStateKey() async {
     final preferred = widget.state.key;
     final bodyExists = await _assetExists(_buildPath('body', preferred));
     final stateKey = bodyExists ? preferred : _fallbackStateKey;
 
-    final available = <String>[];
-    for (final layer in _optionalLayers) {
-      if (layer == 'accessory' &&
-          (!widget.showAccessory || _accessoryAssetName().isEmpty)) {
-        continue;
-      }
-      if (await _assetExists(_buildPath(layer, stateKey))) {
-        available.add(layer);
-      }
-    }
     if (mounted) {
       setState(() {
         _resolvedStateKey = stateKey;
-        _visibleLayers = [..._requiredLayers, ...available];
       });
     }
   }
