@@ -302,6 +302,36 @@ func defaultRewards() []domain.Reward {
 				ZIndex:   -10,
 			},
 		},
+		{
+			RewardType:  domain.RewardAccessory,
+			Code:        "COOK_HAT_ACCESSORY",
+			Name:        "요리사 모자",
+			Description: "먹찌가 착용하는 멋진 요리사 모자입니다.",
+			AssetURL:    "cook_hat",
+			RenderConfig: &domain.RewardRenderConfig{
+				Slot:     domain.EquipmentSlotHead,
+				OffsetX:  0,
+				OffsetY:  0,
+				Scale:    1.0,
+				Rotation: 0,
+				ZIndex:   30,
+			},
+		},
+		{
+			RewardType:  domain.RewardAccessory,
+			Code:        "DONUT_ACCESSORY",
+			Name:        "맛있는 도넛",
+			Description: "먹찌가 손에 들고 먹는 달콤한 핑크 도넛입니다.",
+			AssetURL:    "donut",
+			RenderConfig: &domain.RewardRenderConfig{
+				Slot:     domain.EquipmentSlotHand,
+				OffsetX:  0,
+				OffsetY:  0,
+				Scale:    1.0,
+				Rotation: 0,
+				ZIndex:   25,
+			},
+		},
 	}
 }
 

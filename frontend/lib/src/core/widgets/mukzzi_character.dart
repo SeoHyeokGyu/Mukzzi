@@ -110,6 +110,8 @@ class MukzziCharacter extends StatelessWidget {
     'crown',
     'glasses',
     'scarf',
+    'cook_hat',
+    'donut',
   };
 
   final CharacterState state;
@@ -182,7 +184,7 @@ class _SvgLayeredCharacter extends StatefulWidget {
 class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
     with SingleTickerProviderStateMixin {
   static const _requiredLayers = ['body'];
-  static const _optionalLayers = ['face', 'accessory'];
+  static const _optionalLayers = ['accessory'];
 
   List<String> _visibleLayers = _requiredLayers;
 
@@ -298,7 +300,8 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
 
     final available = <String>[];
     for (final layer in _optionalLayers) {
-      if (layer == 'accessory' && !widget.showAccessory) {
+      if (layer == 'accessory' &&
+          (!widget.showAccessory || _accessoryAssetName().isEmpty)) {
         continue;
       }
       if (await _assetExists(_buildPath(layer, stateKey))) {
@@ -316,7 +319,6 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
   @override
   Widget build(BuildContext context) {
     final bodyPath = _path('body');
-    final facePath = _visibleLayers.contains('face') ? _path('face') : null;
     final equipmentLayers = _equipmentLayers();
     final specs = <_CharacterLayerSpec>[
       for (final item in equipmentLayers)
@@ -326,7 +328,6 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
       for (final item in equipmentLayers)
         if ((item.renderConfig?.zIndex ?? 30) >= 0)
           _CharacterLayerSpec.equipment(item),
-      if (facePath != null) _CharacterLayerSpec.asset(facePath, 50),
     ]..sort((a, b) => a.zIndex.compareTo(b.zIndex));
 
     final svgStack = SizedBox(

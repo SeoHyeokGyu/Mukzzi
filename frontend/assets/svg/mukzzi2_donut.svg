@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="100%" height="100%">
+  <defs>
+    <linearGradient id="donutBreadGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fcdcb1"/>
+      <stop offset="70%" stop-color="#e3a059"/>
+      <stop offset="100%" stop-color="#b8732a"/>
+    </linearGradient>
+    <linearGradient id="frostingGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ff9ebb"/>
+      <stop offset="100%" stop-color="#ff5285"/>
+    </linearGradient>
+    <filter id="donutShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#donutShadow)">
+    <circle cx="340" cy="635" r="42" fill="none" stroke="url(#donutBreadGrad)" stroke-width="46" />
+    <circle cx="340" cy="635" r="64" fill="none" stroke="#a3631c" stroke-width="1.5" opacity="0.25"/>
+
+    <circle cx="340" cy="635" r="40" fill="none" stroke="url(#frostingGrad)" stroke-width="34" />
+
+    <circle cx="310" cy="615" r="16" fill="url(#frostingGrad)"/>
+    <circle cx="370" cy="620" r="15" fill="url(#frostingGrad)"/>
+    <circle cx="365" cy="660" r="17" fill="url(#frostingGrad)"/>
+    <circle cx="315" cy="655" r="15" fill="url(#frostingGrad)"/>
+    <circle cx="340" cy="635" r="23" fill="none" stroke="url(#frostingGrad)" stroke-width="4"/>
+
+    <rect x="315" y="610" width="12" height="5" rx="2.5" fill="#ffffff" transform="rotate(15, 321, 612.5)" />
+    <rect x="355" y="615" width="12" height="5" rx="2.5" fill="#ffffff" transform="rotate(-30, 361, 617.5)" />
+    <rect x="335" y="660" width="12" height="5" rx="2.5" fill="#ffffff" transform="rotate(45, 341, 662.5)" />
+
+    <rect x="305" y="635" width="12" height="5" rx="2.5" fill="#fff37a" transform="rotate(70, 311, 637.5)" />
+    <rect x="365" y="640" width="12" height="5" rx="2.5" fill="#fff37a" transform="rotate(-15, 371, 642.5)" />
+
+    <rect x="325" y="600" width="12" height="5" rx="2.5" fill="#a6f1ff" transform="rotate(-45, 331, 602.5)" />
+    <rect x="320" y="650" width="12" height="5" rx="2.5" fill="#a6f1ff" transform="rotate(20, 326, 652.5)" />
+  </g>
+</svg>
