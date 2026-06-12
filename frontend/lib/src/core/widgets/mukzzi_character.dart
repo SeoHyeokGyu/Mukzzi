@@ -412,13 +412,14 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
       fit: BoxFit.contain,
     );
 
-    // 중간 강도 가장자리 페이드: 중심 ~60%는 솔리드, 가장자리로 갈수록 투명
+    // 중간 강도 가장자리 페이드: 중심 ~34%는 솔리드, 변 중앙(0.5×변)에서 완전 투명.
+    // radius 0.5 = 변 중앙에서 alpha 0 도달 — 사각 경계가 남지 않는 최대 radius.
     if (widget.backgroundEdgeFade && config.slot == EquipmentSlot.background) {
       layer = ShaderMask(
         shaderCallback: (bounds) => const RadialGradient(
-          radius: 0.75,
+          radius: 0.5,
           colors: [Colors.black, Colors.black, Colors.transparent],
-          stops: [0.0, 0.6, 1.0],
+          stops: [0.0, 0.68, 1.0],
         ).createShader(bounds),
         blendMode: BlendMode.dstIn,
         child: layer,
