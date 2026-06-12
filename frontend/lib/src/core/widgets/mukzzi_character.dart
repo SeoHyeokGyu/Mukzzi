@@ -121,6 +121,7 @@ class MukzziCharacter extends StatelessWidget {
   final bool showAccessory;
   final String? equippedAccessory;
   final Map<EquipmentSlot, RewardModel> equipment;
+  final bool backgroundEdgeFade;
 
   const MukzziCharacter({
     super.key,
@@ -129,6 +130,7 @@ class MukzziCharacter extends StatelessWidget {
     this.showAccessory = false,
     this.equippedAccessory,
     this.equipment = const {},
+    this.backgroundEdgeFade = false,
   }) : assert(size >= 60,
             'MukzziCharacter: size < 60 renders detail-loss. Use at least 80 for best results.');
 
@@ -160,6 +162,7 @@ class MukzziCharacter extends StatelessWidget {
       showAccessory: showAccessory,
       equippedAccessory: equippedAccessory,
       equipment: equipment,
+      backgroundEdgeFade: backgroundEdgeFade,
     );
   }
 }
@@ -170,6 +173,7 @@ class _SvgLayeredCharacter extends StatefulWidget {
   final bool showAccessory;
   final String? equippedAccessory;
   final Map<EquipmentSlot, RewardModel> equipment;
+  final bool backgroundEdgeFade;
 
   const _SvgLayeredCharacter({
     required this.state,
@@ -177,6 +181,7 @@ class _SvgLayeredCharacter extends StatefulWidget {
     required this.showAccessory,
     this.equippedAccessory,
     required this.equipment,
+    required this.backgroundEdgeFade,
   });
 
   @override
@@ -399,21 +404,34 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
     final path = 'assets/svg/mukzzi2_${reward.assetUrl}.svg';
     final layerSize = widget.size * config.scale;
 
+    Widget layer = SvgPicture.asset(
+      path,
+      key: ValueKey(path),
+      width: layerSize,
+      height: layerSize,
+      fit: BoxFit.contain,
+    );
+
+    // 중간 강도 가장자리 페이드: 중심 ~60%는 솔리드, 가장자리로 갈수록 투명
+    if (widget.backgroundEdgeFade && config.slot == EquipmentSlot.background) {
+      layer = ShaderMask(
+        shaderCallback: (bounds) => const RadialGradient(
+          radius: 0.75,
+          colors: [Colors.black, Colors.black, Colors.transparent],
+          stops: [0.0, 0.6, 1.0],
+        ).createShader(bounds),
+        blendMode: BlendMode.dstIn,
+        child: layer,
+      );
+    }
+
     return Positioned.fill(
       child: Transform.translate(
         offset:
             Offset(widget.size * config.offsetX, widget.size * config.offsetY),
         child: Transform.rotate(
           angle: config.rotation * math.pi / 180,
-          child: Center(
-            child: SvgPicture.asset(
-              path,
-              key: ValueKey(path),
-              width: layerSize,
-              height: layerSize,
-              fit: BoxFit.contain,
-            ),
-          ),
+          child: Center(child: layer),
         ),
       ),
     );
