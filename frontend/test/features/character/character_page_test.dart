@@ -70,6 +70,9 @@ CharacterModel _character() {
   );
 }
 
+// 주의: flutter test에서는 kDebugMode=true → isAdmin 경로로 testCharacterProvider를 본다.
+// TestCharacterNotifier가 내부에서 characterProvider에 위임하므로 characterProvider
+// override만으로 동작한다. 위임이 사라지면 이 테스트는 불투명하게 실패한다.
 Widget _wrap(_FakeCharacterRepository characterRepository) {
   final userRepository = _FakeUserRepository();
 
@@ -112,9 +115,14 @@ void main() {
       expect(character.size, 180.0);
       expect(character.backgroundEdgeFade, isTrue);
 
-      // 히어로 카드 제거 — 남은 BentoCard는 섹션 카드 3개뿐
-      // (영양 달성 / 장착 중 / 도감)
-      expect(find.byType(BentoCard), findsNWidgets(3));
+      // 히어로 카드 제거 — 캐릭터가 BentoCard 안에 있지 않음
+      expect(
+        find.ancestor(
+          of: find.byType(MukzziCharacter),
+          matching: find.byType(BentoCard),
+        ),
+        findsNothing,
+      );
     });
 
     testWidgets('넓은 화면에서는 캐릭터 크기가 200px 상한으로 고정된다', (tester) async {

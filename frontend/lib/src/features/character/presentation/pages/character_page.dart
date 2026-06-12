@@ -15,6 +15,11 @@ import '../providers/title_provider.dart';
 class CharacterPage extends ConsumerWidget {
   const CharacterPage({super.key});
 
+  // 화면폭 대비 캐릭터 크기 비율. clamp와 함께 333~444px 폭 구간에서만 비례 동작.
+  static const double _widthRatio = 0.45;
+  static const double _minCharSize = 150;
+  static const double _maxCharSize = 200;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
@@ -73,8 +78,8 @@ class CharacterPage extends ConsumerWidget {
             Center(
               child: MukzziCharacter(
                 state: state,
-                size: (MediaQuery.of(context).size.width * 0.45)
-                    .clamp(150.0, 200.0)
+                size: (MediaQuery.sizeOf(context).width * _widthRatio)
+                    .clamp(_minCharSize, _maxCharSize)
                     .toDouble(),
                 showAccessory: char?.equippedAccessory != null,
                 equippedAccessory: char?.equippedAccessory?.assetUrl,
