@@ -15,6 +15,11 @@ import '../providers/title_provider.dart';
 class CharacterPage extends ConsumerWidget {
   const CharacterPage({super.key});
 
+  // 화면폭 대비 캐릭터 크기 비율. clamp와 함께 333~444px 폭 구간에서만 비례 동작.
+  static const double _widthRatio = 0.45;
+  static const double _minCharSize = 150;
+  static const double _maxCharSize = 200;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
@@ -61,54 +66,50 @@ class CharacterPage extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 12),
-            // 캐릭터 히어로 카드
-            BentoCard(
-              showPaperTexture: true,
-              borderRadius: BorderRadius.circular(tokens.rHero),
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _nutritionBadge('$nutritionDays일', tokens),
-                      _statePill(state, tokens),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  MukzziCharacter(
-                    state: state,
-                    size: 200,
-                    showAccessory: char?.equippedAccessory != null,
-                    equippedAccessory: char?.equippedAccessory?.assetUrl,
-                    equipment: char?.equipment ?? const {},
-                  ),
-                  if (isAdmin) ...[
-                    const SizedBox(height: 16),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: CharacterState.values.map((s) {
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ActionChip(
-                              label: Text(s.label,
-                                  style: const TextStyle(fontSize: 10)),
-                              onPressed: () => ref
-                                  .read(testCharacterProvider.notifier)
-                                  .updateState(s),
-                              backgroundColor: state == s
-                                  ? tokens.primary.withValues(alpha: 0.2)
-                                  : null,
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
-                ],
+            // 캐릭터 히어로 — 시멀리스 (카드 없음)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _nutritionBadge('$nutritionDays일', tokens),
+                _statePill(state, tokens),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: MukzziCharacter(
+                state: state,
+                size: (MediaQuery.sizeOf(context).width * _widthRatio)
+                    .clamp(_minCharSize, _maxCharSize)
+                    .toDouble(),
+                showAccessory: char?.equippedAccessory != null,
+                equippedAccessory: char?.equippedAccessory?.assetUrl,
+                equipment: char?.equipment ?? const {},
+                backgroundEdgeFade: true,
               ),
             ),
+            if (isAdmin) ...[
+              const SizedBox(height: 16),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: CharacterState.values.map((s) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ActionChip(
+                        label: Text(s.label,
+                            style: const TextStyle(fontSize: 10)),
+                        onPressed: () => ref
+                            .read(testCharacterProvider.notifier)
+                            .updateState(s),
+                        backgroundColor: state == s
+                            ? tokens.primary.withValues(alpha: 0.2)
+                            : null,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
 
             // 영양 달성
@@ -278,7 +279,7 @@ class CharacterPage extends ConsumerWidget {
           style: GoogleFonts.poppins(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: tokens.heroText),
+              color: tokens.textPrimary),
         ),
       );
 

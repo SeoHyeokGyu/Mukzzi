@@ -366,6 +366,71 @@ void main() {
       expect(find.text('도감 화면'), findsOneWidget);
     });
 
+    testWidgets('프리뷰는 카드·이름 없이 캐릭터만 표시하고 큰 화면에서 130px 상한을 적용한다',
+        (tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        _wrap(
+          characterRepository: _FakeCharacterRepository(_character()),
+          rewards: [
+            _reward(id: '1', name: '머리 왕관', slot: EquipmentSlot.head),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(MukzziCharacter), findsOneWidget);
+      // 프리뷰에 캐릭터 이름 텍스트 없음
+      expect(find.text('먹찌'), findsNothing);
+
+      final preview =
+          tester.widget<MukzziCharacter>(find.byType(MukzziCharacter));
+      expect(preview.size, 130.0);
+      expect(preview.backgroundEdgeFade, isTrue);
+    });
+
+    testWidgets('중간 화면에서는 프리뷰 크기가 가용 높이에 비례한다', (tester) async {
+      tester.view.physicalSize = const Size(800, 660);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        _wrap(
+          characterRepository: _FakeCharacterRepository(_character()),
+          rewards: [
+            _reward(id: '1', name: '머리 왕관', slot: EquipmentSlot.head),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      final preview =
+          tester.widget<MukzziCharacter>(find.byType(MukzziCharacter));
+      expect(preview.size, greaterThan(80.0));
+      expect(preview.size, lessThan(130.0));
+    });
+
+    testWidgets('가용 높이가 380 미만이면 프리뷰를 숨긴다', (tester) async {
+      tester.view.physicalSize = const Size(800, 430);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        _wrap(
+          characterRepository: _FakeCharacterRepository(_character()),
+          rewards: [
+            _reward(id: '1', name: '머리 왕관', slot: EquipmentSlot.head),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(MukzziCharacter), findsNothing);
+    });
+
     testWidgets('장착 실패 시 상태가 롤백되고 에러 스낵바가 뜬다', (tester) async {
       final headReward =
           _reward(id: '1', name: '머리 왕관', slot: EquipmentSlot.head);

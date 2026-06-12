@@ -335,71 +335,88 @@ class _EquipmentManagementPageState
           return _selectedSlot == null || slot == _selectedSlot;
         }).toList();
 
-        return Column(
-          children: [
-            _CharacterPreview(character: character, tokens: tokens),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ChoiceChip(
-                    label: const Text('획득한 아이템만'),
-                    selected: _showAcquiredOnly,
-                    onSelected: (val) => setState(() => _showAcquiredOnly = val),
-                  ),
-                  Text('최신순', style: TextStyle(color: tokens.textMuted, fontSize: 12)),
-                ],
-              ),
-            ),
-            _SlotSelector(
-              selectedSlot: _selectedSlot,
-              equipment: character.equipment,
-              tokens: tokens,
-              scrollController: _slotScrollController,
-              onSelected: (slot) => setState(() => _selectedSlot = slot),
-            ),
-            Expanded(
-              child: candidates.isEmpty
-                  ? const CollectionEmptyState(
-                      icon: Icons.inventory_2_outlined,
-                      title: '장착할 수 있는 아이템이 없어요',
-                      subtitle: '획득한 장착 아이템이 여기에 표시돼요',
-                    )
-                  : Center(
-                      child: SizedBox(
-                        width: 480,
-                        child: GridView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 10,
-                            childAspectRatio: 1.22,
-                          ),
-                          itemCount: candidates.length,
-                          itemBuilder: (context, index) {
-                            final reward = candidates[index];
-                            final slot = reward.renderConfig!.slot;
-                            final isEquipped =
-                                character.equipment[slot]?.id == reward.id;
-                            return _EquipmentRewardCard(
-                              reward: reward,
-                              slot: slot,
-                              isEquipped: isEquipped,
-                              isSubmitting: _isSubmitting,
-                              tokens: tokens,
-                              onTap: () => _toggleEquipment(
-                                reward: reward,
-                                isEquipped: isEquipped,
-                              ),
-                            );
-                          },
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return Column(
+              children: [
+                _CharacterPreview(
+                  character: character,
+                  availableHeight: constraints.maxHeight,
+                ),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('획득한 아이템만'),
+                        selected: _showAcquiredOnly,
+                        onSelected: (val) =>
+                            setState(() => _showAcquiredOnly = val),
+                      ),
+                      Text(
+                        '최신순',
+                        style: TextStyle(
+                          color: tokens.textMuted,
+                          fontSize: 12,
                         ),
                       ),
-                    ),
-            ),
-          ],
+                    ],
+                  ),
+                ),
+                _SlotSelector(
+                  selectedSlot: _selectedSlot,
+                  equipment: character.equipment,
+                  tokens: tokens,
+                  scrollController: _slotScrollController,
+                  onSelected: (slot) => setState(() => _selectedSlot = slot),
+                ),
+                Expanded(
+                  child: candidates.isEmpty
+                      ? const CollectionEmptyState(
+                          icon: Icons.inventory_2_outlined,
+                          title: '장착할 수 있는 아이템이 없어요',
+                          subtitle: '획득한 장착 아이템이 여기에 표시돼요',
+                        )
+                      : Center(
+                          child: SizedBox(
+                            width: 480,
+                            child: GridView.builder(
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
+                                childAspectRatio: 1.22,
+                              ),
+                              itemCount: candidates.length,
+                              itemBuilder: (context, index) {
+                                final reward = candidates[index];
+                                final slot = reward.renderConfig!.slot;
+                                final isEquipped =
+                                    character.equipment[slot]?.id == reward.id;
+                                return _EquipmentRewardCard(
+                                  reward: reward,
+                                  slot: slot,
+                                  isEquipped: isEquipped,
+                                  isSubmitting: _isSubmitting,
+                                  tokens: tokens,
+                                  onTap: () => _toggleEquipment(
+                                    reward: reward,
+                                    isEquipped: isEquipped,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -409,50 +426,39 @@ class _EquipmentManagementPageState
 class _CharacterPreview extends StatelessWidget {
   const _CharacterPreview({
     required this.character,
-    required this.tokens,
+    required this.availableHeight,
   });
 
   final CharacterModel character;
-  final AppColorTokens tokens;
+  final double availableHeight;
+
+  // 이 미만이면 프리뷰(최소 80px)가 칩/슬롯 셀렉터/그리드에 필요한 공간을 잠식하는 지점
+  static const double _minVisibleHeight = 380;
+
+  // 가용 높이 대비 프리뷰 비율. clamp(80~130)와 함께 444~722px 구간에서만 비례 동작.
+  static const double _heightRatio = 0.18;
+  static const double _minCharSize = 80;
+  static const double _maxCharSize = 130;
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    if (screenHeight < 450) {
+    if (availableHeight < _minVisibleHeight) {
       return const SizedBox.shrink();
     }
 
-    final double charSize = screenHeight < 680 ? 90 : 130;
-    final double verticalPadding = screenHeight < 680 ? 6 : 8;
-    final double spacing = screenHeight < 680 ? 4 : 6;
+    final charSize = (availableHeight * _heightRatio)
+        .clamp(_minCharSize, _maxCharSize)
+        .toDouble();
 
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(16, 6, 16, 4),
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: verticalPadding),
-      decoration: BoxDecoration(
-        gradient: tokens.cardHeroGrad,
-        borderRadius: BorderRadius.circular(tokens.rHero),
-      ),
-      child: Column(
-        children: [
-          Text(
-            character.name,
-            style: TextStyle(
-              fontSize: screenHeight < 680 ? 15 : 18,
-              fontWeight: FontWeight.w700,
-              color: tokens.heroText,
-            ),
-          ),
-          SizedBox(height: spacing),
-          MukzziCharacter(
-            state: character.state,
-            size: charSize,
-            showAccessory: character.equippedAccessory != null,
-            equippedAccessory: character.equippedAccessory?.assetUrl,
-            equipment: character.equipment,
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: MukzziCharacter(
+        state: character.state,
+        size: charSize,
+        showAccessory: character.equippedAccessory != null,
+        equippedAccessory: character.equippedAccessory?.assetUrl,
+        equipment: character.equipment,
+        backgroundEdgeFade: true,
       ),
     );
   }
