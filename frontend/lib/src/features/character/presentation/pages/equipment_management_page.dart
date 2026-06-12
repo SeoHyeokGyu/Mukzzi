@@ -432,8 +432,13 @@ class _CharacterPreview extends StatelessWidget {
   final CharacterModel character;
   final double availableHeight;
 
-  // 이 미만이면 MukzziCharacter 권장 최소 80px 확보 불가
+  // 이 미만이면 프리뷰(최소 80px)가 칩/슬롯 셀렉터/그리드에 필요한 공간을 잠식하는 지점
   static const double _minVisibleHeight = 380;
+
+  // 가용 높이 대비 프리뷰 비율. clamp(80~130)와 함께 444~722px 구간에서만 비례 동작.
+  static const double _heightRatio = 0.18;
+  static const double _minCharSize = 80;
+  static const double _maxCharSize = 130;
 
   @override
   Widget build(BuildContext context) {
@@ -441,7 +446,9 @@ class _CharacterPreview extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final charSize = (availableHeight * 0.18).clamp(80.0, 130.0).toDouble();
+    final charSize = (availableHeight * _heightRatio)
+        .clamp(_minCharSize, _maxCharSize)
+        .toDouble();
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
