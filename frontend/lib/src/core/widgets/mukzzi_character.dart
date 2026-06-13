@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mukzzi/src/features/character/domain/models/reward_model.dart';
 
@@ -100,6 +101,7 @@ extension CharacterStateLabel on CharacterState {
         return const Color(0xFF7C4DFF);
     }
   }
+
 }
 
 class MukzziCharacter extends StatelessWidget {
@@ -311,27 +313,33 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
   Widget build(BuildContext context) {
     final bodyPath = _path('body');
     final equipmentLayers = _equipmentLayers();
-    final specs = <_CharacterLayerSpec>[
+
+    // 배경과 비배경 분리 (slot 기준)
+    final backgroundSpecs = <_CharacterLayerSpec>[
       for (final item in equipmentLayers)
-        if ((item.renderConfig?.zIndex ?? 30) < 0)
-          _CharacterLayerSpec.equipment(item),
-      _CharacterLayerSpec.asset(bodyPath, 0),
-      for (final item in equipmentLayers)
-        if ((item.renderConfig?.zIndex ?? 30) >= 0)
+        if (item.renderConfig?.slot == EquipmentSlot.background)
           _CharacterLayerSpec.equipment(item),
     ]..sort((a, b) => a.zIndex.compareTo(b.zIndex));
 
-    final svgStack = SizedBox(
+    final characterSpecs = <_CharacterLayerSpec>[
+      for (final item in equipmentLayers)
+        if (item.renderConfig?.slot != EquipmentSlot.background)
+          _CharacterLayerSpec.equipment(item),
+      _CharacterLayerSpec.asset(bodyPath, 0),
+    ]..sort((a, b) => a.zIndex.compareTo(b.zIndex));
+
+    final characterStack = SizedBox(
       width: widget.size,
       height: widget.size,
       child: Stack(
-        children: specs.map(_buildLayer).toList(),
+        children: characterSpecs.map(_buildLayer).toList(),
       ),
     );
 
-    return AnimatedBuilder(
+    final animatedCharacter = AnimatedBuilder(
+      key: const ValueKey('character_loop'),
       animation: _anim,
-      child: svgStack,
+      child: characterStack,
       builder: (_, child) => switch (widget.state) {
         CharacterState.sleeping => Transform.scale(
             scale: _anim.value,
@@ -346,6 +354,20 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
             child: child,
           ),
       },
+    );
+
+    return SizedBox(
+      width: widget.size,
+      height: widget.size,
+      child: Stack(
+        children: [
+          // 배경: Transform 없이 정적
+          for (final spec in backgroundSpecs) _buildLayer(spec),
+          // 캐릭터 + 비배경 장비: 루프 애니메이션
+          animatedCharacter,
+          _FloatingParticles(state: widget.state, size: widget.size),
+        ],
+      ),
     );
   }
 
@@ -454,6 +476,117 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
           angle: config.rotation * math.pi / 180,
           child: Center(child: layer),
         ),
+      ),
+    );
+  }
+}
+
+class _ParticleData {
+  final String icon;
+  final Duration delay;
+  final Duration duration;
+  final double fontSize;
+
+  const _ParticleData({
+    required this.icon,
+    required this.delay,
+    required this.duration,
+    this.fontSize = 18,
+  });
+}
+
+class _FloatingParticles extends StatelessWidget {
+  final CharacterState state;
+  final double size;
+
+  const _FloatingParticles({required this.state, required this.size});
+
+  // 파티클 위치: 좌상 / 우상 / 상단 중앙
+  static const _positions = [
+    (leftRatio: 0.15, topRatio: 0.30),
+    (leftRatio: 0.65, topRatio: 0.28),
+    (leftRatio: 0.40, topRatio: 0.20),
+  ];
+
+  // sleeping: 우측으로 몰아서 오름
+  static const _sleepingPositions = [
+    (leftRatio: 0.60, topRatio: 0.40),
+    (leftRatio: 0.68, topRatio: 0.28),
+    (leftRatio: 0.74, topRatio: 0.14),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final positions = state == CharacterState.sleeping
+        ? _sleepingPositions
+        : _positions;
+
+    final particles = switch (state) {
+      CharacterState.normal => const [
+          _ParticleData(icon: '✨', delay: Duration.zero, duration: Duration(milliseconds: 2200)),
+          _ParticleData(icon: '✨', delay: Duration(milliseconds: 700), duration: Duration(milliseconds: 2000)),
+          _ParticleData(icon: '✨', delay: Duration(milliseconds: 1400), duration: Duration(milliseconds: 2400)),
+        ],
+      CharacterState.happy => const [
+          _ParticleData(icon: '♥', delay: Duration.zero, duration: Duration(milliseconds: 1600)),
+          _ParticleData(icon: '♥', delay: Duration(milliseconds: 500), duration: Duration(milliseconds: 1400)),
+          _ParticleData(icon: '♥', delay: Duration(milliseconds: 1000), duration: Duration(milliseconds: 1800)),
+        ],
+      CharacterState.hungry => const [
+          _ParticleData(icon: '🔥', delay: Duration.zero, duration: Duration(milliseconds: 1800)),
+          _ParticleData(icon: '🔥', delay: Duration(milliseconds: 600), duration: Duration(milliseconds: 1600)),
+          _ParticleData(icon: '🔥', delay: Duration(milliseconds: 1200), duration: Duration(milliseconds: 2000)),
+        ],
+      CharacterState.starving => const [
+          _ParticleData(icon: '⚠️', delay: Duration.zero, duration: Duration(milliseconds: 1000)),
+          _ParticleData(icon: '⚠️', delay: Duration(milliseconds: 300), duration: Duration(milliseconds: 900)),
+          _ParticleData(icon: '⚠️', delay: Duration(milliseconds: 600), duration: Duration(milliseconds: 1100)),
+        ],
+      CharacterState.sleeping => const [
+          _ParticleData(icon: 'z', delay: Duration.zero, duration: Duration(milliseconds: 2800), fontSize: 14),
+          _ParticleData(icon: 'z', delay: Duration(milliseconds: 900), duration: Duration(milliseconds: 2800), fontSize: 18),
+          _ParticleData(icon: 'z', delay: Duration(milliseconds: 1800), duration: Duration(milliseconds: 2800), fontSize: 22),
+        ],
+    };
+
+    assert(
+      particles.length == positions.length,
+      '_FloatingParticles: particles.length (${particles.length}) != '
+      'positions.length (${positions.length}) for state $state',
+    );
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        children: List.generate(particles.length, (i) {
+          final p = particles[i];
+          final pos = positions[i];
+          return Positioned(
+            left: size * pos.leftRatio,
+            top: size * pos.topRatio,
+            child: Text(
+              p.icon,
+              style: TextStyle(fontSize: p.fontSize),
+            )
+                .animate(onPlay: (c) => c.repeat())
+                // delay workaround: `.animate(delay:)` leaves pending timers in test env
+                .custom(
+                  duration: p.delay,
+                  builder: (_, __, child) => child,
+                )
+                .then()
+                .moveY(
+                  begin: 0,
+                  end: -size * 0.35,
+                  duration: p.duration,
+                  curve: Curves.easeOut,
+                )
+                .fadeIn(duration: p.duration * 0.15)
+                .then(delay: p.duration * 0.55)
+                .fadeOut(duration: p.duration * 0.30),
+          );
+        }),
       ),
     );
   }
