@@ -60,7 +60,7 @@ func (h *MealHandler) CreateMeal(c *gin.Context) {
 	}
 
 	Created(c, dto.CreateMealResponse{
-		Meal:        dto.ToMealResponse(output.Meal),
+		Meal:        dto.ToMealResponse(output.Meal, getBaseURL(c)),
 		SideEffects: dto.ToSideEffectsResponse(output.SideEffects),
 	})
 }
@@ -122,7 +122,7 @@ func (h *MealHandler) ListMeals(c *gin.Context) {
 
 	mealResponses := make([]dto.MealResponse, len(out.Meals))
 	for i := range out.Meals {
-		mealResponses[i] = dto.ToMealResponse(&out.Meals[i])
+		mealResponses[i] = dto.ToMealResponse(&out.Meals[i], getBaseURL(c))
 	}
 
 	nextCursor := ""
@@ -165,7 +165,7 @@ func (h *MealHandler) GetMeal(c *gin.Context) {
 		return
 	}
 
-	Success(c, dto.ToMealResponse(meal))
+	Success(c, dto.ToMealResponse(meal, getBaseURL(c)))
 }
 
 // UpdateMeal 식사 기록 수정
@@ -232,7 +232,7 @@ func (h *MealHandler) UpdateMeal(c *gin.Context) {
 		return
 	}
 
-	Success(c, dto.ToMealResponse(meal))
+	Success(c, dto.ToMealResponse(meal, getBaseURL(c)))
 }
 
 // DeleteMeal 식사 기록 삭제

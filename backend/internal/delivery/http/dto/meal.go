@@ -3,6 +3,7 @@ package dto
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
@@ -143,7 +144,17 @@ type WeeklyNutritionItem struct {
 // Mapper 함수
 // ─────────────────────────────────────────
 
-func ToMealResponse(m *domain.MealRecord) MealResponse {
+func ToMealResponse(m *domain.MealRecord, baseURL string) MealResponse {
+	var fullImageURL *string
+	if m.ImageURL != nil && *m.ImageURL != "" {
+		if strings.HasPrefix(*m.ImageURL, "http://") || strings.HasPrefix(*m.ImageURL, "https://") {
+			fullImageURL = m.ImageURL
+		} else {
+			url := fmt.Sprintf("%s/uploads/%s", strings.TrimSuffix(baseURL, "/"), *m.ImageURL)
+			fullImageURL = &url
+		}
+	}
+
 	resp := MealResponse{
 		ID:          strconv.FormatInt(m.ID, 10),
 		MenuName:    m.MenuName,
@@ -153,7 +164,7 @@ func ToMealResponse(m *domain.MealRecord) MealResponse {
 		RecordedAt:  m.RecordedAt.Format(time.RFC3339),
 		Review:      m.Review,
 		Rating:      m.Rating,
-		ImageURL:    m.ImageURL,
+		ImageURL:    fullImageURL,
 	}
 	if m.MenuID != nil {
 		id := strconv.FormatInt(*m.MenuID, 10)
@@ -249,6 +260,18 @@ func ToSideEffectsResponse(se *domain.MealSideEffects) *SideEffectsResponse {
 	return resp
 }
 
+func extractFilename(url *string) *string {
+	if url == nil || *url == "" {
+		return nil
+	}
+	if strings.Contains(*url, "/") {
+		parts := strings.Split(*url, "/")
+		filename := parts[len(parts)-1]
+		return &filename
+	}
+	return url
+}
+
 // ToCreateMealInput - Request DTO → usecase Input 변환
 func ToCreateMealInput(req CreateMealRequest, userID int64) (usecase.CreateMealInput, error) {
 	recordedAt, err := time.Parse(time.RFC3339, req.RecordedAt)
@@ -270,7 +293,7 @@ func ToCreateMealInput(req CreateMealRequest, userID int64) (usecase.CreateMealI
 		Review:      req.Review,
 		Rating:      req.Rating,
 		IsManual:    isManual,
-		ImageURL:    req.ImageURL,
+		ImageURL:    extractFilename(req.ImageURL),
 	}
 
 	if req.Nutrition != nil {

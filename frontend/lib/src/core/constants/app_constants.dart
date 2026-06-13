@@ -5,7 +5,11 @@ class AppConstants {
   // API
   static String get apiBaseUrl {
     if (kIsWeb) {
-      return '${Uri.base.origin}/api';
+      final origin = Uri.base.origin;
+      if (origin.contains('localhost') || origin.contains('127.0.0.1')) {
+        return 'http://localhost:8080/api';
+      }
+      return '$origin/api';
     }
     return kDebugMode
         ? 'http://localhost:8080/api'

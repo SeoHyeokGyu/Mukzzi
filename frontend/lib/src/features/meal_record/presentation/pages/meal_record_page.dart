@@ -1351,6 +1351,90 @@ class _MealListItem extends StatelessWidget {
 
   const _MealListItem({required this.meal, required this.tokens});
 
+  void _showImageDialog(BuildContext context, String imageUrl, String menuName) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: InteractiveViewer(
+                panEnabled: true,
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[900]!.withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.broken_image_outlined, color: Colors.redAccent, size: 48),
+                            SizedBox(height: 16),
+                            Text(
+                              '이미지를 불러올 수 없습니다.',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 16,
+              right: 16,
+              child: CircleAvatar(
+                backgroundColor: Colors.black.withValues(alpha: 0.4),
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 24),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  menuName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final timeStr = DateFormat('HH:mm').format(meal.recordedAt);
@@ -1365,10 +1449,37 @@ class _MealListItem extends StatelessWidget {
         child: Row(
           children: [
             if (meal.imageUrl != null)
-              ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(meal.imageUrl!,
-                      width: 60, height: 60, fit: BoxFit.cover))
+              GestureDetector(
+                onTap: () => _showImageDialog(context, meal.imageUrl!, meal.menuName),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Tooltip(
+                    message: '사진 크게 보기',
+                    child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          meal.imageUrl!,
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: tokens.listItemBg,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.restaurant,
+                                color: tokens.primary.withValues(alpha: 0.5),
+                              ),
+                            );
+                          },
+                        )),
+                  ),
+                ),
+              )
             else
               Container(
                   width: 60,
