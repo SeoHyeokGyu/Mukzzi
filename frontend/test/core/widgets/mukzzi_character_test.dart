@@ -44,6 +44,40 @@ Future<void> _pumpCharacter(
 }
 
 void main() {
+  group('MukzziCharacter 배경 레이어 분리', () {
+    testWidgets('배경 장착 시 AnimatedBuilder는 1개만 존재한다', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: MukzziCharacter(
+                equipment: {EquipmentSlot.background: _backgroundReward()},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // flutter_svg는 내부적으로 AnimatedBuilder를 추가하므로
+      // 전체 카운트 대신 구조적으로 검증한다:
+      // - character_loop 빌더가 존재해야 함
+      // - 배경 SVG는 character_loop 밖에 있어야 함
+      const loopKey = ValueKey('character_loop');
+      const bgSvgKey = ValueKey('assets/svg/mukzzi2_background_kitchen.svg');
+
+      final loopFinder = find.byKey(loopKey);
+      expect(loopFinder, findsOneWidget);
+      expect(find.byKey(bgSvgKey), findsOneWidget);
+
+      // 배경은 루프 애니메이션 밖에 위치해야 함
+      expect(
+        find.descendant(of: loopFinder, matching: find.byKey(bgSvgKey)),
+        findsNothing,
+      );
+    });
+  });
+
   group('MukzziCharacter backgroundEdgeFade', () {
     testWidgets('페이드 활성 + 배경 장착 시 배경 레이어에 ShaderMask를 적용한다',
         (tester) async {

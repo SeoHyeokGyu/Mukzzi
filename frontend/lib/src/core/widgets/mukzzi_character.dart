@@ -311,27 +311,33 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
   Widget build(BuildContext context) {
     final bodyPath = _path('body');
     final equipmentLayers = _equipmentLayers();
-    final specs = <_CharacterLayerSpec>[
+
+    // 배경과 비배경 분리 (slot 기준)
+    final backgroundSpecs = <_CharacterLayerSpec>[
       for (final item in equipmentLayers)
-        if ((item.renderConfig?.zIndex ?? 30) < 0)
-          _CharacterLayerSpec.equipment(item),
-      _CharacterLayerSpec.asset(bodyPath, 0),
-      for (final item in equipmentLayers)
-        if ((item.renderConfig?.zIndex ?? 30) >= 0)
+        if (item.renderConfig?.slot == EquipmentSlot.background)
           _CharacterLayerSpec.equipment(item),
     ]..sort((a, b) => a.zIndex.compareTo(b.zIndex));
 
-    final svgStack = SizedBox(
+    final characterSpecs = <_CharacterLayerSpec>[
+      for (final item in equipmentLayers)
+        if (item.renderConfig?.slot != EquipmentSlot.background)
+          _CharacterLayerSpec.equipment(item),
+      _CharacterLayerSpec.asset(bodyPath, 0),
+    ]..sort((a, b) => a.zIndex.compareTo(b.zIndex));
+
+    final characterStack = SizedBox(
       width: widget.size,
       height: widget.size,
       child: Stack(
-        children: specs.map(_buildLayer).toList(),
+        children: characterSpecs.map(_buildLayer).toList(),
       ),
     );
 
-    return AnimatedBuilder(
+    final animatedCharacter = AnimatedBuilder(
+      key: const ValueKey('character_loop'),
       animation: _anim,
-      child: svgStack,
+      child: characterStack,
       builder: (_, child) => switch (widget.state) {
         CharacterState.sleeping => Transform.scale(
             scale: _anim.value,
@@ -346,6 +352,19 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
             child: child,
           ),
       },
+    );
+
+    return SizedBox(
+      width: widget.size,
+      height: widget.size,
+      child: Stack(
+        children: [
+          // 배경: Transform 없이 정적
+          for (final spec in backgroundSpecs) _buildLayer(spec),
+          // 캐릭터 + 비배경 장비: 루프 애니메이션
+          animatedCharacter,
+        ],
+      ),
     );
   }
 
