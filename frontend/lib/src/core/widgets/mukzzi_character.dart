@@ -425,6 +425,8 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
       const fadeStops = [0.0, 0.16, 0.84, 1.0];
       layer = ShaderMask(
         shaderCallback: (bounds) => const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
           colors: fadeColors,
           stops: fadeStops,
         ).createShader(bounds),
