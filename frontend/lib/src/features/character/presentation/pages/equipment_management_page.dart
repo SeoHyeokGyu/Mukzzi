@@ -387,7 +387,7 @@ class _EquipmentManagementPageState
                 crossAxisCount: 2,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
-                childAspectRatio: 1.22,
+                childAspectRatio: 1.1,
               ),
               itemCount: candidates.length,
               itemBuilder: (context, index) {
@@ -478,7 +478,7 @@ class _SlotSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 40,
+      height: 48,
       child: ShaderMask(
         shaderCallback: (Rect bounds) {
           return const LinearGradient(
@@ -490,7 +490,7 @@ class _SlotSelector extends StatelessWidget {
               Colors.black,
               Colors.transparent,
             ],
-            stops: <double>[0.0, 0.05, 0.95, 1.0],
+            stops: <double>[0.0, 0.08, 0.92, 1.0],
           ).createShader(bounds);
         },
         blendMode: BlendMode.dstIn,
@@ -857,12 +857,16 @@ class _TitleCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(
-                      title.name,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: acquired ? AppColors.textPrimary : AppColors.textTertiary,
+                    Expanded(
+                      child: Text(
+                        title.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: acquired ? AppColors.textPrimary : AppColors.textTertiary,
+                        ),
                       ),
                     ),
                     if (title.isEquipped) ...[
@@ -888,6 +892,8 @@ class _TitleCard extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   title.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.textTertiary,
