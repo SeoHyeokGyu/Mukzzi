@@ -48,6 +48,10 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
+  static const double _heroWidthRatio = 0.45;
+  static const double _heroMinCharSize = 150;
+  static const double _heroMaxCharSize = 200;
+
   final GlobalKey _feedMukzziKey = GlobalKey();
   bool _tutorialStarted = false;
 
@@ -318,7 +322,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: Column(
         children: [
-          ShimmerCard(height: 320),
+          ShimmerCard(height: 240),
           SizedBox(height: 12),
           ShimmerCard(height: 56),
           SizedBox(height: 12),
@@ -379,7 +383,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           children: [
             characterAsync.when(
               data: (char) => _buildHeroCard(tokens, char),
-              loading: () => const ShimmerCard(height: 320),
+              loading: () => const ShimmerCard(height: 240),
               error: (_, __) => _buildHeroCard(tokens, null),
             ),
             const SizedBox(height: 12),
@@ -599,80 +603,51 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _buildHeroCard(AppColorTokens tokens, CharacterModel? char) {
     final state = char?.state ?? CharacterState.normal;
-    final name = char?.name ?? '먹찌';
 
-    final card = BentoCard(
-      showPaperTexture: true,
-      borderRadius: BorderRadius.circular(tokens.rHero),
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-      shadows: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.3),
-          blurRadius: 16,
-          offset: const Offset(0, 4),
-        ),
-        BoxShadow(
-          color: state.indicatorColor.withValues(alpha: 0.18),
-          blurRadius: 28,
-          spreadRadius: 2,
-        ),
-      ],
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: state.indicatorColor,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(state.icon, size: 11, color: const Color(0xFF1A1A1A)),
-                    const SizedBox(width: 3),
-                    Text(
-                      state.label,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A1A1A),
-                      ),
-                    ),
-                  ],
-                ),
+    final hero = Column(
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: state.indicatorColor,
+                borderRadius: BorderRadius.circular(20),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          MukzziCharacter(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(state.icon, size: 11, color: const Color(0xFF1A1A1A)),
+                  const SizedBox(width: 3),
+                  Text(
+                    state.label,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: MukzziCharacter(
             state: state,
-            size: 160,
+            size: (MediaQuery.sizeOf(context).width * _heroWidthRatio)
+                .clamp(_heroMinCharSize, _heroMaxCharSize)
+                .toDouble(),
             showAccessory: char?.equippedAccessory != null,
             equippedAccessory: char?.equippedAccessory?.assetUrl,
             equipment: char?.equipment ?? const {},
+            backgroundEdgeFade: true,
           ),
-          const SizedBox(height: 8),
-          Text(
-            name,
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: tokens.heroText,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            state.message,
-            style: TextStyle(fontSize: 12, color: tokens.heroTextSub),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+        ),
+      ],
     );
-    return _animated(card, slideY: true);
+    return _animated(hero, slideY: true);
   }
 
   Widget _buildStreakQuestRow(
