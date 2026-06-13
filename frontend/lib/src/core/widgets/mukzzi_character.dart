@@ -403,10 +403,9 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
         );
     final path = 'assets/svg/mukzzi2_${reward.assetUrl}.svg';
     final isBackground = config.slot == EquipmentSlot.background;
-    // background layer에 2% overscan을 적용해 SVG 경계 1px 아티팩트를 fade zone 안으로 밀어냄
-    final layerSize = widget.size * config.scale * (isBackground ? 1.02 : 1.0);
+    final layerSize = widget.size * config.scale;
 
-    Widget layer = SvgPicture.asset(
+    final svgWidget = SvgPicture.asset(
       path,
       key: ValueKey(path),
       width: layerSize,
@@ -414,36 +413,42 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
       fit: BoxFit.contain,
     );
 
-    // 중간 강도 정사각 가장자리 페이드: 각 축에서 중심 68% 구간은 솔리드,
-    // 양 끝 16% 구간에서 알파 0으로 감쇠. 가로/세로 마스크 중첩이라
-    // 모서리는 알파 곱으로 더 빨리 사라진다.
-    if (widget.backgroundEdgeFade && config.slot == EquipmentSlot.background) {
+    Widget layer;
+    // ShaderMask를 widget.size 기준으로 적용해야 scale > 1인 배경도 정확히 페이드됨.
+    // layerSize 기준으로 적용하면 Stack 클립 경계가 fade zone 밖에 위치해 사각 경계 노출.
+    if (widget.backgroundEdgeFade && isBackground) {
       const fadeColors = [
         Colors.transparent,
         Colors.black,
         Colors.black,
         Colors.transparent,
       ];
-      const fadeStops = [0.0, 0.16, 0.84, 1.0];
-      layer = ShaderMask(
-        shaderCallback: (bounds) => const LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: fadeColors,
-          stops: fadeStops,
-        ).createShader(bounds),
-        blendMode: BlendMode.dstIn,
+      const fadeStops = [0.0, 0.18, 0.82, 1.0];
+      layer = SizedBox(
+        width: widget.size,
+        height: widget.size,
         child: ShaderMask(
           shaderCallback: (bounds) => const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
             colors: fadeColors,
             stops: fadeStops,
           ).createShader(bounds),
           blendMode: BlendMode.dstIn,
-          child: layer,
+          child: ShaderMask(
+            shaderCallback: (bounds) => const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: fadeColors,
+              stops: fadeStops,
+            ).createShader(bounds),
+            blendMode: BlendMode.dstIn,
+            child: Center(child: svgWidget),
+          ),
         ),
       );
+    } else {
+      layer = svgWidget;
     }
 
     return Positioned.fill(
