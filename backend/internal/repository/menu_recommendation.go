@@ -110,21 +110,63 @@ func (r *menuRecommendationRepository) FindMenusByIDs(ids []int64) ([]domain.Men
 }
 
 func (r *menuRecommendationRepository) FindPopularMenusByCategory(excludeIDs []int64, limit int) ([]domain.Menu, error) {
-	query := r.db.
-		Table("menus m").
-		Select("m.*, COUNT(mr.menu_id) AS meal_count").
-		Joins("LEFT JOIN meal_records mr ON m.id = mr.menu_id AND mr.deleted_at IS NULL").
-		Where("m.deleted_at IS NULL").
-		Group("m.id").
-		Order("meal_count DESC, m.id ASC").
-		Limit(limit)
-
-	if len(excludeIDs) > 0 {
-		query = query.Where("m.id NOT IN ?", excludeIDs)
+	// 카테고리 수(7개)로 나눠 카테고리별 상위 perCategory개씩 뽑은 뒤
+	// 전체를 meal_count 내림차순으로 재정렬하여 limit개 반환
+	const categoryCount = 7
+	perCategory := limit / categoryCount
+	if perCategory < 1 {
+		perCategory = 1
 	}
 
+	excludeClause := ""
+	if len(excludeIDs) > 0 {
+		excludeClause = "AND m.id NOT IN @excludeIDs"
+	}
+
+	rawSQL := `
+		SELECT id, name, category,
+		       default_calories, default_carbs, default_protein,
+		       default_fat, default_fiber, default_vitamin_score,
+		       source, created_at, updated_at, deleted_at
+		FROM (
+			SELECT
+				m.*,
+				COUNT(mr.menu_id)                                        AS meal_count,
+				ROW_NUMBER() OVER (
+					PARTITION BY m.category
+					ORDER BY COUNT(mr.menu_id) DESC, m.id ASC
+				)                                                        AS rn
+			FROM menus m
+			LEFT JOIN meal_records mr
+				ON m.id = mr.menu_id
+				AND mr.deleted_at IS NULL
+			WHERE m.deleted_at IS NULL
+			` + excludeClause + `
+			GROUP BY m.id
+		) ranked
+		WHERE rn <= @perCategory
+		ORDER BY meal_count DESC, id ASC
+		LIMIT @limit
+	`
+
 	var menus []domain.Menu
-	err := query.Find(&menus).Error
+	var err error
+	if len(excludeIDs) > 0 {
+		err = r.db.Raw(rawSQL,
+			map[string]interface{}{
+				"perCategory": perCategory,
+				"limit":       limit,
+				"excludeIDs":  excludeIDs,
+			},
+		).Scan(&menus).Error
+	} else {
+		err = r.db.Raw(rawSQL,
+			map[string]interface{}{
+				"perCategory": perCategory,
+				"limit":       limit,
+			},
+		).Scan(&menus).Error
+	}
 	return menus, err
 }
 
