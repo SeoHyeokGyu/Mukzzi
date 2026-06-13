@@ -130,9 +130,26 @@ CharacterModel _character(
   );
 }
 
+TitleModel _title({
+  required String id,
+  required String name,
+  bool acquired = true,
+  bool isEquipped = false,
+}) {
+  return TitleModel(
+    id: id,
+    code: name,
+    name: name,
+    description: '$name 설명',
+    acquired: acquired,
+    isEquipped: isEquipped,
+  );
+}
+
 Widget _wrap({
   required _FakeCharacterRepository characterRepository,
   required List<RewardModel> rewards,
+  List<TitleModel> titles = const [],
   GoRouter? router,
 }) {
   final userRepository = _FakeUserRepository();
@@ -149,7 +166,7 @@ Widget _wrap({
       ),
       rewardListProvider.overrideWith((ref) async => rewards),
       titleRepositoryProvider.overrideWithValue(_FakeTitleRepository()),
-      titleListProvider.overrideWith((ref) async => <TitleModel>[]),
+      titleListProvider.overrideWith((ref) async => titles),
     ],
     child: router != null
         ? MaterialApp.router(
@@ -474,6 +491,119 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('칭호-아이템 통합', () {
+    testWidgets('initialTab=title이면 칭호 칩이 선택되고 칭호 리스트가 보인다', (tester) async {
+      final title1 = _title(id: 't1', name: '미식가', isEquipped: true);
+      final title2 = _title(id: 't2', name: '연속 도전자');
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            userRepositoryProvider.overrideWithValue(_FakeUserRepository()),
+            userProvider.overrideWith(
+              (ref) => UserNotifier(_FakeUserRepository(), initialUser: _adminUser),
+            ),
+            characterRepositoryProvider
+                .overrideWithValue(_FakeCharacterRepository(_character())),
+            characterProvider.overrideWith(
+              (ref) => _FakeCharacterRepository(_character()).getMyCharacter(),
+            ),
+            rewardListProvider.overrideWith((ref) async => <RewardModel>[]),
+            titleRepositoryProvider.overrideWithValue(_FakeTitleRepository()),
+            titleListProvider.overrideWith((ref) async => [title1, title2]),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.darkTheme,
+            home: const EquipmentManagementPage(initialTab: 'title'),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // 칭호 칩이 선택 상태
+      final titleChip = tester.widget<ChoiceChip>(
+        find.widgetWithText(ChoiceChip, '칭호'),
+      );
+      expect(titleChip.selected, isTrue);
+
+      // 칭호 이름 보임
+      expect(find.text('미식가'), findsOneWidget);
+      expect(find.text('연속 도전자'), findsOneWidget);
+    });
+
+    testWidgets('칭호 칩 탭 시 칭호 리스트로 전환된다', (tester) async {
+      final title1 = _title(id: 't1', name: '미식가');
+      final headReward = _reward(id: '1', name: '머리 왕관', slot: EquipmentSlot.head);
+
+      await tester.pumpWidget(
+        _wrap(
+          characterRepository: _FakeCharacterRepository(_character()),
+          rewards: [headReward],
+          titles: [title1],
+        ),
+      );
+      await tester.pump();
+
+      // 아이템 먼저 보임
+      expect(find.text('머리 왕관'), findsOneWidget);
+
+      // 칭호 칩 탭
+      await tester.tap(find.widgetWithText(ChoiceChip, '칭호'));
+      await tester.pump();
+
+      // 칭호 보이고 아이템 카드 없음
+      expect(find.text('미식가'), findsOneWidget);
+      expect(find.text('머리 왕관'), findsNothing);
+    });
+
+    testWidgets('칭호 선택 후 아이템 칩 탭 시 그리드로 전환된다', (tester) async {
+      final title1 = _title(id: 't1', name: '미식가');
+      final headReward = _reward(id: '1', name: '머리 왕관', slot: EquipmentSlot.head);
+
+      await tester.pumpWidget(
+        _wrap(
+          characterRepository: _FakeCharacterRepository(_character()),
+          rewards: [headReward],
+          titles: [title1],
+        ),
+      );
+      await tester.pump();
+
+      // 칭호 칩 탭
+      await tester.tap(find.widgetWithText(ChoiceChip, '칭호'));
+      await tester.pump();
+      expect(find.text('미식가'), findsOneWidget);
+
+      // 전체 칩 탭 (아이템 전체)
+      await tester.tap(find.widgetWithText(ChoiceChip, '전체'));
+      await tester.pump();
+
+      // 칭호 없고 아이템 그리드
+      expect(find.text('미식가'), findsNothing);
+      expect(find.text('머리 왕관'), findsOneWidget);
+    });
+
+    testWidgets('칭호 모드와 아이템 모드 모두에서 MukzziCharacter가 표시된다', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          characterRepository: _FakeCharacterRepository(_character()),
+          rewards: [],
+        ),
+      );
+      await tester.pump();
+
+      // 아이템 모드: MukzziCharacter 표시
+      expect(find.byType(MukzziCharacter), findsOneWidget);
+
+      // 칭호 모드 전환
+      await tester.tap(find.widgetWithText(ChoiceChip, '칭호'));
+      await tester.pump();
+
+      // 칭호 모드에서도 MukzziCharacter 표시
+      expect(find.byType(MukzziCharacter), findsOneWidget);
     });
   });
 }
