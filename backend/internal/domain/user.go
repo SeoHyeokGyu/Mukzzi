@@ -38,6 +38,7 @@ type User struct {
 	ProfileImageURL string     `gorm:"type:text" json:"profile_image_url"`
 	LastLoginAt     *time.Time `json:"last_login_at"`
 	Point           int        `gorm:"default:0" json:"point"`
+	Allergies       string     `gorm:"type:text;default:''" json:"allergies"`
 
 	Provider   *string `gorm:"type:varchar(20)" json:"provider"`
 	ProviderID *string `gorm:"uniqueIndex;type:varchar(100)" json:"provider_id"`

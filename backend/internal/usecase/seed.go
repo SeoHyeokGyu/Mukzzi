@@ -146,6 +146,10 @@ func (u *seedUsecase) runSeed(ctx context.Context, source string, limit int) (in
 	menus = filterInvalidMenus(menus)
 	slog.Info("[seed] 수집 완료", slog.Int("total", len(menus)))
 
+	for i := range menus {
+		populateAllergies(&menus[i])
+	}
+
 	inserted, skipped = bulkUpsert(u.db, menus)
 
 	// 수집 완료 후 Redis 자동 동기화
@@ -551,4 +555,75 @@ func calcVitaminScore(vitaminC float64) float64 {
 		score = 100
 	}
 	return math.Round(score*10) / 10
+}
+
+func populateAllergies(menu *domain.Menu) {
+	var list []string
+	name := menu.Name
+
+	if strings.Contains(name, "우유") || strings.Contains(name, "치즈") || strings.Contains(name, "라떼") || strings.Contains(name, "요거트") || strings.Contains(name, "버터") {
+		list = append(list, "우유")
+	}
+	if strings.Contains(name, "땅콩") || strings.Contains(name, "피넛") {
+		list = append(list, "땅콩")
+	}
+	if strings.Contains(name, "새우") || strings.Contains(name, "쉬림프") {
+		list = append(list, "새우")
+	}
+	if strings.Contains(name, "계란") || strings.Contains(name, "달걀") || strings.Contains(name, "에그") || strings.Contains(name, "메추리") {
+		list = append(list, "계란")
+	}
+	if strings.Contains(name, "밀가루") || strings.Contains(name, "빵") || strings.Contains(name, "면") || strings.Contains(name, "파스타") || strings.Contains(name, "국수") {
+		list = append(list, "밀")
+	}
+	if strings.Contains(name, "대두") || strings.Contains(name, "두부") || strings.Contains(name, "콩") || strings.Contains(name, "된장") || strings.Contains(name, "간장") {
+		list = append(list, "대두")
+	}
+	if strings.Contains(name, "게장") || strings.Contains(name, "꽃게") || strings.Contains(name, "크랩") {
+		list = append(list, "게")
+	}
+	if strings.Contains(name, "돼지") || strings.Contains(name, "돈가스") || strings.Contains(name, "삼겹살") || strings.Contains(name, "포크") {
+		list = append(list, "돼지고기")
+	}
+	if strings.Contains(name, "복숭아") || strings.Contains(name, "피치") {
+		list = append(list, "복숭아")
+	}
+	if strings.Contains(name, "토마토") || strings.Contains(name, "케찹") {
+		list = append(list, "토마토")
+	}
+
+	if strings.Contains(strings.ToLower(name), "milk") || strings.Contains(strings.ToLower(name), "cheese") || strings.Contains(strings.ToLower(name), "yogurt") || strings.Contains(strings.ToLower(name), "butter") {
+		list = append(list, "우유")
+	}
+	if strings.Contains(strings.ToLower(name), "peanut") {
+		list = append(list, "땅콩")
+	}
+	if strings.Contains(strings.ToLower(name), "shrimp") {
+		list = append(list, "새우")
+	}
+	if strings.Contains(strings.ToLower(name), "egg") {
+		list = append(list, "계란")
+	}
+	if strings.Contains(strings.ToLower(name), "wheat") || strings.Contains(strings.ToLower(name), "bread") || strings.Contains(strings.ToLower(name), "pasta") || strings.Contains(strings.ToLower(name), "noodle") {
+		list = append(list, "밀")
+	}
+	if strings.Contains(strings.ToLower(name), "soy") || strings.Contains(strings.ToLower(name), "tofu") {
+		list = append(list, "대두")
+	}
+	if strings.Contains(strings.ToLower(name), "crab") {
+		list = append(list, "게")
+	}
+	if strings.Contains(strings.ToLower(name), "pork") || strings.Contains(strings.ToLower(name), "bacon") {
+		list = append(list, "돼지고기")
+	}
+	if strings.Contains(strings.ToLower(name), "peach") {
+		list = append(list, "복숭아")
+	}
+	if strings.Contains(strings.ToLower(name), "tomato") {
+		list = append(list, "토마토")
+	}
+
+	if len(list) > 0 {
+		menu.Allergies = strings.Join(list, ",")
+	}
 }

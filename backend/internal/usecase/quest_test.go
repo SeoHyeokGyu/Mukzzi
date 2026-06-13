@@ -128,8 +128,8 @@ func (m *MockUserUsecase) GetStats(id int64) (*UserStats, error) {
 	args := m.Called(id)
 	return args.Get(0).(*UserStats), args.Error(1)
 }
-func (m *MockUserUsecase) UpdateProfile(id int64, nickname, profileImageURL string) error {
-	return m.Called(id, nickname, profileImageURL).Error(0)
+func (m *MockUserUsecase) UpdateProfile(id int64, nickname, profileImageURL, allergies string) error {
+	return m.Called(id, nickname, profileImageURL, allergies).Error(0)
 }
 func (m *MockUserUsecase) UpdateBody(id int64, height, weight float64, activityLevel domain.ActivityLevel) error {
 	return m.Called(id, height, weight, activityLevel).Error(0)
@@ -137,8 +137,8 @@ func (m *MockUserUsecase) UpdateBody(id int64, height, weight float64, activityL
 func (m *MockUserUsecase) UpdateNutritionGoal(id int64, goal domain.DietGoal) error {
 	return m.Called(id, goal).Error(0)
 }
-func (m *MockUserUsecase) UpdateSettings(id int64, privacyLevel *domain.PrivacyLevel, notificationSettings any) error {
-	return m.Called(id, privacyLevel, notificationSettings).Error(0)
+func (m *MockUserUsecase) UpdateSettings(id int64, privacyLevel *domain.PrivacyLevel, notificationSettings any, allergies *string) error {
+	return m.Called(id, privacyLevel, notificationSettings, allergies).Error(0)
 }
 func (m *MockUserUsecase) DeleteAccount(id int64) error { return m.Called(id).Error(0) }
 func (m *MockUserUsecase) ProcessPhysicalDeletion() error { return m.Called().Error(0) }
@@ -154,8 +154,8 @@ func (m *MockUserUsecase) GetRecommendations(id int64) ([]domain.User, error) {
 	args := m.Called(id)
 	return args.Get(0).([]domain.User), args.Error(1)
 }
-func (m *MockUserUsecase) Onboarding(id int64, mukzziName string, h, w float64, al domain.ActivityLevel, g domain.DietGoal, bt, mu, st, ex int) error {
-	return m.Called(id, mukzziName, h, w, al, g, bt, mu, st, ex).Error(0)
+func (m *MockUserUsecase) Onboarding(id int64, mukzziName string, h, w float64, al domain.ActivityLevel, g domain.DietGoal, bt, mu, st, ex int, allergies string) error {
+	return m.Called(id, mukzziName, h, w, al, g, bt, mu, st, ex, allergies).Error(0)
 }
 func (m *MockUserUsecase) AddPoint(ctx context.Context, userID int64, amount int) error {
 	return m.Called(ctx, userID, amount).Error(0)

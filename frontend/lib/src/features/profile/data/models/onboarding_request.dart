@@ -8,6 +8,7 @@ class OnboardingRequest {
   final int muscle;
   final int skinTone;
   final int expression;
+  final String allergies;
 
   OnboardingRequest({
     required this.mukzziName,
@@ -19,6 +20,7 @@ class OnboardingRequest {
     required this.muscle,
     required this.skinTone,
     required this.expression,
+    required this.allergies,
   });
 
   Map<String, dynamic> toJson() {
@@ -32,6 +34,7 @@ class OnboardingRequest {
       'muscle': muscle,
       'skin_tone': skinTone,
       'expression': expression,
+      'allergies': allergies,
     };
   }
 }
