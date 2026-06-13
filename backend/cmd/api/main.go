@@ -57,6 +57,10 @@ func main() {
 	config.SeedRewards(db)
 	slog.Info("보상 시드 완료", slog.Duration("elapsed", time.Since(start)))
 
+	start = time.Now()
+	config.BackfillMenuAllergies(db)
+	slog.Info("메뉴 알레르기 백필 완료", slog.Duration("elapsed", time.Since(start)))
+
 	// Redis 초기화
 	start = time.Now()
 	rdb := config.InitRedis()

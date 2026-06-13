@@ -10,6 +10,7 @@ class UserModel {
   final bool isAdmin;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String allergies;
 
   UserModel({
     required this.id,
@@ -23,6 +24,7 @@ class UserModel {
     Map<String, bool>? notificationSettings,
     this.createdAt,
     this.updatedAt,
+    this.allergies = '',
   }) : notificationSettings = notificationSettings ?? const {'meal': true, 'social': true, 'badge': true};
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -59,6 +61,7 @@ class UserModel {
       updatedAt: json['UpdatedAt'] != null
           ? DateTime.tryParse(json['UpdatedAt'] as String)
           : null,
+      allergies: json['allergies'] as String? ?? '',
     );
   }
 
@@ -68,6 +71,7 @@ class UserModel {
     'email': email,
     'nickname': nickname,
     'profile_image_url': profileImageUrl,
+    'allergies': allergies,
     'CreatedAt': createdAt?.toIso8601String(),
     'UpdatedAt': updatedAt?.toIso8601String(),
   };
@@ -78,13 +82,15 @@ class UserUpdateRequest {
   final String? nickname;
   final String? profileImageUrl;
   final String? password;
+  final String? allergies;
 
-  UserUpdateRequest({this.email, this.nickname, this.profileImageUrl, this.password});
+  UserUpdateRequest({this.email, this.nickname, this.profileImageUrl, this.password, this.allergies});
 
   Map<String, dynamic> toJson() => {
     if (email != null) 'email': email,
     if (nickname != null) 'nickname': nickname,
     if (profileImageUrl != null) 'profile_image_url': profileImageUrl,
     if (password != null) 'password': password,
+    if (allergies != null) 'allergies': allergies,
   };
 }

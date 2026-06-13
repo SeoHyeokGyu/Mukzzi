@@ -36,16 +36,16 @@ var (
 type UserUsecase interface {
 	GetProfile(id int64) (*domain.User, error)
 	GetStats(id int64) (*UserStats, error)
-	UpdateProfile(id int64, nickname, profileImageURL string) error
+	UpdateProfile(id int64, nickname, profileImageURL, allergies string) error
 	UpdateBody(id int64, height, weight float64, activityLevel domain.ActivityLevel) error
 	UpdateNutritionGoal(id int64, goal domain.DietGoal) error
-	UpdateSettings(id int64, privacyLevel *domain.PrivacyLevel, notificationSettings any) error
+	UpdateSettings(id int64, privacyLevel *domain.PrivacyLevel, notificationSettings any, allergies *string) error
 	DeleteAccount(id int64) error
 	ProcessPhysicalDeletion() error
 	GetCharacter(id int64) (*domain.Character, error)
 	Search(query string) ([]domain.User, error)
 	GetRecommendations(id int64) ([]domain.User, error)
-	Onboarding(id int64, mukzziName string, height, weight float64, activityLevel domain.ActivityLevel, goal domain.DietGoal, bodyType, muscle, skinTone, expression int) error
+	Onboarding(id int64, mukzziName string, height, weight float64, activityLevel domain.ActivityLevel, goal domain.DietGoal, bodyType, muscle, skinTone, expression int, allergies string) error
 	AddPoint(ctx context.Context, userID int64, amount int) error
 	UpdateStreakOnMeal(userID int64, recordedAt time.Time) error
 	RecalculateStreak(userID int64) error
@@ -143,7 +143,7 @@ func (u *userUsecase) GetStats(id int64) (*UserStats, error) {
 	}, nil
 }
 
-func (u *userUsecase) UpdateProfile(id int64, nickname, profileImageURL string) error {
+func (u *userUsecase) UpdateProfile(id int64, nickname, profileImageURL, allergies string) error {
 	user, err := u.userRepo.GetByID(id)
 	if err != nil {
 		return err
@@ -155,6 +155,7 @@ func (u *userUsecase) UpdateProfile(id int64, nickname, profileImageURL string) 
 	if profileImageURL != "" {
 		user.ProfileImageURL = profileImageURL
 	}
+	user.Allergies = allergies
 
 	if err := u.userRepo.Update(user); err != nil {
 		return err
@@ -204,7 +205,7 @@ func (u *userUsecase) UpdateNutritionGoal(id int64, goal domain.DietGoal) error 
 	return u.userRepo.CreateOrUpdateNutritionGoal(nutritionGoal)
 }
 
-func (u *userUsecase) UpdateSettings(id int64, privacyLevel *domain.PrivacyLevel, notificationSettings any) error {
+func (u *userUsecase) UpdateSettings(id int64, privacyLevel *domain.PrivacyLevel, notificationSettings any, allergies *string) error {
 	user, err := u.userRepo.GetByID(id)
 	if err != nil {
 		return err
@@ -220,6 +221,10 @@ func (u *userUsecase) UpdateSettings(id int64, privacyLevel *domain.PrivacyLevel
 			return err
 		}
 		user.NotificationSettings = datatypes.JSON(b)
+	}
+
+	if allergies != nil {
+		user.Allergies = *allergies
 	}
 
 	if err := u.userRepo.Update(user); err != nil {
@@ -274,7 +279,7 @@ func (u *userUsecase) GetRecommendations(id int64) ([]domain.User, error) {
 	return u.userRepo.GetRecommendations(id, 10)
 }
 
-func (u *userUsecase) Onboarding(id int64, mukzziName string, height, weight float64, activityLevel domain.ActivityLevel, goal domain.DietGoal, bodyType, muscle, skinTone, expression int) error {
+func (u *userUsecase) Onboarding(id int64, mukzziName string, height, weight float64, activityLevel domain.ActivityLevel, goal domain.DietGoal, bodyType, muscle, skinTone, expression int, allergies string) error {
 	return u.db.Transaction(func(tx *gorm.DB) error {
 		// 1. 신체 정보 생성 또는 업데이트
 		body := &domain.UserBody{UserID: id}
@@ -347,6 +352,11 @@ func (u *userUsecase) Onboarding(id int64, mukzziName string, height, weight flo
 			}).FirstOrCreate(userReward).Error; err != nil {
 				return err
 			}
+		}
+
+		// 5. 유저 테이블에 알레르기 정보 저장
+		if err := tx.Model(&domain.User{}).Where("id = ?", id).Update("allergies", allergies).Error; err != nil {
+			return err
 		}
 
 		// 온보딩 완료 시 관련 캐시 무효화

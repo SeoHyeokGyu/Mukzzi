@@ -29,6 +29,12 @@ type MenuRecommendationRepository interface {
 
 	// FindPopularMenusByCategory 카테고리별 인기 메뉴 조회 (신규 유저 폴백용)
 	FindPopularMenusByCategory(excludeIDs []int64, limit int) ([]domain.Menu, error)
+
+	// FindUserAllergies 유저의 알레르기 문자열 조회
+	FindUserAllergies(userID int64) (string, error)
+
+	// FindMenuIDsByAllergens 알레르기 성분이 포함된 메뉴 ID 목록 조회
+	FindMenuIDsByAllergens(allergens []string) ([]int64, error)
 }
 
 type menuRecommendationRepository struct {
@@ -120,4 +126,30 @@ func (r *menuRecommendationRepository) FindPopularMenusByCategory(excludeIDs []i
 	var menus []domain.Menu
 	err := query.Find(&menus).Error
 	return menus, err
+}
+
+func (r *menuRecommendationRepository) FindUserAllergies(userID int64) (string, error) {
+	var allergies string
+	err := r.db.Model(&domain.User{}).Where("id = ? AND deleted_at IS NULL", userID).Pluck("allergies", &allergies).Error
+	return allergies, err
+}
+
+func (r *menuRecommendationRepository) FindMenuIDsByAllergens(allergens []string) ([]int64, error) {
+	if len(allergens) == 0 {
+		return []int64{}, nil
+	}
+	var ids []int64
+	query := r.db.Model(&domain.Menu{}).Where("deleted_at IS NULL")
+
+	// 각 알레르기 물질에 대해 LIKE 쿼리로 다중 OR 조건을 단다.
+	var subQuery *gorm.DB
+	for i, allergen := range allergens {
+		if i == 0 {
+			subQuery = r.db.Where("allergies LIKE ?", "%"+allergen+"%")
+		} else {
+			subQuery = subQuery.Or("allergies LIKE ?", "%"+allergen+"%")
+		}
+	}
+	err := query.Where(subQuery).Pluck("id", &ids).Error
+	return ids, err
 }

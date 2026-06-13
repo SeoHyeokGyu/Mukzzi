@@ -17,6 +17,10 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   late TextEditingController _emailController;
   late TextEditingController _passwordController;
   late TextEditingController _confirmPasswordController;
+  final Set<String> _selectedAllergies = {};
+  final List<String> _allergenList = const [
+    '우유', '계란', '밀', '대두', '땅콩', '새우', '게', '조개류', '생선', '돼지고기', '토마토', '복숭아'
+  ];
 
   @override
   void initState() {
@@ -26,6 +30,9 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     _emailController = TextEditingController(text: user?.email);
     _passwordController = TextEditingController();
     _confirmPasswordController = TextEditingController();
+    if (user != null && user.allergies.isNotEmpty) {
+      _selectedAllergies.addAll(user.allergies.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
+    }
   }
 
   @override
@@ -53,6 +60,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       nickname: _nicknameController.text,
       email: _emailController.text,
       password: _passwordController.text.isEmpty ? null : _passwordController.text,
+      allergies: _selectedAllergies.join(','),
     );
 
     final success = await ref.read(userProvider.notifier).updateProfile(
@@ -115,6 +123,43 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               decoration: const InputDecoration(
                 hintText: '비밀번호 확인',
               ),
+            ),
+            const SizedBox(height: 32),
+            const Divider(),
+            const SizedBox(height: 32),
+            Text('알레르기 정보', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Text(
+              '해당하는 알레르기 유발 성분을 선택해 주세요.',
+              style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _allergenList.map((allergen) {
+                final isSelected = _selectedAllergies.contains(allergen);
+                final primaryColor = Theme.of(context).primaryColor;
+                return FilterChip(
+                  label: Text(allergen),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    setState(() {
+                      if (selected) {
+                        _selectedAllergies.add(allergen);
+                      } else {
+                        _selectedAllergies.remove(allergen);
+                      }
+                    });
+                  },
+                  selectedColor: primaryColor.withValues(alpha: 0.15),
+                  checkmarkColor: primaryColor,
+                  labelStyle: TextStyle(
+                    color: isSelected ? primaryColor : null,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                );
+              }).toList(),
             ),
             const SizedBox(height: 48),
             if (userState.error != null)

@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
@@ -56,6 +57,27 @@ func (u *menuRecommendationUsecase) GetRecommendations(ctx context.Context, user
 	}
 	for _, id := range dislikedIDs {
 		excludeSet[id] = struct{}{}
+	}
+
+	// 3. 알레르기 성분 메뉴 제외
+	allergiesStr, err := u.recRepo.FindUserAllergies(userID)
+	if err == nil && allergiesStr != "" {
+		parts := strings.Split(allergiesStr, ",")
+		var allergens []string
+		for _, p := range parts {
+			trimmed := strings.TrimSpace(p)
+			if trimmed != "" {
+				allergens = append(allergens, trimmed)
+			}
+		}
+		if len(allergens) > 0 {
+			allergyMenuIDs, err := u.recRepo.FindMenuIDsByAllergens(allergens)
+			if err == nil {
+				for _, id := range allergyMenuIDs {
+					excludeSet[id] = struct{}{}
+				}
+			}
+		}
 	}
 
 	// 3. 신호 수집

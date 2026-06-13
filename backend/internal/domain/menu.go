@@ -34,6 +34,7 @@ type Menu struct {
 	DefaultFiber        float64      `gorm:"default:0"`
 	DefaultVitaminScore float64      `gorm:"default:0"`
 	Source              MenuSource   `gorm:"type:varchar(20);default:'USER'"`
+	Allergies           string       `gorm:"type:text;default:''" json:"allergies"`
 }
 
 // 쿼리/결과 타입

@@ -20,6 +20,7 @@ type UserResponse struct {
 	PrivacyLevel         string         `json:"privacy_level"`
 	Body                 any            `json:"body"`
 	IsAdmin              bool           `json:"is_admin"`
+	Allergies            string         `json:"allergies"`
 }
 
 func ToUserResponse(u *domain.User) UserResponse {
@@ -33,6 +34,7 @@ func ToUserResponse(u *domain.User) UserResponse {
 		PrivacyLevel:         string(u.PrivacyLevel),
 		Body:                 u.Body,
 		IsAdmin:              strconv.FormatInt(u.ID, 10) == os.Getenv("ADMIN_USER_ID"),
+		Allergies:            u.Allergies,
 	}
 	if u.EquippedTitle != nil {
 		resp.EquippedTitle = u.EquippedTitle
@@ -44,6 +46,7 @@ func ToUserResponse(u *domain.User) UserResponse {
 type UserUpdateRequest struct {
 	Nickname        string `json:"nickname" binding:"omitempty"`
 	ProfileImageURL string `json:"profile_image_url" binding:"omitempty"`
+	Allergies       string `json:"allergies" binding:"omitempty"`
 }
 
 // UserBodyUpdateRequest 는 신체 정보 수정 요청 데이터를 정의합니다.
@@ -70,6 +73,7 @@ const (
 type UserSettingsUpdateRequest struct {
 	PrivacyLevel         *domain.PrivacyLevel `json:"privacy_level" binding:"omitempty,oneof=PUBLIC FRIENDS PRIVATE"`
 	NotificationSettings datatypes.JSON       `json:"notification_settings" binding:"omitempty"`
+	Allergies            *string              `json:"allergies" binding:"omitempty"`
 }
 
 // UserSearchRequest 는 사용자 검색 요청 데이터를 정의합니다.
@@ -97,4 +101,5 @@ type OnboardingRequest struct {
 	Muscle        int                  `json:"muscle" binding:"min=0"`
 	SkinTone      int                  `json:"skin_tone" binding:"min=0"`
 	Expression    int                  `json:"expression" binding:"min=0"`
+	Allergies     string               `json:"allergies"`
 }

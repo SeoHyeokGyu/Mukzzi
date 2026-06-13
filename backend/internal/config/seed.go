@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -451,4 +452,69 @@ func backfillCharacterEquipment(db *gorm.DB) {
 			slog.Error("캐릭터 장비 백필 개별 갱신 실패", slog.Int64("character_id", eq.CharacterID), slog.String("slot", string(eq.Slot)), slog.Any("error", err))
 		}
 	}
+}
+
+func BackfillMenuAllergies(db *gorm.DB) {
+	var menus []domain.Menu
+	// allergies가 비어있거나 NULL인 메뉴만 조회
+	if err := db.Where("allergies = '' OR allergies IS NULL").Find(&menus).Error; err != nil {
+		slog.Error("기존 메뉴 조회 실패 (알레르기 백필용)", slog.Any("error", err))
+		return
+	}
+
+	if len(menus) == 0 {
+		return
+	}
+
+	slog.Info("기존 메뉴 알레르기 백필 시작", slog.Int("count", len(menus)))
+
+	db.Transaction(func(tx *gorm.DB) error {
+		for _, m := range menus {
+			var list []string
+			name := m.Name
+
+			if strings.Contains(name, "우유") || strings.Contains(name, "치즈") || strings.Contains(name, "라떼") || strings.Contains(name, "요거트") || strings.Contains(name, "버터") ||
+				strings.Contains(strings.ToLower(name), "milk") || strings.Contains(strings.ToLower(name), "cheese") || strings.Contains(strings.ToLower(name), "yogurt") || strings.Contains(strings.ToLower(name), "butter") {
+				list = append(list, "우유")
+			}
+			if strings.Contains(name, "땅콩") || strings.Contains(name, "피넛") || strings.Contains(strings.ToLower(name), "peanut") {
+				list = append(list, "땅콩")
+			}
+			if strings.Contains(name, "새우") || strings.Contains(name, "쉬림프") || strings.Contains(strings.ToLower(name), "shrimp") {
+				list = append(list, "새우")
+			}
+			if strings.Contains(name, "계란") || strings.Contains(name, "달걀") || strings.Contains(name, "에그") || strings.Contains(name, "메추리") || strings.Contains(strings.ToLower(name), "egg") {
+				list = append(list, "계란")
+			}
+			if strings.Contains(name, "밀가루") || strings.Contains(name, "빵") || strings.Contains(name, "면") || strings.Contains(name, "파스타") || strings.Contains(name, "국수") ||
+				strings.Contains(strings.ToLower(name), "wheat") || strings.Contains(strings.ToLower(name), "bread") || strings.Contains(strings.ToLower(name), "pasta") || strings.Contains(strings.ToLower(name), "noodle") {
+				list = append(list, "밀")
+			}
+			if strings.Contains(name, "대두") || strings.Contains(name, "두부") || strings.Contains(name, "콩") || strings.Contains(name, "된장") || strings.Contains(name, "간장") ||
+				strings.Contains(strings.ToLower(name), "soy") || strings.Contains(strings.ToLower(name), "tofu") {
+				list = append(list, "대두")
+			}
+			if strings.Contains(name, "게장") || strings.Contains(name, "꽃게") || strings.Contains(name, "크랩") || strings.Contains(strings.ToLower(name), "crab") {
+				list = append(list, "게")
+			}
+			if strings.Contains(name, "돼지") || strings.Contains(name, "돈가스") || strings.Contains(name, "삼겹살") || strings.Contains(name, "포크") ||
+				strings.Contains(strings.ToLower(name), "pork") || strings.Contains(strings.ToLower(name), "bacon") {
+				list = append(list, "돼지고기")
+			}
+			if strings.Contains(name, "복숭아") || strings.Contains(name, "피치") || strings.Contains(strings.ToLower(name), "peach") {
+				list = append(list, "복숭아")
+			}
+			if strings.Contains(name, "토마토") || strings.Contains(name, "케찹") || strings.Contains(strings.ToLower(name), "tomato") {
+				list = append(list, "토마토")
+			}
+
+			if len(list) > 0 {
+				m.Allergies = strings.Join(list, ",")
+				tx.Model(&domain.Menu{}).Where("id = ?", m.ID).Update("allergies", m.Allergies)
+			}
+		}
+		return nil
+	})
+
+	slog.Info("기존 메뉴 알레르기 백필 완료")
 }

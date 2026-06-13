@@ -115,7 +115,7 @@ func (h *UserHandler) UpdateMe(c *gin.Context) {
 		return
 	}
 
-	if err := h.userUsecase.UpdateProfile(userID.(int64), req.Nickname, req.ProfileImageURL); err != nil {
+	if err := h.userUsecase.UpdateProfile(userID.(int64), req.Nickname, req.ProfileImageURL, req.Allergies); err != nil {
 		InternalError(c, "프로필 수정에 실패했습니다.", err.Error())
 		return
 	}
@@ -212,7 +212,7 @@ func (h *UserHandler) UpdateSettings(c *gin.Context) {
 		return
 	}
 
-	if err := h.userUsecase.UpdateSettings(userID.(int64), req.PrivacyLevel, req.NotificationSettings); err != nil {
+	if err := h.userUsecase.UpdateSettings(userID.(int64), req.PrivacyLevel, req.NotificationSettings, req.Allergies); err != nil {
 		InternalError(c, "설정 수정에 실패했습니다.", err.Error())
 		return
 	}
@@ -359,6 +359,7 @@ func (h *UserHandler) Onboarding(c *gin.Context) {
 		req.Muscle,
 		req.SkinTone,
 		req.Expression,
+		req.Allergies,
 	)
 	if err != nil {
 		InternalError(c, "온보딩 처리에 실패했습니다.", err.Error())

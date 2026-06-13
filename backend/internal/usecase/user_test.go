@@ -45,7 +45,7 @@ func TestUserUsecase_UpdateProfile(t *testing.T) {
 		mockRepo.On("GetByID", int64(1)).Return(existingUser, nil)
 		mockRepo.On("Update", mock.Anything).Return(nil)
 
-		err := uc.UpdateProfile(1, "new", "new.jpg")
+		err := uc.UpdateProfile(1, "new", "new.jpg", "")
 
 		assert.NoError(t, err)
 		assert.Equal(t, "new", existingUser.Nickname)

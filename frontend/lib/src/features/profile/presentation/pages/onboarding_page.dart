@@ -27,6 +27,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   int _muscle = 0;
   int _skinTone = 0;
   int _expression = 0;
+  final Set<String> _selectedAllergies = {};
+  final List<String> _allergenList = const [
+    '우유', '계란', '밀', '대두', '땅콩', '새우', '게', '조개류', '생선', '돼지고기', '토마토', '복숭아'
+  ];
 
   @override
   void initState() {
@@ -53,7 +57,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       final w = double.tryParse(_weightController.text) ?? 0;
       return h > 0 && w > 0;
     }
-    if (_currentStep == 2) {
+    if (_currentStep == 3) {
       return _mukzziNameController.text.trim().isNotEmpty;
     }
     return true;
@@ -61,7 +65,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
   void _nextStep() {
     if (!_isCurrentStepValid) return;
-    if (_currentStep < 2) {
+    if (_currentStep < 3) {
       setState(() => _currentStep++);
       _pageController.animateToPage(_currentStep, duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
     } else {
@@ -87,6 +91,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       muscle: _muscle,
       skinTone: _skinTone,
       expression: _expression,
+      allergies: _selectedAllergies.join(','),
     );
     final success = await ref.read(userProvider.notifier).onboarding(request);
     if (success && mounted) context.go('/home');
@@ -100,7 +105,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
     return GradientScaffold(
       appBar: AppBar(
-        title: Text('${_currentStep + 1} / 3', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: tokens.textPrimary)),
+        title: Text('${_currentStep + 1} / 4', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: tokens.textPrimary)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -119,6 +124,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                 children: [
                   _buildScrollableStep(_buildPhysicalStep(tokens)),
                   _buildScrollableStep(_buildGoalStep(tokens)),
+                  _buildScrollableStep(_buildAllergyStep(tokens)),
                   _buildScrollableStep(_buildCharacterStep(tokens)),
                 ],
               ),
@@ -157,7 +163,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         Expanded(
           flex: 2,
           child: AppGradientButton(
-            label: _currentStep == 2 ? '먹찌와 시작하기' : '다음',
+            label: _currentStep == 3 ? '먹찌와 시작하기' : '다음',
             onPressed: _nextStep,
             isLoading: isLoading,
             isDisabled: !_isCurrentStepValid,
@@ -169,7 +175,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
   Widget _buildProgressIndicator(AppColorTokens tokens) {
     return Row(
-      children: List.generate(3, (index) {
+      children: List.generate(4, (index) {
         final isActive = index <= _currentStep;
         return Expanded(
           child: AnimatedContainer(
@@ -183,6 +189,51 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           ),
         );
       }),
+    );
+  }
+
+  Widget _buildAllergyStep(AppColorTokens tokens) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('알레르기 정보 설정', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: tokens.textPrimary)),
+        const SizedBox(height: 8),
+        Text('해당하는 알레르기 유발 성분을 모두 선택해주세요.\n추천 및 식단 관리 시 유용하게 사용됩니다.', style: TextStyle(fontSize: 14, color: tokens.textSub)),
+        const SizedBox(height: 32),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: _allergenList.map((allergen) {
+            final isSelected = _selectedAllergies.contains(allergen);
+            return FilterChip(
+              label: Text(allergen),
+              selected: isSelected,
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    _selectedAllergies.add(allergen);
+                  } else {
+                    _selectedAllergies.remove(allergen);
+                  }
+                });
+              },
+              backgroundColor: tokens.card,
+              selectedColor: tokens.primary.withValues(alpha: 0.2),
+              checkmarkColor: tokens.primary,
+              labelStyle: TextStyle(
+                color: isSelected ? tokens.primary : tokens.textPrimary,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: isSelected ? tokens.primary : tokens.textMuted.withValues(alpha: 0.1),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 
