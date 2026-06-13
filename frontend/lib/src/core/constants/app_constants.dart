@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 
 class AppConstants {
   // API
-  static const String apiBaseUrl = kDebugMode
-      ? 'http://localhost:8080/api'
-      : 'http://144.24.90.88:8080/api';
+  static String get apiBaseUrl {
+    if (kIsWeb) {
+      return '${Uri.base.origin}/api';
+    }
+    return kDebugMode
+        ? 'http://localhost:8080/api'
+        : 'http://144.24.90.88:8080/api';
+  }
   static const Duration apiTimeout = Duration(seconds: 30);
 
   // Storage Keys
