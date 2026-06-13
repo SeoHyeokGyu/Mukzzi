@@ -402,7 +402,9 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
           zIndex: 30,
         );
     final path = 'assets/svg/mukzzi2_${reward.assetUrl}.svg';
-    final layerSize = widget.size * config.scale;
+    final isBackground = config.slot == EquipmentSlot.background;
+    // background layer에 2% overscan을 적용해 SVG 경계 1px 아티팩트를 fade zone 안으로 밀어냄
+    final layerSize = widget.size * config.scale * (isBackground ? 1.02 : 1.0);
 
     Widget layer = SvgPicture.asset(
       path,
