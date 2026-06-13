@@ -442,7 +442,7 @@ func (h *SocialHandler) GetSocialFeed(c *gin.Context) {
 
 	mealResps := make([]dto.MealResponse, len(meals))
 	for i, m := range meals {
-		mealResps[i] = dto.ToMealResponse(&m)
+		mealResps[i] = dto.ToMealResponse(&m, getBaseURL(c))
 	}
 
 	Success(c, dto.SocialFeedResponse{

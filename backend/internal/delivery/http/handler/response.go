@@ -120,3 +120,12 @@ func InternalError(c *gin.Context, message string, details ...any) {
 func Conflict(c *gin.Context, code, message string, details ...any) {
 	Error(c, http.StatusConflict, code, message, details...)
 }
+
+// getBaseURL 은 요청 정보로부터 scheme(http/https)과 host를 조합해 Base URL을 구합니다.
+func getBaseURL(c *gin.Context) string {
+	scheme := "http"
+	if c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https" {
+		scheme = "https"
+	}
+	return scheme + "://" + c.Request.Host
+}
