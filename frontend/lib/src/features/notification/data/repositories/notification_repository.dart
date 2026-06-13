@@ -20,7 +20,7 @@ class NotificationRepository {
   /// 조건부 임포트된 SseClient를 통해 Web(HttpRequest) 또는 Mobile(Dio Stream)로 자동 분기됩니다.
   Stream<NotificationModel> subscribeToNotifications() {
     final token = _prefs.getString(AppConstants.accessTokenKey);
-    const baseUrl = AppConstants.apiBaseUrl;
+    final baseUrl = AppConstants.apiBaseUrl;
     
     // Web 환경일 경우 쿼리 파라미터 방식을 위해 URL 가공 (헤더 지원이 불안정할 경우 대비)
     final url = kIsWeb 
