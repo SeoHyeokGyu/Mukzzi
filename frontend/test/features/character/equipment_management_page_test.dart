@@ -150,6 +150,7 @@ Widget _wrap({
   required _FakeCharacterRepository characterRepository,
   required List<RewardModel> rewards,
   List<TitleModel> titles = const [],
+  String? initialTab,
   GoRouter? router,
 }) {
   final userRepository = _FakeUserRepository();
@@ -175,7 +176,7 @@ Widget _wrap({
           )
         : MaterialApp(
             theme: AppTheme.darkTheme,
-            home: const EquipmentManagementPage(),
+            home: EquipmentManagementPage(initialTab: initialTab),
           ),
   );
 }
@@ -500,25 +501,11 @@ void main() {
       final title2 = _title(id: 't2', name: '연속 도전자');
 
       await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            userRepositoryProvider.overrideWithValue(_FakeUserRepository()),
-            userProvider.overrideWith(
-              (ref) => UserNotifier(_FakeUserRepository(), initialUser: _adminUser),
-            ),
-            characterRepositoryProvider
-                .overrideWithValue(_FakeCharacterRepository(_character())),
-            characterProvider.overrideWith(
-              (ref) => _FakeCharacterRepository(_character()).getMyCharacter(),
-            ),
-            rewardListProvider.overrideWith((ref) async => <RewardModel>[]),
-            titleRepositoryProvider.overrideWithValue(_FakeTitleRepository()),
-            titleListProvider.overrideWith((ref) async => [title1, title2]),
-          ],
-          child: MaterialApp(
-            theme: AppTheme.darkTheme,
-            home: const EquipmentManagementPage(initialTab: 'title'),
-          ),
+        _wrap(
+          characterRepository: _FakeCharacterRepository(_character()),
+          rewards: [],
+          titles: [title1, title2],
+          initialTab: 'title',
         ),
       );
       await tester.pump();
