@@ -113,6 +113,7 @@ class MukzziCharacter extends StatelessWidget {
     'cook_hat',
     'donut',
     'background_kitchen',
+    'background_night',
     'wooden_spoon',
   };
 

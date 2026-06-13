@@ -355,6 +355,21 @@ func defaultRewards() []domain.Reward {
 		},
 		{
 			RewardType:  domain.RewardAccessory,
+			Code:        "NIGHT_BACKGROUND",
+			Name:        "야경 배경",
+			Description: "밤하늘과 도시 야경이 보이는 창문 배경입니다.",
+			AssetURL:    "background_night",
+			RenderConfig: &domain.RewardRenderConfig{
+				Slot:     domain.EquipmentSlotBackground,
+				OffsetX:  0,
+				OffsetY:  0,
+				Scale:    1.0,
+				Rotation: 0,
+				ZIndex:   -20,
+			},
+		},
+		{
+			RewardType:  domain.RewardAccessory,
 			Code:        "WOODEN_SPOON_ACCESSORY",
 			Name:        "나무 숟가락",
 			Description: "먹찌가 손에 쥐는 친환경 나무 숟가락입니다.",
