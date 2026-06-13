@@ -402,7 +402,8 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
           zIndex: 30,
         );
     final path = 'assets/svg/mukzzi2_${reward.assetUrl}.svg';
-    final layerSize = widget.size * config.scale;
+    final isBackground = config.slot == EquipmentSlot.background;
+    final layerSize = widget.size * config.scale * (isBackground ? 1.02 : 1.0);
 
     Widget layer = SvgPicture.asset(
       path,
@@ -415,7 +416,7 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
     // 중간 강도 정사각 가장자리 페이드: 각 축에서 중심 68% 구간은 솔리드,
     // 양 끝 16% 구간에서 알파 0으로 감쇠. 가로/세로 마스크 중첩이라
     // 모서리는 알파 곱으로 더 빨리 사라진다.
-    if (widget.backgroundEdgeFade && config.slot == EquipmentSlot.background) {
+    if (widget.backgroundEdgeFade && isBackground) {
       const fadeColors = [
         Colors.transparent,
         Colors.black,
