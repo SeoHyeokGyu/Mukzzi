@@ -549,7 +549,11 @@ class _FloatingParticles extends StatelessWidget {
         ],
     };
 
-    assert(particles.length == positions.length);
+    assert(
+      particles.length == positions.length,
+      '_FloatingParticles: particles.length (${particles.length}) != '
+      'positions.length (${positions.length}) for state $state',
+    );
 
     return SizedBox(
       width: size,
@@ -566,6 +570,7 @@ class _FloatingParticles extends StatelessWidget {
               style: TextStyle(fontSize: p.fontSize),
             )
                 .animate(onPlay: (c) => c.repeat())
+                // delay workaround: `.animate(delay:)` leaves pending timers in test env
                 .custom(
                   duration: p.delay,
                   builder: (_, __, child) => child,
