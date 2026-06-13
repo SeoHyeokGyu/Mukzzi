@@ -185,9 +185,9 @@ class ApiClient {
     }
   }
 
-  Future<dynamic> post(String path, {required dynamic data}) async {
+  Future<dynamic> post(String path, {required dynamic data, Options? options}) async {
     try {
-      final response = await _dio.post(path, data: data);
+      final response = await _dio.post(path, data: data, options: options);
       return response.data;
     } on DioException catch (e) {
       if (e.error is AppException) throw e.error!;

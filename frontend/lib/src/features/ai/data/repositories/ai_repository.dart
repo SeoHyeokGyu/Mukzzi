@@ -1,6 +1,6 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mukzzi/src/core/network/api_client.dart';
 import 'package:mukzzi/src/features/ai/data/models/ai_models.dart';
 
@@ -9,15 +9,21 @@ class AiRepository {
 
   AiRepository(this._apiClient);
 
-  Future<String> uploadImage(File file) async {
+  Future<String> uploadImage(XFile file) async {
+    final bytes = await file.readAsBytes();
     final formData = FormData.fromMap({
-      'file': await MultipartFile.fromFile(
-        file.path,
-        filename: file.path.split('/').last,
+      'file': MultipartFile.fromBytes(
+        bytes,
+        filename: file.name,
+        contentType: MediaType('image', file.name.split('.').last),
       ),
     });
 
-    final response = await _apiClient.post('/upload/image', data: formData);
+    final response = await _apiClient.post(
+      '/upload/image',
+      data: formData,
+      options: Options(contentType: 'multipart/form-data'),
+    );
     // response.data format: { "status": "success", "data": "http://..." }
     return response['data'] as String;
   }
