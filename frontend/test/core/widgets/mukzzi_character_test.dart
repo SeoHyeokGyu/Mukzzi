@@ -118,6 +118,20 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
 
+    testWidgets('hungry 상태에서 🔥 파티클이 3개 존재한다', (tester) async {
+      await pumpWithState(tester, CharacterState.hungry);
+      expect(find.text('🔥'), findsNWidgets(3));
+      await tester.pump(Duration.zero);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('starving 상태에서 ⚠️ 파티클이 3개 존재한다', (tester) async {
+      await pumpWithState(tester, CharacterState.starving);
+      expect(find.text('⚠️'), findsNWidgets(3));
+      await tester.pump(Duration.zero);
+      await tester.pumpWidget(const SizedBox());
+    });
+
     testWidgets('상태 전환 시 이전 파티클이 사라지고 새 파티클이 나타난다', (tester) async {
       final key = GlobalKey();
       CharacterState currentState = CharacterState.normal;

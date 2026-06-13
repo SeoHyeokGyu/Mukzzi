@@ -102,41 +102,6 @@ extension CharacterStateLabel on CharacterState {
     }
   }
 
-  // ignore: library_private_types_in_public_api
-  List<_ParticleData> get particles {
-    switch (this) {
-      case CharacterState.normal:
-        return const [
-          _ParticleData(icon: '✨', delay: Duration.zero,              duration: Duration(milliseconds: 2200)),
-          _ParticleData(icon: '✨', delay: Duration(milliseconds: 700),  duration: Duration(milliseconds: 2000)),
-          _ParticleData(icon: '✨', delay: Duration(milliseconds: 1400), duration: Duration(milliseconds: 2400)),
-        ];
-      case CharacterState.happy:
-        return const [
-          _ParticleData(icon: '♥', delay: Duration.zero,              duration: Duration(milliseconds: 1600)),
-          _ParticleData(icon: '♥', delay: Duration(milliseconds: 500),  duration: Duration(milliseconds: 1400)),
-          _ParticleData(icon: '♥', delay: Duration(milliseconds: 1000), duration: Duration(milliseconds: 1800)),
-        ];
-      case CharacterState.hungry:
-        return const [
-          _ParticleData(icon: '🔥', delay: Duration.zero,              duration: Duration(milliseconds: 1800)),
-          _ParticleData(icon: '🔥', delay: Duration(milliseconds: 600),  duration: Duration(milliseconds: 1600)),
-          _ParticleData(icon: '🔥', delay: Duration(milliseconds: 1200), duration: Duration(milliseconds: 2000)),
-        ];
-      case CharacterState.starving:
-        return const [
-          _ParticleData(icon: '⚠️', delay: Duration.zero,              duration: Duration(milliseconds: 1000)),
-          _ParticleData(icon: '⚠️', delay: Duration(milliseconds: 300),  duration: Duration(milliseconds: 900)),
-          _ParticleData(icon: '⚠️', delay: Duration(milliseconds: 600),  duration: Duration(milliseconds: 1100)),
-        ];
-      case CharacterState.sleeping:
-        return const [
-          _ParticleData(icon: 'z', delay: Duration.zero,              duration: Duration(milliseconds: 2800), fontSize: 14),
-          _ParticleData(icon: 'z', delay: Duration(milliseconds: 900),  duration: Duration(milliseconds: 2800), fontSize: 18),
-          _ParticleData(icon: 'z', delay: Duration(milliseconds: 1800), duration: Duration(milliseconds: 2800), fontSize: 22),
-        ];
-    }
-  }
 }
 
 class MukzziCharacter extends StatelessWidget {
@@ -552,10 +517,39 @@ class _FloatingParticles extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final particles = state.particles;
     final positions = state == CharacterState.sleeping
         ? _sleepingPositions
         : _positions;
+
+    final particles = switch (state) {
+      CharacterState.normal => const [
+          _ParticleData(icon: '✨', delay: Duration.zero, duration: Duration(milliseconds: 2200)),
+          _ParticleData(icon: '✨', delay: Duration(milliseconds: 700), duration: Duration(milliseconds: 2000)),
+          _ParticleData(icon: '✨', delay: Duration(milliseconds: 1400), duration: Duration(milliseconds: 2400)),
+        ],
+      CharacterState.happy => const [
+          _ParticleData(icon: '♥', delay: Duration.zero, duration: Duration(milliseconds: 1600)),
+          _ParticleData(icon: '♥', delay: Duration(milliseconds: 500), duration: Duration(milliseconds: 1400)),
+          _ParticleData(icon: '♥', delay: Duration(milliseconds: 1000), duration: Duration(milliseconds: 1800)),
+        ],
+      CharacterState.hungry => const [
+          _ParticleData(icon: '🔥', delay: Duration.zero, duration: Duration(milliseconds: 1800)),
+          _ParticleData(icon: '🔥', delay: Duration(milliseconds: 600), duration: Duration(milliseconds: 1600)),
+          _ParticleData(icon: '🔥', delay: Duration(milliseconds: 1200), duration: Duration(milliseconds: 2000)),
+        ],
+      CharacterState.starving => const [
+          _ParticleData(icon: '⚠️', delay: Duration.zero, duration: Duration(milliseconds: 1000)),
+          _ParticleData(icon: '⚠️', delay: Duration(milliseconds: 300), duration: Duration(milliseconds: 900)),
+          _ParticleData(icon: '⚠️', delay: Duration(milliseconds: 600), duration: Duration(milliseconds: 1100)),
+        ],
+      CharacterState.sleeping => const [
+          _ParticleData(icon: 'z', delay: Duration.zero, duration: Duration(milliseconds: 2800), fontSize: 14),
+          _ParticleData(icon: 'z', delay: Duration(milliseconds: 900), duration: Duration(milliseconds: 2800), fontSize: 18),
+          _ParticleData(icon: 'z', delay: Duration(milliseconds: 1800), duration: Duration(milliseconds: 2800), fontSize: 22),
+        ],
+    };
+
+    assert(particles.length == positions.length);
 
     return SizedBox(
       width: size,
