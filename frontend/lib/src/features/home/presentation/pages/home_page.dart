@@ -48,6 +48,7 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
+  // 캐릭터 페이지와 동일한 비례 공식 — 비례 동작 구간 333~444px
   static const double _heroWidthRatio = 0.45;
   static const double _heroMinCharSize = 150;
   static const double _heroMaxCharSize = 200;
