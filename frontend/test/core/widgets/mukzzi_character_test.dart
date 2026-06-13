@@ -75,6 +75,91 @@ void main() {
         find.descendant(of: loopFinder, matching: find.byKey(bgSvgKey)),
         findsNothing,
       );
+      await tester.pump(Duration.zero);
+      await tester.pumpWidget(const SizedBox());
+    });
+  });
+
+  group('_FloatingParticles', () {
+    Future<void> pumpWithState(
+      WidgetTester tester,
+      CharacterState state,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: MukzziCharacter(state: state, size: 200),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    testWidgets('normal 상태에서 ✨ 파티클이 3개 존재한다', (tester) async {
+      await pumpWithState(tester, CharacterState.normal);
+      expect(find.text('✨'), findsNWidgets(3));
+      await tester.pump(Duration.zero);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('happy 상태에서 ♥ 파티클이 3개 존재한다', (tester) async {
+      await pumpWithState(tester, CharacterState.happy);
+      expect(find.text('♥'), findsNWidgets(3));
+      await tester.pump(Duration.zero);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('sleeping 상태에서 z 파티클이 3개 존재한다', (tester) async {
+      await pumpWithState(tester, CharacterState.sleeping);
+      expect(find.text('z'), findsNWidgets(3));
+      await tester.pump(Duration.zero);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('상태 전환 시 이전 파티클이 사라지고 새 파티클이 나타난다', (tester) async {
+      final key = GlobalKey();
+      CharacterState currentState = CharacterState.normal;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: StatefulBuilder(
+            builder: (context, setState) => Scaffold(
+              body: Center(
+                child: MukzziCharacter(
+                  key: key,
+                  state: currentState,
+                  size: 200,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(find.text('✨'), findsNWidgets(3));
+
+      // 상태 변경
+      currentState = CharacterState.happy;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: MukzziCharacter(
+                key: key,
+                state: currentState,
+                size: 200,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(find.text('♥'), findsNWidgets(3));
+      expect(find.text('✨'), findsNothing);
+      await tester.pump(Duration.zero);
+      await tester.pumpWidget(const SizedBox());
     });
   });
 
@@ -89,6 +174,8 @@ void main() {
 
       // 정사각 페이드 = 가로/세로 LinearGradient 마스크 중첩 → ShaderMask 2개
       expect(find.byType(ShaderMask), findsNWidgets(2));
+      await tester.pump(Duration.zero);
+      await tester.pumpWidget(const SizedBox());
     });
 
     testWidgets('페이드 활성이어도 배경 미장착이면 ShaderMask가 없다', (tester) async {
@@ -99,6 +186,8 @@ void main() {
       );
 
       expect(find.byType(ShaderMask), findsNothing);
+      await tester.pump(Duration.zero);
+      await tester.pumpWidget(const SizedBox());
     });
 
     testWidgets('기본값(false)이면 배경을 장착해도 ShaderMask가 없다', (tester) async {
@@ -109,6 +198,8 @@ void main() {
       );
 
       expect(find.byType(ShaderMask), findsNothing);
+      await tester.pump(Duration.zero);
+      await tester.pumpWidget(const SizedBox());
     });
   });
 }
