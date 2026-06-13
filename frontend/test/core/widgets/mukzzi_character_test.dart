@@ -53,7 +53,8 @@ void main() {
         backgroundEdgeFade: true,
       );
 
-      expect(find.byType(ShaderMask), findsOneWidget);
+      // 정사각 페이드 = 가로/세로 LinearGradient 마스크 중첩 → ShaderMask 2개
+      expect(find.byType(ShaderMask), findsNWidgets(2));
     });
 
     testWidgets('페이드 활성이어도 배경 미장착이면 ShaderMask가 없다', (tester) async {
