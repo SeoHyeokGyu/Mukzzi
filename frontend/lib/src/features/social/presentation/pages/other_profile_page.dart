@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mukzzi/src/core/theme/app_theme.dart';
 import 'package:mukzzi/src/core/widgets/gradient_scaffold.dart';
 import 'package:mukzzi/src/core/widgets/bento_card.dart';
+import 'package:mukzzi/src/core/widgets/profile_avatar.dart';
 import 'package:mukzzi/src/features/profile/data/models/user_model.dart';
 import '../../../profile/presentation/providers/user_provider.dart';
 import '../providers/social_providers.dart';
@@ -46,8 +47,6 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
         }
 
         final user = snapshot.data!;
-        final hasImage = user.profileImageUrl != null && user.profileImageUrl!.isNotEmpty;
-        
         final isFriend = ref.watch(friendIdsProvider).contains(user.id);
         final isReceived = ref.watch(receivedRequestIdsProvider).contains(user.id);
         final isSent = ref.watch(sentRequestIdsProvider).contains(user.id);
@@ -62,10 +61,9 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
                   padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
                   child: Column(
                     children: [
-                      CircleAvatar(
+                      ProfileAvatar(
+                        profileImageUrl: user.profileImageUrl,
                         radius: 50,
-                        backgroundImage: hasImage ? NetworkImage(user.profileImageUrl!) : null,
-                        child: !hasImage ? const Icon(Icons.person, size: 50) : null,
                       ),
                       const SizedBox(height: 16),
                       Text(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mukzzi/src/core/theme/app_theme.dart';
 import 'package:mukzzi/src/core/widgets/gradient_scaffold.dart';
 import 'package:mukzzi/src/core/widgets/bento_card.dart';
+import 'package:mukzzi/src/core/widgets/profile_avatar.dart';
 import '../../../profile/presentation/providers/user_provider.dart';
 import '../providers/social_providers.dart';
 
@@ -77,14 +78,9 @@ class _GuestbookListPageState extends ConsumerState<GuestbookListPage> {
                           children: [
                             Row(
                               children: [
-                                CircleAvatar(
+                                ProfileAvatar(
+                                  profileImageUrl: entry.writer?.profileImageUrl,
                                   radius: 14,
-                                  backgroundImage: entry.writer?.profileImageUrl != null
-                                      ? NetworkImage(entry.writer!.profileImageUrl!)
-                                      : null,
-                                  child: entry.writer?.profileImageUrl == null
-                                      ? const Icon(Icons.person, size: 14)
-                                      : null,
                                 ),
                                 const SizedBox(width: 8),
                                 Text(

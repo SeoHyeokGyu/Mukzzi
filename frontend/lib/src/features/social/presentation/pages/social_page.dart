@@ -7,6 +7,7 @@ import 'package:mukzzi/src/core/widgets/gradient_scaffold.dart';
 import 'package:mukzzi/src/core/widgets/bento_card.dart';
 import 'package:mukzzi/src/core/widgets/collection_states.dart';
 import 'package:mukzzi/src/core/widgets/mukzzi_character.dart';
+import 'package:mukzzi/src/core/widgets/profile_avatar.dart';
 import '../providers/social_providers.dart';
 import '../../data/models/social_models.dart';
 import '../../data/models/feed_model.dart';
@@ -926,18 +927,13 @@ class _FriendListTabState extends ConsumerState<_FriendListTab> {
                           itemCount: filtered.length,
                           itemBuilder: (context, index) {
                             final friend = filtered[index];
-                            final hasImage = friend.profileImageUrl != null &&
-                                friend.profileImageUrl!.isNotEmpty;
                             return Padding(
                               padding: const EdgeInsets.symmetric(vertical: 6),
                               child: BentoCard(
                                 child: ListTile(
                                   onTap: () => context.push('/social/profile/${friend.id}'),
-                                  leading: CircleAvatar(
-                                    backgroundImage: hasImage
-                                        ? NetworkImage(friend.profileImageUrl!)
-                                        : null,
-                                    child: !hasImage ? const Icon(Icons.person) : null,
+                                  leading: ProfileAvatar(
+                                    profileImageUrl: friend.profileImageUrl,
                                   ),
                                   title: Text(friend.nickname ?? friend.username),
                                   subtitle: Text(friend.equippedTitle ?? '칭호 없음'),
@@ -1020,17 +1016,13 @@ class _FriendRequestTab extends ConsumerWidget {
           itemCount: requests.length,
           itemBuilder: (context, index) {
             final req = requests[index];
-            final hasImage =
-                req.profileImageUrl != null && req.profileImageUrl!.isNotEmpty;
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
               child: BentoCard(
                 child: ListTile(
                   onTap: () => context.push('/social/profile/${req.id}'),
-                  leading: CircleAvatar(
-                    backgroundImage:
-                        hasImage ? NetworkImage(req.profileImageUrl!) : null,
-                    child: !hasImage ? const Icon(Icons.person) : null,
+                  leading: ProfileAvatar(
+                    profileImageUrl: req.profileImageUrl,
                   ),
                   title: Text(req.nickname ?? req.username),
                   subtitle: const Text('친구 요청을 받았습니다'),
@@ -1147,7 +1139,6 @@ class _UserItemCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
-    final hasImage = user.profileImageUrl != null && user.profileImageUrl!.isNotEmpty;
     final isFriend = ref.watch(friendIdsProvider).contains(user.id);
     final isReceivedRequest = ref.watch(receivedRequestIdsProvider).contains(user.id);
     final isSentRequest = ref.watch(sentRequestIdsProvider).contains(user.id);
@@ -1162,10 +1153,7 @@ class _UserItemCard extends ConsumerWidget {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                CircleAvatar(
-                  backgroundImage: hasImage ? NetworkImage(user.profileImageUrl!) : null,
-                  child: !hasImage ? const Icon(Icons.person) : null,
-                ),
+                ProfileAvatar(profileImageUrl: user.profileImageUrl),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
