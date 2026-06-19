@@ -85,6 +85,7 @@ class CharacterPage extends ConsumerWidget {
                 equippedAccessory: char?.equippedAccessory?.assetUrl,
                 equipment: char?.equipment ?? const {},
                 backgroundEdgeFade: true,
+                enableAnimation: true,
               ),
             ),
             if (isAdmin) ...[

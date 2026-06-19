@@ -89,7 +89,11 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: Center(
-              child: MukzziCharacter(state: state, size: 200),
+              child: MukzziCharacter(
+                state: state,
+                size: 200,
+                enableAnimation: true,
+              ),
             ),
           ),
         ),
@@ -145,6 +149,7 @@ void main() {
                   key: key,
                   state: currentState,
                   size: 200,
+                  enableAnimation: true,
                 ),
               ),
             ),
@@ -164,6 +169,7 @@ void main() {
                 key: key,
                 state: currentState,
                 size: 200,
+                enableAnimation: true,
               ),
             ),
           ),
@@ -212,6 +218,50 @@ void main() {
       );
 
       expect(find.byType(ShaderMask), findsNothing);
+      await tester.pump(Duration.zero);
+      await tester.pumpWidget(const SizedBox());
+    });
+  });
+
+  group('enableAnimation', () {
+    testWidgets('enableAnimation: false → 파티클이 렌더링되지 않는다', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: MukzziCharacter(
+                state: CharacterState.normal,
+                size: 200,
+                enableAnimation: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('✨'), findsNothing);
+      await tester.pump(Duration.zero);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('enableAnimation: false → happy 상태에서도 파티클이 없다', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: MukzziCharacter(
+                state: CharacterState.happy,
+                size: 200,
+                enableAnimation: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('♥'), findsNothing);
       await tester.pump(Duration.zero);
       await tester.pumpWidget(const SizedBox());
     });

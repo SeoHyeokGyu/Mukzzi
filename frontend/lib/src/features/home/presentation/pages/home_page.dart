@@ -644,6 +644,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             equippedAccessory: char?.equippedAccessory?.assetUrl,
             equipment: char?.equipment ?? const {},
             backgroundEdgeFade: true,
+            enableAnimation: true,
           ),
         ),
       ],
