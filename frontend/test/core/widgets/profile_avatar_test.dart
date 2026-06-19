@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mukzzi/src/core/widgets/profile_avatar.dart';
@@ -15,6 +16,8 @@ void main() {
       await tester.pump();
 
       expect(find.byIcon(Icons.person), findsOneWidget);
+      final avatar = tester.widget<CircleAvatar>(find.byType(CircleAvatar));
+      expect(avatar.backgroundColor, isNotNull);
       await tester.pump(Duration.zero);
       await tester.pumpWidget(const SizedBox());
     });
@@ -47,6 +50,8 @@ void main() {
       await tester.pump();
 
       expect(find.byIcon(Icons.person), findsNothing);
+      final avatar = tester.widget<CircleAvatar>(find.byType(CircleAvatar));
+      expect(avatar.backgroundImage, isA<CachedNetworkImageProvider>());
       await tester.pump(Duration.zero);
       await tester.pumpWidget(const SizedBox());
     });
