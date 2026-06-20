@@ -98,6 +98,13 @@ class MealListNotifier extends StateNotifier<MealListState> {
   }
 
   void refresh() => fetch(refresh: true);
+
+  Future<void> delete(String id) async {
+    await _repo.delete(id);
+    state = state.copyWith(
+      records: state.records.where((r) => r.id != id).toList(),
+    );
+  }
 }
 
 final mealCreateProvider =
@@ -1345,7 +1352,7 @@ class _MealListTabState extends ConsumerState<_MealListTab> {
   }
 }
 
-class _MealListItem extends StatelessWidget {
+class _MealListItem extends ConsumerWidget {
   final MealRecord meal;
   final AppColorTokens tokens;
 
@@ -1435,8 +1442,258 @@ class _MealListItem extends StatelessWidget {
     );
   }
 
+  void _showDetailSheet(BuildContext context, WidgetRef ref) {
+    final mealType = MealTypeHelper.fromString(meal.mealType);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final tokens = Theme.of(ctx).extension<AppColorTokens>()!;
+        return DraggableScrollableSheet(
+          initialChildSize: 0.65,
+          minChildSize: 0.4,
+          maxChildSize: 0.92,
+          builder: (_, scrollCtrl) => Container(
+            decoration: BoxDecoration(
+              color: tokens.card,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: ListView(
+              controller: scrollCtrl,
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
+              children: [
+                // 핸들
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: tokens.textMuted.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+
+                // 헤더: 끼니 배지 + 음식명
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: tokens.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(mealType.icon, size: 13, color: tokens.primary),
+                          const SizedBox(width: 4),
+                          Text(
+                            mealType.label,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: tokens.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        meal.menuName,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  DateFormat('M월 d일 HH:mm').format(meal.recordedAt),
+                  style: TextStyle(fontSize: 12, color: tokens.textMuted),
+                ),
+
+                // 이미지
+                if (meal.imageUrl != null) ...[
+                  const SizedBox(height: 16),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _showImageDialog(context, meal.imageUrl!, meal.menuName);
+                    },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        meal.imageUrl!,
+                        height: 180,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 180,
+                          color: tokens.listItemBg,
+                          child: Icon(Icons.image_not_supported_outlined,
+                              color: tokens.textMuted),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 20),
+                Divider(color: tokens.textMuted.withValues(alpha: 0.1)),
+                const SizedBox(height: 16),
+
+                // 영양소 그리드
+                Text(
+                  '영양 정보',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: tokens.textSub,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  childAspectRatio: 2.6,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  children: [
+                    _NutrientTile(label: '칼로리', value: meal.calories, unit: 'kcal', tokens: tokens, highlight: true),
+                    _NutrientTile(label: '탄수화물', value: meal.carbs, unit: 'g', tokens: tokens),
+                    _NutrientTile(label: '단백질', value: meal.protein, unit: 'g', tokens: tokens),
+                    _NutrientTile(label: '지방', value: meal.fat, unit: 'g', tokens: tokens),
+                  ],
+                ),
+
+                // 별점
+                if (meal.rating != null) ...[
+                  const SizedBox(height: 16),
+                  Divider(color: tokens.textMuted.withValues(alpha: 0.1)),
+                  const SizedBox(height: 12),
+                  Text(
+                    '평점',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: tokens.textSub,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: List.generate(
+                      5,
+                      (i) => Icon(
+                        i < meal.rating! ? Icons.star_rounded : Icons.star_outline_rounded,
+                        size: 22,
+                        color: i < meal.rating!
+                            ? const Color(0xFFFFCC33)
+                            : tokens.textMuted.withValues(alpha: 0.3),
+                      ),
+                    ),
+                  ),
+                ],
+
+                // 메모 / 리뷰
+                if (meal.review != null && meal.review!.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Divider(color: tokens.textMuted.withValues(alpha: 0.1)),
+                  const SizedBox(height: 12),
+                  Text(
+                    '메모',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: tokens.textSub,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: tokens.listItemBg,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      meal.review!,
+                      style: TextStyle(fontSize: 14, color: tokens.textSub, height: 1.5),
+                    ),
+                  ),
+                ],
+
+                // 날씨 / 기분 태그
+                if (meal.weatherTag != null || meal.moodTag != null) ...[
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      if (meal.weatherTag != null)
+                        _TagChip(label: meal.weatherTag!, tokens: tokens),
+                      if (meal.moodTag != null)
+                        _TagChip(label: meal.moodTag!, tokens: tokens),
+                    ],
+                  ),
+                ],
+
+                const SizedBox(height: 24),
+                Divider(color: tokens.textMuted.withValues(alpha: 0.1)),
+                const SizedBox(height: 12),
+
+                // 삭제 버튼
+                TextButton.icon(
+                  onPressed: () async {
+                    final confirmed = await showDialog<bool>(
+                      context: ctx,
+                      builder: (dCtx) => AlertDialog(
+                        title: const Text('식사 기록 삭제'),
+                        content: Text('"${meal.menuName}" 기록을 삭제할까요?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dCtx, false),
+                            child: const Text('취소'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(dCtx, true),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.redAccent,
+                            ),
+                            child: const Text('삭제'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed == true && ctx.mounted) {
+                      Navigator.pop(ctx);
+                      await ref.read(mealListProvider.notifier).delete(meal.id);
+                    }
+                  },
+                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
+                  label: const Text('이 기록 삭제', style: TextStyle(color: Colors.redAccent)),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final timeStr = DateFormat('HH:mm').format(meal.recordedAt);
     final dateStr = DateFormat('M월 d일').format(meal.recordedAt);
 
@@ -1445,7 +1702,7 @@ class _MealListItem extends StatelessWidget {
       child: BentoCard(
         padding: const EdgeInsets.all(16),
         borderRadius: BorderRadius.circular(tokens.rCard),
-        onTap: () {},
+        onTap: () => _showDetailSheet(context, ref),
         child: Row(
           children: [
             if (meal.imageUrl != null)
@@ -1738,5 +1995,84 @@ class _QuestProgressOverlayItem extends StatelessWidget {
                   valueColor: AlwaysStoppedAnimation<Color>(
                       q.completed ? Colors.green : tokens.primary)))
         ]));
+  }
+}
+
+// ─────────────────────────────────────────
+// 식사 상세 시트 헬퍼 위젯
+// ─────────────────────────────────────────
+
+class _NutrientTile extends StatelessWidget {
+  final String label;
+  final double? value;
+  final String unit;
+  final AppColorTokens tokens;
+  final bool highlight;
+
+  const _NutrientTile({
+    required this.label,
+    required this.value,
+    required this.unit,
+    required this.tokens,
+    this.highlight = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: highlight
+            ? tokens.primary.withValues(alpha: 0.08)
+            : tokens.listItemBg,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: highlight ? tokens.primary : tokens.textMuted,
+              fontWeight: highlight ? FontWeight.w600 : FontWeight.w400,
+            ),
+          ),
+          Text(
+            value != null ? '${value!.toStringAsFixed(1)} $unit' : '-',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: highlight ? tokens.primary : tokens.textSub,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TagChip extends StatelessWidget {
+  final String label;
+  final AppColorTokens tokens;
+
+  const _TagChip({required this.label, required this.tokens});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: tokens.listItemBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: tokens.textMuted.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 12, color: tokens.textSub),
+      ),
+    );
   }
 }

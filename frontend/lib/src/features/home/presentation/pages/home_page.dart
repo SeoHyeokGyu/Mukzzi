@@ -449,6 +449,9 @@ class _HomePageState extends ConsumerState<HomePage> {
       AppColorTokens tokens, List<WeeklyNutritionItemModel> weekly) {
     if (weekly.isEmpty) return const SizedBox.shrink();
 
+    final disableAnims = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final chartDuration = disableAnims ? Duration.zero : const Duration(milliseconds: 150);
+
     // 탄단지 합산 최대치 계산 (BarChart rod 최대 높이 결정용)
     double maxNutrientSum = 0;
     for (var item in weekly) {
@@ -549,6 +552,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       );
                     }).toList(),
                   ),
+                  duration: chartDuration,
                 ),
                 
                 // 2. 전방: 칼로리 꺾은선 그래프 (LineChart)
@@ -591,6 +595,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         ),
                       ],
                     ),
+                    duration: chartDuration,
                   ),
                 ),
               ],
@@ -745,6 +750,8 @@ class _HomePageState extends ConsumerState<HomePage> {
             tooltipBackgroundColor: tokens.primary,
             textColor: Colors.white,
             disableDefaultTargetGestures: true,
+            disableMovingAnimation: MediaQuery.of(context).disableAnimations,
+            disableScaleAnimation: MediaQuery.of(context).disableAnimations,
             child: Semantics(
               label: '먹찌 밥 주기',
               button: true,
@@ -820,6 +827,9 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _buildNutritionCard(
       AppColorTokens tokens, DailyNutritionModel? nutrition) {
+    final disableAnims = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final chartDuration = disableAnims ? Duration.zero : const Duration(milliseconds: 150);
+
     final consumed = nutrition?.totalCalories ?? 0;
     final goal = nutrition?.nutritionGoal?.calorieGoal ??
         AppConstants.defaultDailyCalorieGoal;
@@ -873,6 +883,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
                     ],
                   ),
+                  duration: chartDuration,
                 ),
                 Column(
                   mainAxisSize: MainAxisSize.min,
@@ -970,69 +981,74 @@ class _HomePageState extends ConsumerState<HomePage> {
             final mealType = MealTypeHelper.fromString(meal.mealType);
             final timeStr = DateFormat('a h:mm', 'ko').format(meal.recordedAt);
 
+            final card = BentoCard(
+              borderRadius: BorderRadius.circular(tokens.rItem),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: tokens.listItemBg,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center(
+                      child: Icon(mealType.icon,
+                          color: tokens.primary, size: 20),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(meal.menuName,
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: tokens.textPrimary)),
+                        Text(timeStr,
+                            style: TextStyle(
+                                fontSize: 11, color: tokens.textMuted)),
+                      ],
+                    ),
+                  ),
+                  RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '${meal.calories?.toInt() ?? 0}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: tokens.textPrimary,
+                          ),
+                        ),
+                        TextSpan(
+                          text: ' kcal',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                            color: tokens.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+
+            final disableAnims = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: BentoCard(
-                borderRadius: BorderRadius.circular(tokens.rItem),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: tokens.listItemBg,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Center(
-                        child: Icon(mealType.icon,
-                            color: tokens.primary, size: 20),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(meal.menuName,
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                  color: tokens.textPrimary)),
-                          Text(timeStr,
-                              style: TextStyle(
-                                  fontSize: 11, color: tokens.textMuted)),
-                        ],
-                      ),
-                    ),
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: '${meal.calories?.toInt() ?? 0}',
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: tokens.textPrimary,
-                            ),
-                          ),
-                          TextSpan(
-                            text: ' kcal',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                              color: tokens.textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              )
-                  .animate(delay: Duration(milliseconds: 240 + i * 60))
-                  .fadeIn(duration: 250.ms),
+              child: disableAnims
+                  ? card
+                  : card
+                      .animate(delay: Duration(milliseconds: 240 + i * 60))
+                      .fadeIn(duration: 250.ms),
             );
           })),
       ],

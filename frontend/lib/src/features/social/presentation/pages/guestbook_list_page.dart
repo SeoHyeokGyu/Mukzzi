@@ -80,6 +80,7 @@ class _GuestbookListPageState extends ConsumerState<GuestbookListPage> {
                               children: [
                                 ProfileAvatar(
                                   profileImageUrl: entry.writer?.profileImageUrl,
+                                  nickname: entry.writer?.nickname,
                                   radius: 14,
                                 ),
                                 const SizedBox(width: 8),

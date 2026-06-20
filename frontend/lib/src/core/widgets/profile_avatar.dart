@@ -4,16 +4,20 @@ import 'package:flutter/material.dart';
 class ProfileAvatar extends StatelessWidget {
   final String? profileImageUrl;
   final double radius;
+  final String? nickname;
 
   const ProfileAvatar({
     super.key,
     this.profileImageUrl,
     this.radius = 20,
+    this.nickname,
   });
 
   @override
   Widget build(BuildContext context) {
     final hasImage = profileImageUrl != null && profileImageUrl!.isNotEmpty;
+    final initial = (nickname != null && nickname!.isNotEmpty) ? nickname![0] : null;
+
     return CircleAvatar(
       radius: radius,
       backgroundImage: hasImage
@@ -22,7 +26,18 @@ class ProfileAvatar extends StatelessWidget {
       backgroundColor: hasImage
           ? null
           : Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: hasImage ? null : Icon(Icons.person, size: radius),
+      child: hasImage
+          ? null
+          : (initial != null
+              ? Text(
+                  initial,
+                  style: TextStyle(
+                    fontSize: radius * 0.9,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                )
+              : Icon(Icons.person, size: radius)),
     );
   }
 }

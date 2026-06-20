@@ -39,10 +39,10 @@
   </defs>
 
   <!-- 방 배경 (앱 배경색과 동일) -->
-  <rect width="1000" height="1000" fill="url(#roomBg)" />
+  <rect x="-2" y="-2" width="1004" height="1004" fill="url(#roomBg)" />
 
   <!-- 바닥 -->
-  <rect x="0" y="760" width="1000" height="240" fill="url(#floorBg)" />
+  <rect x="-2" y="760" width="1004" height="242" fill="url(#floorBg)" />
   <!-- 바닥 목재 결 -->
   <g stroke="#2E2418" stroke-width="1.5" opacity="0.6">
     <line x1="0" y1="800" x2="1000" y2="800" />
@@ -52,7 +52,7 @@
     <line x1="0" y1="960" x2="1000" y2="960" />
   </g>
   <!-- 바닥/벽 경계선 -->
-  <rect x="0" y="756" width="1000" height="6" fill="#2E2418" />
+  <rect x="-2" y="756" width="1004" height="6" fill="#2E2418" />
 
   <!-- 창문 프레임 외곽 -->
   <rect x="258" y="108" width="484" height="584" rx="16" fill="#3A2D1E" />

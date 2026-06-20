@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
+import '../../../../core/widgets/profile_avatar.dart';
 import '../providers/user_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../character/presentation/providers/title_provider.dart';
@@ -238,7 +239,7 @@ class _ProfileHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final initial = nickname.isNotEmpty ? nickname[0] : '?';
+    final userState = ref.watch(userProvider);
     final equippedTitle = ref.watch(equippedTitleProvider).maybeWhen(
       data: (t) => t?.name,
       orElse: () => null,
@@ -249,23 +250,10 @@ class _ProfileHeader extends ConsumerWidget {
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: tokens.primaryBg,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                initial,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: tokens.primary,
-                ),
-              ),
-            ),
+          ProfileAvatar(
+            profileImageUrl: userState.user?.profileImageUrl,
+            nickname: nickname,
+            radius: 32,
           ),
           const SizedBox(width: 16),
           Expanded(

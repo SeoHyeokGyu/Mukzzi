@@ -21,7 +21,7 @@
   </defs>
 
   <!-- 1. 기본 벽면 배경 -->
-  <rect width="1000" height="1000" fill="url(#wallBg)" />
+  <rect x="-2" y="-2" width="1004" height="1004" fill="url(#wallBg)" />
 
   <!-- 2. 주방 타일 격자선 (은은한 피치톤) -->
   <g stroke="#EFE5D8" stroke-width="2">
@@ -93,8 +93,8 @@
   </g>
 
   <!-- 6. 조리대 베이스 (하단부) -->
-  <rect x="0" y="740" width="1000" height="260" fill="url(#counterBg)" />
-  <rect x="0" y="730" width="1000" height="12" fill="#C68B45" />
+  <rect x="-2" y="740" width="1004" height="262" fill="url(#counterBg)" />
+  <rect x="-2" y="730" width="1004" height="12" fill="#C68B45" />
 
   <!-- 7. 좌측 하단: 입체적인 대형 치즈 아이콘 (소품 연출) -->
   <g filter="url(#shadow)">
