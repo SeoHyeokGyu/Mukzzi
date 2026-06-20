@@ -63,6 +63,7 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
                     children: [
                       ProfileAvatar(
                         profileImageUrl: user.profileImageUrl,
+                        nickname: user.nickname ?? user.username,
                         radius: 50,
                       ),
                       const SizedBox(height: 16),

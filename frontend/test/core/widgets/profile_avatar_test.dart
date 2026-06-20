@@ -22,6 +22,22 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
 
+    testWidgets('profileImageUrl null + nickname 지정 → nickname 첫 자 노출', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: ProfileAvatar(profileImageUrl: null, nickname: '길동'),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('길'), findsOneWidget);
+      expect(find.byIcon(Icons.person), findsNothing);
+      await tester.pump(Duration.zero);
+      await tester.pumpWidget(const SizedBox());
+    });
+
     testWidgets('profileImageUrl 빈 문자열 → Icons.person 노출', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
