@@ -14,6 +14,7 @@ import (
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/infrastructure/gemini"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
+	"github.com/redis/go-redis/v9"
 )
 
 // ─────────────────────────────────────────
@@ -107,6 +108,7 @@ type mealUsecase struct {
 	badgeGranter        BadgeGranter
 	geminiClient        *gemini.Client
 	db                  *gorm.DB
+	rdb                 *redis.Client
 }
 
 func NewMealUsecase(
@@ -123,6 +125,7 @@ func NewMealUsecase(
 	badgeGranter BadgeGranter,
 	geminiClient *gemini.Client,
 	db *gorm.DB,
+	rdb *redis.Client,
 ) MealUsecase {
 	return &mealUsecase{
 		mealRepo:            mealRepo,
@@ -138,6 +141,7 @@ func NewMealUsecase(
 		badgeGranter:        badgeGranter,
 		geminiClient:        geminiClient,
 		db:                  db,
+		rdb:                 rdb,
 	}
 }
 
@@ -334,7 +338,35 @@ func (u *mealUsecase) CreateMeal(input CreateMealInput) (*CreateMealOutput, erro
 		AppearanceChanged: appearanceEvent,
 	}
 
+	// 식사 등록 시 AI 캐시 무효화
+	go u.invalidateAICache(input.UserID)
+
 	return &output, nil
+}
+
+// invalidateAICache 는 식사 변경 시 해당 유저의 AI 캐시를 무효화합니다.
+func (u *mealUsecase) invalidateAICache(userID int64) {
+	if u.rdb == nil {
+		return
+	}
+	ctx := context.Background()
+	todayStr := time.Now().Format("2006-01-02")
+
+	// 영양 코칭 캐시 삭제
+	coachingKey := fmt.Sprintf("ai:coaching:%d:%s", userID, todayStr)
+	if err := u.rdb.Del(ctx, coachingKey).Err(); err != nil {
+		slog.Warn("AI 코칭 캐시 삭제 실패", slog.Int64("user_id", userID), slog.Any("error", err))
+	}
+
+	// 식단 추천 캐시 삭제 (전 끼니 타입 패턴 스캔)
+	pattern := fmt.Sprintf("ai:recommend:%d:*:%s", userID, todayStr)
+	keys, err := u.rdb.Keys(ctx, pattern).Result()
+	if err == nil && len(keys) > 0 {
+		if err := u.rdb.Del(ctx, keys...).Err(); err != nil {
+			slog.Warn("AI 추천 캐시 삭제 실패", slog.Int64("user_id", userID), slog.Any("error", err))
+		}
+	}
+	slog.Info("AI 캐시 무효화 완료", slog.Int64("user_id", userID))
 }
 
 func (u *mealUsecase) GetMeal(mealID int64, userID int64) (*domain.MealRecord, error) {
@@ -418,6 +450,10 @@ func (u *mealUsecase) UpdateMeal(input UpdateMealInput) (*domain.MealRecord, err
 	if err := u.mealRepo.Update(meal); err != nil {
 		return nil, err
 	}
+
+	// 식사 수정 시 AI 캐시 무효화
+	go u.invalidateAICache(input.UserID)
+
 	return meal, nil
 }
 
@@ -434,6 +470,9 @@ func (u *mealUsecase) DeleteMeal(mealID int64, userID int64) error {
 	if err := u.userUc.RecalculateStreak(userID); err != nil {
 		slog.Error("식사 삭제 후 스트릭 재계산 실패", slog.Int64("user_id", userID), slog.Any("error", err))
 	}
+
+	// 식사 삭제 시 AI 캐시 무효화
+	go u.invalidateAICache(userID)
 
 	return nil
 }

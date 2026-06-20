@@ -236,7 +236,7 @@ func main() {
 	// Meal 도메인
 	masteryTracker := usecase.NewMasteryTracker(masteryRepo)
 	titleGranter := usecase.NewTitleGranter(titleRepo)
-	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, userUsecase, masteryTracker, titleGranter, notificationUsecase, eventBus, questUsecase, badgeGranter, geminiClient, db)
+	mealUsecase := usecase.NewMealUsecase(mealRepo, nutritionRepo, tagRepo, menuRepo, userUsecase, masteryTracker, titleGranter, notificationUsecase, eventBus, questUsecase, badgeGranter, geminiClient, db, rdb)
 	mealHandler := handler.NewMealHandler(mealUsecase)
 
 	// Roulette 도메인
@@ -254,7 +254,7 @@ func main() {
 	recHandler := handler.NewMenuRecommendationHandler(recUc)
 
 	// AI 도메인 라우터/핸들러 연동
-	aiUc := usecase.NewAIUsecase(geminiClient, dailyIntakeRepo, mealRepo, userRepo, preferenceRepo)
+	aiUc := usecase.NewAIUsecase(geminiClient, dailyIntakeRepo, mealRepo, userRepo, preferenceRepo, rdb)
 	aiHandler := handler.NewAIHandler(aiUc)
 
 	// 업로드 핸들러

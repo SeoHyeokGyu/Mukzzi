@@ -9,6 +9,7 @@ import (
 
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/domain"
 	"github.com/SeoHyeokGyu/Mukzzi/backend/internal/repository"
+	"github.com/redis/go-redis/v9"
 )
 
 // GeminiClient 는 외부 API 통신을 추상화한 인터페이스입니다 (테스트 Mocking용)
@@ -77,6 +78,7 @@ type aiUsecase struct {
 	mealRepo        repository.MealRepository
 	userRepo        repository.UserRepository
 	preferenceRepo  repository.PreferenceRepository
+	rdb             *redis.Client
 }
 
 func NewAIUsecase(
@@ -85,6 +87,7 @@ func NewAIUsecase(
 	mealRepo repository.MealRepository,
 	userRepo repository.UserRepository,
 	preferenceRepo repository.PreferenceRepository,
+	rdb *redis.Client,
 ) AIUsecase {
 	return &aiUsecase{
 		geminiClient:    client,
@@ -92,6 +95,7 @@ func NewAIUsecase(
 		mealRepo:        mealRepo,
 		userRepo:        userRepo,
 		preferenceRepo:  preferenceRepo,
+		rdb:             rdb,
 	}
 }
 
@@ -126,6 +130,20 @@ func (u *aiUsecase) AnalyzeMealImage(ctx context.Context, input AnalyzeMealInput
 }
 
 func (u *aiUsecase) RecommendMeal(ctx context.Context, input RecommendMealInput) (*RecommendMealOutput, error) {
+	todayStr := time.Now().Format("2006-01-02")
+	cacheKey := fmt.Sprintf("ai:recommend:%d:%s:%s", input.UserID, input.MealType, todayStr)
+
+	// 1. Redis 캐시 조회
+	if u.rdb != nil {
+		if val, err := u.rdb.Get(ctx, cacheKey).Result(); err == nil {
+			var cachedOutput RecommendMealOutput
+			if err := json.Unmarshal([]byte(val), &cachedOutput); err == nil {
+				slog.Info("AI 식단 추천 캐시 Hit", slog.Int64("user_id", input.UserID), slog.String("meal_type", string(input.MealType)))
+				return &cachedOutput, nil
+			}
+		}
+	}
+
 	today := time.Now()
 	dailyIntake, err := u.dailyIntakeRepo.FindByUserIDAndDate(input.UserID, today)
 	
@@ -163,12 +181,39 @@ func (u *aiUsecase) RecommendMeal(ctx context.Context, input RecommendMealInput)
 		return nil, fmt.Errorf("failed to parse AI response: %w", err)
 	}
 
+	// 2. Redis 캐시 저장
+	if u.rdb != nil {
+		if cacheVal, err := json.Marshal(output); err == nil {
+			now := time.Now()
+			midnight := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location())
+			ttl := midnight.Sub(now)
+			if ttl < 5*time.Minute {
+				ttl = 24 * time.Hour
+			}
+			_ = u.rdb.Set(ctx, cacheKey, cacheVal, ttl).Err()
+			slog.Info("AI 식단 추천 캐시 Set", slog.Int64("user_id", input.UserID), slog.String("meal_type", string(input.MealType)), slog.Duration("ttl", ttl))
+		}
+	}
+
 	return &output, nil
 }
 
 func (u *aiUsecase) GetNutritionCoaching(ctx context.Context, input NutritionCoachingInput) (*NutritionCoachingOutput, error) {
 	if input.Date == "" {
 		input.Date = time.Now().Format(time.DateOnly)
+	}
+
+	cacheKey := fmt.Sprintf("ai:coaching:%d:%s", input.UserID, input.Date)
+
+	// 1. Redis 캐시 조회
+	if u.rdb != nil {
+		if val, err := u.rdb.Get(ctx, cacheKey).Result(); err == nil {
+			var cachedOutput NutritionCoachingOutput
+			if err := json.Unmarshal([]byte(val), &cachedOutput); err == nil {
+				slog.Info("AI 영양 코칭 캐시 Hit", slog.Int64("user_id", input.UserID), slog.String("date", input.Date))
+				return &cachedOutput, nil
+			}
+		}
 	}
 
 	dateObj, err := time.Parse(time.DateOnly, input.Date)
@@ -218,6 +263,26 @@ func (u *aiUsecase) GetNutritionCoaching(ctx context.Context, input NutritionCoa
 	if err := json.Unmarshal([]byte(jsonRes), &output); err != nil {
 		slog.Warn("Gemini 응답 파싱 실패, 룰 기반 영양 코칭 Fallback 실행", slog.Any("error", err))
 		return u.generateFallbackCoaching(input.UserID, dailyIntake), nil
+	}
+
+	// 2. Redis 캐시 저장
+	if u.rdb != nil {
+		if cacheVal, err := json.Marshal(output); err == nil {
+			var ttl time.Duration
+			now := time.Now()
+			todayStr := now.Format(time.DateOnly)
+			if input.Date == todayStr {
+				midnight := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location())
+				ttl = midnight.Sub(now)
+				if ttl < 5*time.Minute {
+					ttl = 24 * time.Hour
+				}
+			} else {
+				ttl = 24 * time.Hour
+			}
+			_ = u.rdb.Set(ctx, cacheKey, cacheVal, ttl).Err()
+			slog.Info("AI 영양 코칭 캐시 Set", slog.Int64("user_id", input.UserID), slog.String("date", input.Date), slog.Duration("ttl", ttl))
+		}
 	}
 
 	return &output, nil
