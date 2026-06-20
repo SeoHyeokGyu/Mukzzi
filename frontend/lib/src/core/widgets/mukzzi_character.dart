@@ -453,28 +453,35 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
       height: layerSize,
       fit: BoxFit.contain,
     );
-    // 배경 레이어: SVG 자체 외곽 테두리 픽셀이 보이지 않도록
-    // 모든 방향으로 약 2px 오버스캔한 뒤 ClipRect 로 잘라냅니다.
+
     if (isBackground) {
-      const overscan = 2.0;
-      layer = ClipRect(
-        child: OverflowBox(
-          maxWidth: layerSize + overscan * 2,
-          maxHeight: layerSize + overscan * 2,
-          child: SvgPicture.asset(
-            path,
-            key: ValueKey(path),
-            width: layerSize + overscan * 2,
-            height: layerSize + overscan * 2,
-            fit: BoxFit.contain,
-          ),
+      // SVG 파일의 배경 rect가 viewBox 밖(-2~1002)으로 블리드되도록 수정됐으므로
+      // 렌더링 경계 anti-alias 픽셀이 뷰박스 안쪽에 생기지 않습니다.
+      // 추가로 가장 바깥 1% 알파를 0으로 만들어 잔여 서브픽셀 번짐을 제거합니다.
+      const edgeColors = [Colors.transparent, Colors.black, Colors.black, Colors.transparent];
+      const edgeStops = [0.0, 0.01, 0.99, 1.0];
+      layer = ShaderMask(
+        shaderCallback: (bounds) => const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: edgeColors,
+          stops: edgeStops,
+        ).createShader(bounds),
+        blendMode: BlendMode.dstIn,
+        child: ShaderMask(
+          shaderCallback: (bounds) => const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: edgeColors,
+            stops: edgeStops,
+          ).createShader(bounds),
+          blendMode: BlendMode.dstIn,
+          child: layer,
         ),
       );
     }
 
-    // 중간 강도 정사각 가장자리 페이드: 각 축에서 중심 68% 구간은 솔리드,
-    // 양 끝 16% 구간에서 알파 0으로 감쇠. 가로/세로 마스크 중첩이라
-    // 모서리는 알파 곱으로 더 빨리 사라진다.
+    // backgroundEdgeFade 옵션: 중심부까지 소프트하게 페이드
     if (widget.backgroundEdgeFade && isBackground) {
       const fadeColors = [
         Colors.transparent,
@@ -482,7 +489,7 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
         Colors.black,
         Colors.transparent,
       ];
-      const fadeStops = [0.03, 0.16, 0.84, 0.97];
+      const fadeStops = [0.01, 0.16, 0.84, 0.99];
       layer = ShaderMask(
         shaderCallback: (bounds) => const LinearGradient(
           begin: Alignment.centerLeft,
@@ -516,6 +523,8 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
     );
   }
 }
+
+
 
 class _ParticleData {
   final String icon;
