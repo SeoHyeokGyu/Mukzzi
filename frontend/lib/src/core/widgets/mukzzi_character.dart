@@ -444,7 +444,7 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
         );
     final path = 'assets/svg/mukzzi2_${reward.assetUrl}.svg';
     final isBackground = config.slot == EquipmentSlot.background;
-    final layerSize = widget.size * config.scale * (isBackground ? 1.02 : 1.0);
+    final layerSize = (widget.size * config.scale * (isBackground ? 1.02 : 1.0)).roundToDouble();
 
     Widget layer = SvgPicture.asset(
       path,
@@ -453,6 +453,24 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
       height: layerSize,
       fit: BoxFit.contain,
     );
+    // 배경 레이어: SVG 자체 외곽 테두리 픽셀이 보이지 않도록
+    // 모든 방향으로 약 2px 오버스캔한 뒤 ClipRect 로 잘라냅니다.
+    if (isBackground) {
+      const overscan = 2.0;
+      layer = ClipRect(
+        child: OverflowBox(
+          maxWidth: layerSize + overscan * 2,
+          maxHeight: layerSize + overscan * 2,
+          child: SvgPicture.asset(
+            path,
+            key: ValueKey(path),
+            width: layerSize + overscan * 2,
+            height: layerSize + overscan * 2,
+            fit: BoxFit.contain,
+          ),
+        ),
+      );
+    }
 
     // 중간 강도 정사각 가장자리 페이드: 각 축에서 중심 68% 구간은 솔리드,
     // 양 끝 16% 구간에서 알파 0으로 감쇠. 가로/세로 마스크 중첩이라
@@ -464,7 +482,7 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
         Colors.black,
         Colors.transparent,
       ];
-      const fadeStops = [0.0, 0.16, 0.84, 1.0];
+      const fadeStops = [0.03, 0.16, 0.84, 0.97];
       layer = ShaderMask(
         shaderCallback: (bounds) => const LinearGradient(
           begin: Alignment.centerLeft,
