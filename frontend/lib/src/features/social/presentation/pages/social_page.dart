@@ -165,7 +165,6 @@ class _FeedCardState extends State<_FeedCard> {
   Widget build(BuildContext context) {
     final post = widget.post;
     final tokens = widget.tokens;
-    final hasImage = post.user.profileImageUrl != null && post.user.profileImageUrl!.isNotEmpty;
 
     return BentoCard(
       borderRadius: BorderRadius.circular(tokens.rCard),
@@ -175,24 +174,10 @@ class _FeedCardState extends State<_FeedCard> {
         children: [
           Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: hasImage
-                  ? Image.network(
-                      post.user.profileImageUrl!,
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                    )
-                  : Container(
-                      width: 40,
-                      height: 40,
-                      color: tokens.primaryBg,
-                      child: const MukzziCharacter(
-                        state: CharacterState.normal,
-                        size: 80,
-                      ),
-                    ),
+              ProfileAvatar(
+                profileImageUrl: post.user.profileImageUrl,
+                nickname: post.user.nickname ?? post.user.username,
+                radius: 20,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -271,9 +256,49 @@ class _FeedCardState extends State<_FeedCard> {
                 width: double.infinity,
                 height: 180,
                 fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    width: double.infinity,
+                    height: 180,
+                    color: Colors.grey[200],
+                    child: const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: double.infinity,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.image_not_supported_outlined,
+                          color: Colors.grey[400],
+                          size: 36,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '이미지를 불러올 수 없습니다',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[400],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
           ],
+
           const SizedBox(height: 12),
           GestureDetector(
             onTap: () => setState(() {
@@ -934,6 +959,7 @@ class _FriendListTabState extends ConsumerState<_FriendListTab> {
                                   onTap: () => context.push('/social/profile/${friend.id}'),
                                   leading: ProfileAvatar(
                                     profileImageUrl: friend.profileImageUrl,
+                                    nickname: friend.nickname ?? friend.username,
                                   ),
                                   title: Text(friend.nickname ?? friend.username),
                                   subtitle: Text(friend.equippedTitle ?? '칭호 없음'),
@@ -970,9 +996,13 @@ class _FriendListTabState extends ConsumerState<_FriendListTab> {
                                                 .read(socialRepositoryProvider)
                                                 .deleteFriend(friend.id);
                                             ref.invalidate(friendsListProvider);
+                                          } else if (value == 'profile') {
+                                            context.push('/social/profile/${friend.id}');
                                           }
                                         },
                                         itemBuilder: (context) => const [
+                                          PopupMenuItem(
+                                              value: 'profile', child: Text('프로필 보기')),
                                           PopupMenuItem(
                                               value: 'delete', child: Text('친구 삭제')),
                                         ],
@@ -1023,6 +1053,7 @@ class _FriendRequestTab extends ConsumerWidget {
                   onTap: () => context.push('/social/profile/${req.id}'),
                   leading: ProfileAvatar(
                     profileImageUrl: req.profileImageUrl,
+                    nickname: req.nickname ?? req.username,
                   ),
                   title: Text(req.nickname ?? req.username),
                   subtitle: const Text('친구 요청을 받았습니다'),
@@ -1033,21 +1064,47 @@ class _FriendRequestTab extends ConsumerWidget {
                         tooltip: '수락',
                         icon: const Icon(Icons.check, color: Colors.green),
                         onPressed: () async {
-                          await ref
-                              .read(socialRepositoryProvider)
-                              .acceptFriendRequest(req.id);
-                          ref.invalidate(friendRequestsProvider);
-                          ref.invalidate(friendsListProvider);
+                          try {
+                            await ref
+                                .read(socialRepositoryProvider)
+                                .acceptFriendRequest(req.id);
+                            ref.invalidate(friendRequestsProvider);
+                            ref.invalidate(friendsListProvider);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('친구 요청을 수락했습니다')),
+                              );
+                            }
+                          } catch (_) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('요청 수락 실패')),
+                              );
+                            }
+                          }
                         },
                       ),
                       IconButton(
                         tooltip: '거절',
                         icon: const Icon(Icons.close, color: Colors.red),
                         onPressed: () async {
-                          await ref
-                              .read(socialRepositoryProvider)
-                              .rejectFriendRequest(req.id);
-                          ref.invalidate(friendRequestsProvider);
+                          try {
+                            await ref
+                                .read(socialRepositoryProvider)
+                                .rejectFriendRequest(req.id);
+                            ref.invalidate(friendRequestsProvider);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('친구 요청을 거절했습니다')),
+                              );
+                            }
+                          } catch (_) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('요청 거절 실패')),
+                              );
+                            }
+                          }
                         },
                       ),
                     ],
@@ -1153,7 +1210,10 @@ class _UserItemCard extends ConsumerWidget {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                ProfileAvatar(profileImageUrl: user.profileImageUrl),
+                ProfileAvatar(
+                  profileImageUrl: user.profileImageUrl,
+                  nickname: user.nickname ?? user.username,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
