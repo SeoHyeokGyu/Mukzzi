@@ -623,14 +623,14 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(state.icon, size: 11, color: const Color(0xFF1A1A1A)),
+                  Icon(state.icon, size: 11, color: AppColors.onLightAccent),
                   const SizedBox(width: 3),
                   Text(
                     state.label,
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF1A1A1A),
+                      color: AppColors.onLightAccent,
                     ),
                   ),
                 ],
