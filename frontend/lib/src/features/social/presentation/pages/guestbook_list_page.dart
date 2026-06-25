@@ -52,7 +52,7 @@ class _GuestbookListPageState extends ConsumerState<GuestbookListPage> {
         child: pagingState.items.isEmpty && pagingState.isLoading
             ? const Center(child: CircularProgressIndicator())
             : pagingState.items.isEmpty
-                ? const Center(child: Text('작성된 방명록이 없습니다.', style: TextStyle(color: Colors.white70)))
+                ? Center(child: Text('작성된 방명록이 없습니다.', style: TextStyle(color: tokens.textMuted)))
                 : ListView.separated(
                     controller: _scrollController,
                     padding: const EdgeInsets.all(20),
