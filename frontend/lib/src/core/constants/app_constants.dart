@@ -35,8 +35,6 @@ class AppConstants {
   // Colors
   static const Color primaryColor = Colors.orange;
   static const Color accentColor = Colors.deepOrange;
-  static const Color backgroundColor = Colors.white;
-  static const Color surfaceColor = Colors.grey;
   static const Color errorColor = Colors.red;
   static const Color successColor = Colors.green;
 
