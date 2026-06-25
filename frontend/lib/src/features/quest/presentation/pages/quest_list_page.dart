@@ -89,9 +89,9 @@ class _QuestList extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.assignment_outlined, size: 48, color: Colors.grey),
+            Icon(Icons.assignment_outlined, size: 48, color: tokens.textMuted),
             const SizedBox(height: 16),
-            const Text('진행 중인 퀘스트가 없습니다.', style: TextStyle(color: Colors.grey)),
+            Text('진행 중인 퀘스트가 없습니다.', style: TextStyle(color: tokens.textMuted)),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () async {

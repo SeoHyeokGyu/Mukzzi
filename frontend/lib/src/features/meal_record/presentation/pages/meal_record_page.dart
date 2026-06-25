@@ -267,7 +267,8 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
           controller: _tabController,
           indicatorColor: Theme.of(context).primaryColor,
           labelColor: Theme.of(context).primaryColor,
-          unselectedLabelColor: Colors.grey,
+          unselectedLabelColor:
+              Theme.of(context).extension<AppColorTokens>()!.textMuted,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold),
           tabs: const [
             Tab(text: '기록 추가'),

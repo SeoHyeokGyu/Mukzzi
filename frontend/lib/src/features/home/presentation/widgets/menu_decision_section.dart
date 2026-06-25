@@ -684,9 +684,9 @@ class _FilterSection extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 14),
-          const Text(
+          Text(
             '날씨',
-            style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 12, color: tokens.textMuted, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -703,9 +703,9 @@ class _FilterSection extends ConsumerWidget {
             }).toList(),
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             '기분',
-            style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 12, color: tokens.textMuted, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Wrap(

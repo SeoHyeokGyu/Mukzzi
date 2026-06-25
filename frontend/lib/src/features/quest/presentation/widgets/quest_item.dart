@@ -44,9 +44,9 @@ class QuestItem extends ConsumerWidget {
                   ),
                 ),
                 if (isClaimed)
-                  const Text(
+                  Text(
                     '수령 완료',
-                    style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 12, color: tokens.textMuted, fontWeight: FontWeight.bold),
                   )
                 else if (isCompleted)
                   const Text(
