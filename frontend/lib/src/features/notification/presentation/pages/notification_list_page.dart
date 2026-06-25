@@ -20,17 +20,29 @@ class NotificationListPage extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('알림'),
         actions: [
-          if (state.unreadCount > 0)
-            Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: TextButton(
-                onPressed: () => notifier.markAllAsRead(),
-                style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).extension<AppColorTokens>()!.primary,
-                ),
-                child: const Text('전체 읽음', style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
-            ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            transitionBuilder: (child, animation) =>
+                FadeTransition(opacity: animation, child: child),
+            child: state.unreadCount > 0
+                ? Padding(
+                    key: const ValueKey('mark-all-read'),
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: TextButton(
+                      onPressed: () => notifier.markAllAsRead(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Theme.of(context)
+                            .extension<AppColorTokens>()!
+                            .primary,
+                      ),
+                      child: const Text(
+                        '전체 읽음',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(key: ValueKey('mark-all-empty')),
+          ),
         ],
       ),
       body: RefreshIndicator(
@@ -54,7 +66,7 @@ class NotificationListPage extends ConsumerWidget {
                         onTap: () {
                           // 1. 읽음 처리
                           if (!n.isRead) notifier.markAsRead(n.id);
-                          
+
                           // 2. 관련 페이지로 이동 (Navigator 키 충돌 방지를 위해 go 사용)
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             if (context.mounted) {
@@ -82,7 +94,7 @@ class _NotificationItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<AppColorTokens>()!;
-    
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(tokens.rItem),
@@ -90,19 +102,18 @@ class _NotificationItem extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: notification.isRead 
-              ? tokens.listItemBg.withValues(alpha: 0.4) 
-              : tokens.card,
+          color: notification.isRead ? tokens.listItemBg : tokens.card,
           borderRadius: BorderRadius.circular(tokens.rItem),
           border: Border.all(
-            color: notification.isRead 
-                ? Colors.transparent 
-                : tokens.primary.withValues(alpha: 0.2), 
+            color: notification.isRead
+                ? tokens.textMuted.withValues(alpha: 0.12)
+                : tokens.primary.withValues(alpha: 0.2),
             width: 1.5,
           ),
-          boxShadow: notification.isRead ? null : [
+          boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
+              color: Colors.black
+                  .withValues(alpha: notification.isRead ? 0.0 : 0.08),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -121,51 +132,70 @@ class _NotificationItem extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
-                        child: Text(
-                          notification.title,
+                        child: AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 200),
                           style: TextStyle(
                             fontSize: 14,
-                            fontWeight: notification.isRead ? FontWeight.w600 : FontWeight.w800,
-                            color: notification.isRead ? tokens.textSub : tokens.textPrimary,
+                            fontWeight: notification.isRead
+                                ? FontWeight.w600
+                                : FontWeight.w800,
+                            color: notification.isRead
+                                ? tokens.textSub
+                                : tokens.textPrimary,
                           ),
+                          child: Text(notification.title),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         _formatTime(notification.createdAt),
-                        style: TextStyle(fontSize: 11, color: tokens.textMuted, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: tokens.textMuted,
+                            fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    notification.content,
+                  AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 200),
                     style: TextStyle(
                       fontSize: 13,
-                      color: notification.isRead ? tokens.textMuted : tokens.textSub,
+                      color: notification.isRead
+                          ? tokens.textMuted
+                          : tokens.textSub,
                       height: 1.5,
                     ),
+                    child: Text(notification.content),
                   ),
                 ],
               ),
             ),
-            if (!notification.isRead)
-              Container(
-                margin: const EdgeInsets.only(left: 10, top: 4),
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: tokens.primary,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: tokens.primary.withValues(alpha: 0.4),
-                      blurRadius: 6,
-                      spreadRadius: 1,
-                    ),
-                  ],
+            AnimatedScale(
+              duration: const Duration(milliseconds: 200),
+              scale: notification.isRead ? 0.0 : 1.0,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: notification.isRead ? 0.0 : 1.0,
+                child: Container(
+                  key: const ValueKey('notif-unread-dot'),
+                  margin: const EdgeInsets.only(left: 10, top: 4),
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: tokens.primary,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: tokens.primary.withValues(alpha: 0.4),
+                        blurRadius: 6,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
                 ),
               ),
+            ),
           ],
         ),
       ),
