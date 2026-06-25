@@ -285,17 +285,10 @@ class CharacterPage extends ConsumerWidget {
       );
 
   Widget _statePill(CharacterState state, AppColorTokens tokens) {
-    final stateColor = switch (state) {
-      CharacterState.happy => const Color(0xFFFF85A1),
-      CharacterState.hungry => const Color(0xFFFFCC33),
-      CharacterState.starving => const Color(0xFFFF4444),
-      CharacterState.sleeping => const Color(0xFF2D6BFF),
-      CharacterState.normal => const Color(0xFF4CAF50),
-    };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: stateColor,
+        color: state.indicatorColor,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -303,7 +296,7 @@ class CharacterPage extends ConsumerWidget {
         style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF1A1A1A)),
+            color: AppColors.onLightAccent),
       ),
     );
   }

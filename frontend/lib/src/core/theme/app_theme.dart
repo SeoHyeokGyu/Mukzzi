@@ -56,6 +56,8 @@ class AppColors {
   static const Color surfaceDark = Color(0xFF1A1A22);
   static const Color iconDisabled = Color(0x66858585);
   static const Color masterGold = Color(0xFFFFD700);
+  // 항상 밝은 액센트(캐릭터 상태색 등) 위에 올라가는 고정 다크 텍스트/아이콘 색
+  static const Color onLightAccent = Color(0xFF1A1A1A);
 
   // Light Mode Colors
   static const Color lightBackground = Color(0xFFFDF8F2);
