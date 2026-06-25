@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/app_theme.dart';
 import '../../data/models/menu_model.dart';
 import '../providers/favorite_provider.dart';
 import '../providers/menu_search_provider.dart';
@@ -256,7 +257,7 @@ class _FavoriteBottomSheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: Theme.of(context).extension<AppColorTokens>()!.divider,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),

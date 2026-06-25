@@ -495,11 +495,7 @@ class _RankingTabState extends ConsumerState<_RankingTab> {
                           width: 58,
                           height: 58,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
+                            gradient: tokens.cardHeroGrad,
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Center(
@@ -565,11 +561,7 @@ class _RankingTabState extends ConsumerState<_RankingTab> {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
+                            gradient: tokens.cardHeroGrad,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Center(
@@ -707,11 +699,7 @@ class _RankingTabState extends ConsumerState<_RankingTab> {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
+                            gradient: tokens.cardHeroGrad,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Center(

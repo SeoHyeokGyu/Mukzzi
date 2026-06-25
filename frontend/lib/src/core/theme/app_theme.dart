@@ -85,6 +85,7 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
   final Color heroTextSub;
   final Color paper;
   final Color paperLine;
+  final Color divider;
   final Gradient bgGrad;
   final Gradient cardHeroGrad;
   final Gradient charBgNormal;
@@ -108,6 +109,7 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     required this.heroTextSub,
     required this.paper,
     required this.paperLine,
+    required this.divider,
     required this.bgGrad,
     required this.cardHeroGrad,
     required this.charBgNormal,
@@ -132,6 +134,7 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     heroTextSub: Color(0xA63A2010),
     paper: Color(0xFFFAFAFA),
     paperLine: Color(0x14000000),
+    divider: Color(0x1FFBF4E8),
     bgGrad: LinearGradient(
       colors: [Color(0xFF14110E), Color(0xFF1C1611)],
       begin: Alignment.topCenter,
@@ -173,6 +176,7 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     heroTextSub: AppColors.lightTextSecondary,
     paper: Color(0xFFFAFAFA),
     paperLine: Color(0x14000000),
+    divider: AppColors.lightDivider,
     bgGrad: LinearGradient(
       colors: [AppColors.lightBackground, Color(0xFFF8EFE3)],
       begin: Alignment.topCenter,
@@ -215,6 +219,7 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     Color? heroTextSub,
     Color? paper,
     Color? paperLine,
+    Color? divider,
     Gradient? bgGrad,
     Gradient? cardHeroGrad,
     Gradient? charBgNormal,
@@ -238,6 +243,7 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
       heroTextSub: heroTextSub ?? this.heroTextSub,
       paper: paper ?? this.paper,
       paperLine: paperLine ?? this.paperLine,
+      divider: divider ?? this.divider,
       bgGrad: bgGrad ?? this.bgGrad,
       cardHeroGrad: cardHeroGrad ?? this.cardHeroGrad,
       charBgNormal: charBgNormal ?? this.charBgNormal,
@@ -266,6 +272,7 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
       heroTextSub: Color.lerp(heroTextSub, other.heroTextSub, t)!,
       paper: Color.lerp(paper, other.paper, t)!,
       paperLine: Color.lerp(paperLine, other.paperLine, t)!,
+      divider: Color.lerp(divider, other.divider, t)!,
       // Gradient lerp across dark↔light is jarring; snap at midpoint
       bgGrad: t < 0.5 ? bgGrad : other.bgGrad,
       cardHeroGrad: t < 0.5 ? cardHeroGrad : other.cardHeroGrad,
