@@ -248,6 +248,7 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
     return GradientScaffold(
       appBar: AppBar(
         title: const Text('식사 기록'),
@@ -265,10 +266,9 @@ class _MealRecordPageState extends ConsumerState<MealRecordPage>
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Theme.of(context).primaryColor,
-          labelColor: Theme.of(context).primaryColor,
-          unselectedLabelColor:
-              Theme.of(context).extension<AppColorTokens>()!.textMuted,
+          indicatorColor: tokens.primary,
+          labelColor: tokens.primary,
+          unselectedLabelColor: tokens.textMuted,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold),
           tabs: const [
             Tab(text: '기록 추가'),
