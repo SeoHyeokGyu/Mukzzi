@@ -414,7 +414,7 @@ class AppTheme {
 
       tabBarTheme: TabBarThemeData(
         labelColor: tokens.primary,
-        unselectedLabelColor: tokens.textSub,
+        unselectedLabelColor: tokens.textMuted,
         indicatorColor: tokens.primary,
       ),
 

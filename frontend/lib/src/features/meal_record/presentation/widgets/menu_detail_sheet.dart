@@ -365,12 +365,12 @@ class _GradeChip extends StatelessWidget {
   final String grade;
   const _GradeChip({required this.grade});
 
-  Color get _color {
+  Color _colorOf(BuildContext context) {
     switch (grade) {
       case 'MASTER':  return AppColors.masterGold;
       case 'ARTISAN': return AppColors.orange;
       case 'MANIA':   return AppColors.peach;
-      default:        return AppColors.textTertiary;
+      default:        return Theme.of(context).extension<AppColorTokens>()!.textSub;
     }
   }
 
@@ -385,16 +385,17 @@ class _GradeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = _colorOf(context);
     return Container(
       width: 52,
       height: 52,
       decoration: BoxDecoration(
-        color: _color.withValues(alpha: 0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _color.withValues(alpha: 0.4)),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Center(
-        child: Text(_label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _color)),
+        child: Text(_label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
       ),
     );
   }
