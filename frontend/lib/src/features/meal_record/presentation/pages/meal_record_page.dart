@@ -710,7 +710,7 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
                       Text(
                         '음식 사진을 추가해보세요',
                         style: TextStyle(
-                          color: tokens.textMuted,
+                          color: tokens.textSub,
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
@@ -719,7 +719,7 @@ class _MealInputTabState extends ConsumerState<_MealInputTab> {
                       Text(
                         '(사진을 첨부하고 AI 분석을 수동으로 요청할 수 있습니다)',
                         style: TextStyle(
-                          color: tokens.primary.withValues(alpha: 0.5),
+                          color: tokens.textMuted,
                           fontSize: 11,
                         ),
                       ),
@@ -942,6 +942,7 @@ class _InternalMealTypeSelector extends StatelessWidget {
                 child: ChoiceChip(
                   label: Text(type.label),
                   selected: isSelected,
+                  showCheckmark: false,
                   onSelected: (val) => val ? onChanged(type) : null,
                 ),
               ),
