@@ -56,12 +56,13 @@ class _MasteryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: tokens.card,
           borderRadius: BorderRadius.circular(16),
           boxShadow: AppColors.cardShadow,
         ),
@@ -75,18 +76,18 @@ class _MasteryCard extends StatelessWidget {
                 children: [
                   Text(
                     mastery.menuName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: tokens.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     mastery.menuCategory,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.textTertiary,
+                      color: tokens.textMuted,
                     ),
                   ),
                 ],
@@ -97,25 +98,24 @@ class _MasteryCard extends StatelessWidget {
               children: [
                 Text(
                   '${mastery.eatCount}회',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.orange,
+                    color: tokens.primary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   DateFormat('MM.dd').format(mastery.lastEatenAt.toLocal()),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.textTertiary,
+                    color: tokens.textMuted,
                   ),
                 ),
               ],
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.chevron_right,
-                size: 18, color: AppColors.textTertiary),
+            Icon(Icons.chevron_right, size: 18, color: tokens.textMuted),
           ],
         ),
       ),
@@ -127,12 +127,12 @@ class _GradeIcon extends StatelessWidget {
   final String grade;
   const _GradeIcon({required this.grade});
 
-  Color get _color {
+  Color _colorOf(BuildContext context) {
     switch (grade) {
       case 'MASTER':  return AppColors.masterGold;
       case 'ARTISAN': return AppColors.orange;
       case 'MANIA':   return AppColors.peach;
-      default:        return AppColors.textTertiary;
+      default:        return Theme.of(context).extension<AppColorTokens>()!.textSub;
     }
   }
 
@@ -147,13 +147,14 @@ class _GradeIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = _colorOf(context);
     return Container(
       width: 52,
       height: 52,
       decoration: BoxDecoration(
-        color: _color.withValues(alpha: 0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _color.withValues(alpha: 0.4)),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Center(
         child: Text(
@@ -161,7 +162,7 @@ class _GradeIcon extends StatelessWidget {
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
-            color: _color,
+            color: color,
           ),
         ),
       ),

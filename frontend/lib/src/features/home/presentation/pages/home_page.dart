@@ -439,7 +439,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 10, color: Theme.of(context).extension<AppColorTokens>()!.textSub),
         ),
       ],
     );

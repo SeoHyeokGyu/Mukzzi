@@ -123,7 +123,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
               Text(
                 '음식과 함께 성장하는 캐릭터',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).extension<AppColorTokens>()!.textSub,
                     ),
               )
                   .animate()
@@ -147,7 +147,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: _isLogin ? AppColors.orange : AppColors.textSecondary,
+                                color: _isLogin ? AppColors.orange : Theme.of(context).extension<AppColorTokens>()!.textSub,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -174,7 +174,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: !_isLogin ? AppColors.orange : AppColors.textSecondary,
+                                color: !_isLogin ? AppColors.orange : Theme.of(context).extension<AppColorTokens>()!.textSub,
                               ),
                             ),
                             const SizedBox(height: 8),

@@ -59,6 +59,7 @@ class _RewardGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -66,10 +67,10 @@ class _RewardGroup extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 10),
           child: Text(
             typeLabel,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+              color: tokens.textSub,
             ),
           ),
         ),
@@ -148,11 +149,12 @@ class _RewardCard extends ConsumerWidget {
     final slot = reward.renderConfig?.slot;
     final isEquipped =
         char != null && slot != null && char.equipment[slot]?.id == reward.id;
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: tokens.card,
         borderRadius: BorderRadius.circular(16),
         boxShadow: AppColors.cardShadow,
       ),
@@ -162,13 +164,13 @@ class _RewardCard extends ConsumerWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: acquired ? AppColors.softPeach : AppColors.surfaceDark,
+              color: acquired ? tokens.primaryBg : tokens.listItemBg,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
               _typeIcon,
               size: 24,
-              color: acquired ? AppColors.orange : AppColors.iconDisabled,
+              color: acquired ? tokens.primary : tokens.textMuted,
             ),
           ),
           const SizedBox(width: 14),
@@ -181,17 +183,15 @@ class _RewardCard extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: acquired
-                        ? AppColors.textPrimary
-                        : AppColors.textTertiary,
+                    color: acquired ? tokens.textPrimary : tokens.textMuted,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   reward.description,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textTertiary,
+                    color: tokens.textMuted,
                   ),
                 ),
                 if (acquired && reward.achievedAt != null) ...[
@@ -199,9 +199,9 @@ class _RewardCard extends ConsumerWidget {
                   Text(
                     DateFormat('yyyy.MM.dd')
                         .format(reward.achievedAt!.toLocal()),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.textTertiary,
+                      color: tokens.textMuted,
                     ),
                   ),
                 ],
@@ -215,8 +215,7 @@ class _RewardCard extends ConsumerWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color:
-                      isEquipped ? AppColors.surfaceDark : AppColors.softPeach,
+                  color: isEquipped ? tokens.listItemBg : tokens.primaryBg,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -224,8 +223,7 @@ class _RewardCard extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color:
-                        isEquipped ? AppColors.textSecondary : AppColors.orange,
+                    color: isEquipped ? tokens.textSub : tokens.primary,
                   ),
                 ),
               ),
@@ -234,15 +232,15 @@ class _RewardCard extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: AppColors.softPeach,
+                color: tokens.primaryBg,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Text(
+              child: Text(
                 '획득',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.orange,
+                  color: tokens.primary,
                 ),
               ),
             )
@@ -250,12 +248,12 @@ class _RewardCard extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: AppColors.surfaceDark,
+                color: tokens.listItemBg,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Text(
+              child: Text(
                 '미획득',
-                style: TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                style: TextStyle(fontSize: 11, color: tokens.textMuted),
               ),
             ),
         ],
