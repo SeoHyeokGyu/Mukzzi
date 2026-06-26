@@ -98,7 +98,7 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
                         ),
                       ],
                       const SizedBox(height: 4),
-                      Text('@${user.username}', style: const TextStyle(color: AppColors.textSecondary)),
+                      Text('@${user.username}', style: TextStyle(color: Theme.of(context).extension<AppColorTokens>()!.textSub)),
                       const SizedBox(height: 24),
                       _buildActionButtons(isFriend, isSent, isReceived, user.id, user),
                     ],
@@ -263,7 +263,7 @@ class _GuestbookSection extends ConsumerWidget {
             error: (err, _) => Center(child: Text('오류가 발생했습니다.', style: TextStyle(color: tokens.textMuted))),
             data: (entries) {
               if (entries.isEmpty) {
-                return const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Text('아직 작성된 방명록이 없습니다.', style: TextStyle(color: AppColors.textTertiary))));
+                return Center(child: Padding(padding: const EdgeInsets.symmetric(vertical: 20), child: Text('아직 작성된 방명록이 없습니다.', style: TextStyle(color: tokens.textMuted))));
               }
 
               return ListView.separated(
@@ -356,7 +356,7 @@ class _StatItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+        Text(label, style: TextStyle(fontSize: 12, color: Theme.of(context).extension<AppColorTokens>()!.textSub)),
         const SizedBox(height: 4),
         Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
       ],

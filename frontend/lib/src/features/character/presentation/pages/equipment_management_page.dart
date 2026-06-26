@@ -821,15 +821,16 @@ class _TitleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final acquired = title.acquired;
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: tokens.card,
         borderRadius: BorderRadius.circular(16),
         boxShadow: AppColors.cardShadow,
         border: title.isEquipped
-            ? Border.all(color: AppColors.orange.withValues(alpha: 0.5), width: 1.5)
+            ? Border.all(color: tokens.primary.withValues(alpha: 0.5), width: 1.5)
             : null,
       ),
       child: Row(
@@ -839,15 +840,13 @@ class _TitleCard extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: acquired
-                  ? AppColors.softPeach
-                  : AppColors.surfaceDark,
+              color: acquired ? tokens.primaryBg : tokens.listItemBg,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
               Icons.workspace_premium,
               size: 26,
-              color: acquired ? AppColors.orange : AppColors.iconDisabled,
+              color: acquired ? tokens.primary : tokens.textMuted,
             ),
           ),
           const SizedBox(width: 14),
@@ -866,7 +865,7 @@ class _TitleCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: acquired ? AppColors.textPrimary : AppColors.textTertiary,
+                          color: acquired ? tokens.textPrimary : tokens.textMuted,
                         ),
                       ),
                     ),
@@ -875,15 +874,15 @@ class _TitleCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppColors.softPeach,
+                          color: tokens.primaryBg,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
+                        child: Text(
                           '장착 중',
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.orange,
+                            color: tokens.primary,
                           ),
                         ),
                       ),
@@ -895,18 +894,18 @@ class _TitleCard extends StatelessWidget {
                   title.description,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textTertiary,
+                    color: tokens.textMuted,
                   ),
                 ),
                 if (acquired && title.achievedAt != null) ...[
                   const SizedBox(height: 3),
                   Text(
                     DateFormat('yyyy.MM.dd').format(title.achievedAt!.toLocal()),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.textTertiary,
+                      color: tokens.textMuted,
                     ),
                   ),
                 ],
@@ -918,7 +917,7 @@ class _TitleCard extends StatelessWidget {
             TextButton(
               onPressed: onEquip,
               style: TextButton.styleFrom(
-                foregroundColor: title.isEquipped ? AppColors.textSecondary : AppColors.orange,
+                foregroundColor: title.isEquipped ? tokens.textSub : tokens.primary,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
               child: Text(title.isEquipped ? '해제' : '장착'),
