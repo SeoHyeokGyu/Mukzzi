@@ -396,6 +396,8 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
           borderRadius: radius,
           child: Stack(
             children: [
+              // 배경 미장착 시: 빌트인 기본 backdrop(스포트라이트 + 바닥 + 접지 그림자)
+              if (backgroundSpecs.isEmpty) const _DefaultBackdrop(),
               // 배경(장착): Transform 없이 정적, 스테이지에 클립됨
               for (final spec in backgroundSpecs) _buildLayer(spec),
               // 캐릭터 + 비배경 장비: 루프 애니메이션
@@ -493,6 +495,65 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
 }
 
 
+
+/// 배경 미장착 시 스테이지를 채우는 빌트인 기본 backdrop.
+/// 상단 스포트라이트로 빈 헤드룸을 채우고, 바닥 그라데이션 + 발밑 접지
+/// 그림자로 캐릭터를 안착시킨다. ambient 그라데이션 위에 합성된다.
+class _DefaultBackdrop extends StatelessWidget {
+  const _DefaultBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Stack(
+      children: [
+        // 상단 소프트 스포트라이트 → 빈 윗공간을 채워 깊이감 부여
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(0, -0.28),
+                radius: 0.95,
+                colors: [Color(0x1FFFFFFF), Color(0x00FFFFFF)],
+              ),
+            ),
+          ),
+        ),
+        // 하단 바닥 그라데이션 → 은은한 받침
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: FractionallySizedBox(
+            heightFactor: 0.42,
+            widthFactor: 1,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0x00000000), Color(0x1A000000)],
+                ),
+              ),
+            ),
+          ),
+        ),
+        // 발밑 접지 그림자(타원 소프트)
+        Align(
+          alignment: Alignment(0, 0.74),
+          child: FractionallySizedBox(
+            widthFactor: 0.5,
+            heightFactor: 0.07,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [Color(0x2B000000), Color(0x00000000)],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 class _ParticleData {
   final String icon;
