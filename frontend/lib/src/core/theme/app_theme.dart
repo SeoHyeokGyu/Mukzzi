@@ -148,17 +148,17 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
       end: Alignment.bottomRight,
     ),
     charBgNormal: LinearGradient(
-      colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
+      colors: [Color(0xFF241D15), Color(0xFF16110C)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),
     charBgHungry: LinearGradient(
-      colors: [Color(0xFFF5DFB8), Color(0xFFD9B272)],
+      colors: [Color(0xFF2C2012), Color(0xFF1A130B)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),
     charBgStarving: LinearGradient(
-      colors: [Color(0xFFE6BDB0), Color(0xFFC98878)],
+      colors: [Color(0xFF2C1714), Color(0xFF1A0E0C)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),

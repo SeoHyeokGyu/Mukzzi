@@ -450,7 +450,6 @@ class _CharacterPreview extends StatelessWidget {
         showAccessory: character.equippedAccessory != null,
         equippedAccessory: character.equippedAccessory?.assetUrl,
         equipment: character.equipment,
-        backgroundEdgeFade: true,
         enableAnimation: false,
       ),
     );

@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mukzzi/src/features/character/domain/models/reward_model.dart';
+import 'package:mukzzi/src/core/theme/app_theme.dart';
 
 enum CharacterState { normal, happy, hungry, starving, sleeping }
 
@@ -124,7 +125,6 @@ class MukzziCharacter extends StatelessWidget {
   final bool showAccessory;
   final String? equippedAccessory;
   final Map<EquipmentSlot, RewardModel> equipment;
-  final bool backgroundEdgeFade;
   final bool enableAnimation;
 
   const MukzziCharacter({
@@ -134,7 +134,6 @@ class MukzziCharacter extends StatelessWidget {
     this.showAccessory = false,
     this.equippedAccessory,
     this.equipment = const {},
-    this.backgroundEdgeFade = false,
     this.enableAnimation = false,
   }) : assert(size >= 60,
             'MukzziCharacter: size < 60 renders detail-loss. Use at least 80 for best results.');
@@ -167,7 +166,6 @@ class MukzziCharacter extends StatelessWidget {
       showAccessory: showAccessory,
       equippedAccessory: equippedAccessory,
       equipment: equipment,
-      backgroundEdgeFade: backgroundEdgeFade,
       enableAnimation: enableAnimation,
     );
   }
@@ -179,7 +177,6 @@ class _SvgLayeredCharacter extends StatefulWidget {
   final bool showAccessory;
   final String? equippedAccessory;
   final Map<EquipmentSlot, RewardModel> equipment;
-  final bool backgroundEdgeFade;
   final bool enableAnimation;
 
   const _SvgLayeredCharacter({
@@ -188,7 +185,6 @@ class _SvgLayeredCharacter extends StatefulWidget {
     required this.showAccessory,
     this.equippedAccessory,
     required this.equipment,
-    required this.backgroundEdgeFade,
     required this.enableAnimation,
   });
 
@@ -370,21 +366,50 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
       },
     );
 
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
+    final ambient = switch (widget.state) {
+      CharacterState.hungry => tokens.charBgHungry,
+      CharacterState.starving => tokens.charBgStarving,
+      _ => tokens.charBgNormal,
+    };
+    final radius = BorderRadius.circular(widget.size * 0.16);
+
+    // 스테이지: 테마·상태별 ambient 받침 + 둥근 클립 + 그림자.
+    // 장착 배경(scene)은 이 클립에 채워져 의도된 "액자"로 렌더되고,
+    // 배경 미장착 시 ambient 받침이 보인다.
     return SizedBox(
       width: widget.size,
       height: widget.size,
-      child: Stack(
-        children: [
-          // 배경: Transform 없이 정적
-          for (final spec in backgroundSpecs) _buildLayer(spec),
-          // 캐릭터 + 비배경 장비: 루프 애니메이션
-          animatedCharacter,
-          _FloatingParticles(
-            state: widget.state,
-            size: widget.size,
-            enableAnimation: widget.enableAnimation,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: ambient,
+          borderRadius: radius,
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1F000000),
+              blurRadius: 20,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: radius,
+          child: Stack(
+            children: [
+              // 배경 미장착 시: 빌트인 기본 backdrop(스포트라이트 + 바닥 + 접지 그림자)
+              if (backgroundSpecs.isEmpty) const _DefaultBackdrop(),
+              // 배경(장착): Transform 없이 정적, 스테이지에 클립됨
+              for (final spec in backgroundSpecs) _buildLayer(spec),
+              // 캐릭터 + 비배경 장비: 루프 애니메이션
+              animatedCharacter,
+              _FloatingParticles(
+                state: widget.state,
+                size: widget.size,
+                enableAnimation: widget.enableAnimation,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -454,62 +479,7 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
       fit: BoxFit.contain,
     );
 
-    if (isBackground) {
-      // SVG 파일의 배경 rect가 viewBox 밖(-2~1002)으로 블리드되도록 수정됐으므로
-      // 렌더링 경계 anti-alias 픽셀이 뷰박스 안쪽에 생기지 않습니다.
-      // 추가로 가장 바깥 1% 알파를 0으로 만들어 잔여 서브픽셀 번짐을 제거합니다.
-      const edgeColors = [Colors.transparent, Colors.black, Colors.black, Colors.transparent];
-      const edgeStops = [0.0, 0.01, 0.99, 1.0];
-      layer = ShaderMask(
-        shaderCallback: (bounds) => const LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: edgeColors,
-          stops: edgeStops,
-        ).createShader(bounds),
-        blendMode: BlendMode.dstIn,
-        child: ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: edgeColors,
-            stops: edgeStops,
-          ).createShader(bounds),
-          blendMode: BlendMode.dstIn,
-          child: layer,
-        ),
-      );
-    }
-
-    // backgroundEdgeFade 옵션: 중심부까지 소프트하게 페이드
-    if (widget.backgroundEdgeFade && isBackground) {
-      const fadeColors = [
-        Colors.transparent,
-        Colors.black,
-        Colors.black,
-        Colors.transparent,
-      ];
-      const fadeStops = [0.01, 0.16, 0.84, 0.99];
-      layer = ShaderMask(
-        shaderCallback: (bounds) => const LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: fadeColors,
-          stops: fadeStops,
-        ).createShader(bounds),
-        blendMode: BlendMode.dstIn,
-        child: ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: fadeColors,
-            stops: fadeStops,
-          ).createShader(bounds),
-          blendMode: BlendMode.dstIn,
-          child: layer,
-        ),
-      );
-    }
+    // 배경 가장자리는 스테이지 ClipRRect가 크리스프하게 처리(알파 페이드 불필요).
 
     return Positioned.fill(
       child: Transform.translate(
@@ -525,6 +495,65 @@ class _SvgLayeredCharacterState extends State<_SvgLayeredCharacter>
 }
 
 
+
+/// 배경 미장착 시 스테이지를 채우는 빌트인 기본 backdrop.
+/// 상단 스포트라이트로 빈 헤드룸을 채우고, 바닥 그라데이션 + 발밑 접지
+/// 그림자로 캐릭터를 안착시킨다. ambient 그라데이션 위에 합성된다.
+class _DefaultBackdrop extends StatelessWidget {
+  const _DefaultBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Stack(
+      children: [
+        // 상단 소프트 스포트라이트 → 빈 윗공간을 채워 깊이감 부여
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(0, -0.28),
+                radius: 0.95,
+                colors: [Color(0x1FFFFFFF), Color(0x00FFFFFF)],
+              ),
+            ),
+          ),
+        ),
+        // 하단 바닥 그라데이션 → 은은한 받침
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: FractionallySizedBox(
+            heightFactor: 0.42,
+            widthFactor: 1,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0x00000000), Color(0x1A000000)],
+                ),
+              ),
+            ),
+          ),
+        ),
+        // 발밑 접지 그림자(타원 소프트)
+        Align(
+          alignment: Alignment(0, 0.74),
+          child: FractionallySizedBox(
+            widthFactor: 0.5,
+            heightFactor: 0.07,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [Color(0x2B000000), Color(0x00000000)],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 class _ParticleData {
   final String icon;
