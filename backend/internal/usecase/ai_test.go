@@ -52,7 +52,7 @@ func (m *MockDailyIntakeRepo) CountStreakDays(userID int64) (int, error) {
 
 func TestAIUsecase_AnalyzeMealImage(t *testing.T) {
 	mockClient := new(MockGeminiClient)
-	uc := NewAIUsecase(mockClient, nil, nil, nil, nil)
+	uc := NewAIUsecase(mockClient, nil, nil, nil, nil, nil)
 
 	ctx := context.Background()
 	input := AnalyzeMealInput{
@@ -90,7 +90,7 @@ func TestAIUsecase_AnalyzeMealImage(t *testing.T) {
 func TestAIUsecase_RecommendMeal(t *testing.T) {
 	mockClient := new(MockGeminiClient)
 	mockDailyRepo := new(MockDailyIntakeRepo)
-	uc := NewAIUsecase(mockClient, mockDailyRepo, nil, nil, nil)
+	uc := NewAIUsecase(mockClient, mockDailyRepo, nil, nil, nil, nil)
 
 	ctx := context.Background()
 	input := RecommendMealInput{
@@ -136,7 +136,7 @@ func TestAIUsecase_RecommendMeal(t *testing.T) {
 func TestAIUsecase_GetNutritionCoaching(t *testing.T) {
 	mockClient := new(MockGeminiClient)
 	mockDailyRepo := new(MockDailyIntakeRepo)
-	uc := NewAIUsecase(mockClient, mockDailyRepo, nil, nil, nil)
+	uc := NewAIUsecase(mockClient, mockDailyRepo, nil, nil, nil, nil)
 
 	ctx := context.Background()
 	input := NutritionCoachingInput{

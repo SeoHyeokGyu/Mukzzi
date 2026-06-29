@@ -56,6 +56,8 @@ class AppColors {
   static const Color surfaceDark = Color(0xFF1A1A22);
   static const Color iconDisabled = Color(0x66858585);
   static const Color masterGold = Color(0xFFFFD700);
+  // 항상 밝은 액센트(캐릭터 상태색 등) 위에 올라가는 고정 다크 텍스트/아이콘 색
+  static const Color onLightAccent = Color(0xFF1A1A1A);
 
   // Light Mode Colors
   static const Color lightBackground = Color(0xFFFDF8F2);
@@ -85,6 +87,7 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
   final Color heroTextSub;
   final Color paper;
   final Color paperLine;
+  final Color divider;
   final Gradient bgGrad;
   final Gradient cardHeroGrad;
   final Gradient charBgNormal;
@@ -108,6 +111,7 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     required this.heroTextSub,
     required this.paper,
     required this.paperLine,
+    required this.divider,
     required this.bgGrad,
     required this.cardHeroGrad,
     required this.charBgNormal,
@@ -132,6 +136,7 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     heroTextSub: Color(0xA63A2010),
     paper: Color(0xFFFAFAFA),
     paperLine: Color(0x14000000),
+    divider: Color(0x1FFBF4E8),
     bgGrad: LinearGradient(
       colors: [Color(0xFF14110E), Color(0xFF1C1611)],
       begin: Alignment.topCenter,
@@ -143,17 +148,17 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
       end: Alignment.bottomRight,
     ),
     charBgNormal: LinearGradient(
-      colors: [Color(0xFFF5E6D3), Color(0xFFE8C89A)],
+      colors: [Color(0xFF241D15), Color(0xFF16110C)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),
     charBgHungry: LinearGradient(
-      colors: [Color(0xFFF5DFB8), Color(0xFFD9B272)],
+      colors: [Color(0xFF2C2012), Color(0xFF1A130B)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),
     charBgStarving: LinearGradient(
-      colors: [Color(0xFFE6BDB0), Color(0xFFC98878)],
+      colors: [Color(0xFF2C1714), Color(0xFF1A0E0C)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),
@@ -173,6 +178,7 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     heroTextSub: AppColors.lightTextSecondary,
     paper: Color(0xFFFAFAFA),
     paperLine: Color(0x14000000),
+    divider: AppColors.lightDivider,
     bgGrad: LinearGradient(
       colors: [AppColors.lightBackground, Color(0xFFF8EFE3)],
       begin: Alignment.topCenter,
@@ -215,6 +221,7 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
     Color? heroTextSub,
     Color? paper,
     Color? paperLine,
+    Color? divider,
     Gradient? bgGrad,
     Gradient? cardHeroGrad,
     Gradient? charBgNormal,
@@ -238,6 +245,7 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
       heroTextSub: heroTextSub ?? this.heroTextSub,
       paper: paper ?? this.paper,
       paperLine: paperLine ?? this.paperLine,
+      divider: divider ?? this.divider,
       bgGrad: bgGrad ?? this.bgGrad,
       cardHeroGrad: cardHeroGrad ?? this.cardHeroGrad,
       charBgNormal: charBgNormal ?? this.charBgNormal,
@@ -266,6 +274,7 @@ class AppColorTokens extends ThemeExtension<AppColorTokens> {
       heroTextSub: Color.lerp(heroTextSub, other.heroTextSub, t)!,
       paper: Color.lerp(paper, other.paper, t)!,
       paperLine: Color.lerp(paperLine, other.paperLine, t)!,
+      divider: Color.lerp(divider, other.divider, t)!,
       // Gradient lerp across dark↔light is jarring; snap at midpoint
       bgGrad: t < 0.5 ? bgGrad : other.bgGrad,
       cardHeroGrad: t < 0.5 ? cardHeroGrad : other.cardHeroGrad,

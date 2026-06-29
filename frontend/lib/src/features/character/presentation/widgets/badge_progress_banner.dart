@@ -11,6 +11,7 @@ class BadgeProgressBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
     final total = badges.length;
     final unlocked = badges.where((b) => b.isUnlocked).length;
     final percent = total > 0 ? unlocked / total : 0.0;
@@ -28,11 +29,11 @@ class BadgeProgressBanner extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     '뱃지 달성 현황',
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.textSecondary,
+                      color: tokens.textSub,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -41,18 +42,18 @@ class BadgeProgressBanner extends StatelessWidget {
                       children: [
                         TextSpan(
                           text: '$unlocked',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.orange,
+                            color: tokens.primary,
                             fontFamily: 'Poppins',
                           ),
                         ),
                         TextSpan(
                           text: ' / $total',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
-                            color: AppColors.textSecondary,
+                            color: tokens.textSub,
                             fontFamily: 'Poppins',
                           ),
                         ),
@@ -65,13 +66,13 @@ class BadgeProgressBanner extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppColors.softPeach,
+                  color: tokens.primaryBg,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.military_tech,
                   size: 32,
-                  color: AppColors.orange,
+                  color: tokens.primary,
                 ),
               ),
             ],
@@ -84,16 +85,16 @@ class BadgeProgressBanner extends StatelessWidget {
             children: [
               Text(
                 '총 $total개 중 $unlocked개 획득',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: AppColors.textSecondary,
+                  color: tokens.textSub,
                 ),
               ),
               Text(
                 percentLabel,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: AppColors.peach,
+                  color: tokens.primarySoft,
                   fontWeight: FontWeight.w600,
                 ),
               ),

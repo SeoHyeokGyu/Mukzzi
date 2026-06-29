@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mukzzi/src/core/theme/app_theme.dart';
 import 'package:mukzzi/src/core/widgets/gradient_scaffold.dart';
 import 'package:mukzzi/src/core/widgets/bento_card.dart';
+import 'package:mukzzi/src/core/widgets/profile_avatar.dart';
 import 'package:mukzzi/src/features/profile/data/models/user_model.dart';
 import '../../../profile/presentation/providers/user_provider.dart';
 import '../providers/social_providers.dart';
@@ -46,8 +47,6 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
         }
 
         final user = snapshot.data!;
-        final hasImage = user.profileImageUrl != null && user.profileImageUrl!.isNotEmpty;
-        
         final isFriend = ref.watch(friendIdsProvider).contains(user.id);
         final isReceived = ref.watch(receivedRequestIdsProvider).contains(user.id);
         final isSent = ref.watch(sentRequestIdsProvider).contains(user.id);
@@ -62,10 +61,10 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
                   padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
                   child: Column(
                     children: [
-                      CircleAvatar(
+                      ProfileAvatar(
+                        profileImageUrl: user.profileImageUrl,
+                        nickname: user.nickname ?? user.username,
                         radius: 50,
-                        backgroundImage: hasImage ? NetworkImage(user.profileImageUrl!) : null,
-                        child: !hasImage ? const Icon(Icons.person, size: 50) : null,
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -99,7 +98,7 @@ class _OtherProfilePageState extends ConsumerState<OtherProfilePage> {
                         ),
                       ],
                       const SizedBox(height: 4),
-                      Text('@${user.username}', style: const TextStyle(color: AppColors.textSecondary)),
+                      Text('@${user.username}', style: TextStyle(color: Theme.of(context).extension<AppColorTokens>()!.textSub)),
                       const SizedBox(height: 24),
                       _buildActionButtons(isFriend, isSent, isReceived, user.id, user),
                     ],
@@ -264,7 +263,7 @@ class _GuestbookSection extends ConsumerWidget {
             error: (err, _) => Center(child: Text('오류가 발생했습니다.', style: TextStyle(color: tokens.textMuted))),
             data: (entries) {
               if (entries.isEmpty) {
-                return const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Text('아직 작성된 방명록이 없습니다.', style: TextStyle(color: AppColors.textTertiary))));
+                return Center(child: Padding(padding: const EdgeInsets.symmetric(vertical: 20), child: Text('아직 작성된 방명록이 없습니다.', style: TextStyle(color: tokens.textMuted))));
               }
 
               return ListView.separated(
@@ -357,7 +356,7 @@ class _StatItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+        Text(label, style: TextStyle(fontSize: 12, color: Theme.of(context).extension<AppColorTokens>()!.textSub)),
         const SizedBox(height: 4),
         Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
       ],

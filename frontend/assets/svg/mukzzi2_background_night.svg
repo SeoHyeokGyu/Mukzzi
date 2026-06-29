@@ -1,0 +1,259 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="100%" height="100%">
+  <defs>
+    <linearGradient id="roomBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1A1412" />
+      <stop offset="100%" stop-color="#211A14" />
+    </linearGradient>
+    <linearGradient id="floorBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2A2118" />
+      <stop offset="100%" stop-color="#1F1810" />
+    </linearGradient>
+    <linearGradient id="nightSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#06091A" />
+      <stop offset="40%" stop-color="#0C1230" />
+      <stop offset="100%" stop-color="#1A2845" />
+    </linearGradient>
+    <linearGradient id="cityGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1A2845" stop-opacity="0" />
+      <stop offset="100%" stop-color="#2A1A08" />
+    </linearGradient>
+    <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#FFF8E7" />
+      <stop offset="100%" stop-color="#FFE4A0" />
+    </radialGradient>
+    <radialGradient id="lampLight" cx="50%" cy="0%" r="80%" fx="50%" fy="0%">
+      <stop offset="0%" stop-color="#FFD580" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#FFD580" stop-opacity="0" />
+    </radialGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="windowClip">
+      <rect x="270" y="120" width="460" height="560" rx="12" />
+    </clipPath>
+  </defs>
+
+  <!-- 방 배경 (앱 배경색과 동일) -->
+  <rect x="-2" y="-2" width="1004" height="1004" fill="url(#roomBg)" />
+
+  <!-- 바닥 -->
+  <rect x="-2" y="760" width="1004" height="242" fill="url(#floorBg)" />
+  <!-- 바닥 목재 결 -->
+  <g stroke="#2E2418" stroke-width="1.5" opacity="0.6">
+    <line x1="0" y1="800" x2="1000" y2="800" />
+    <line x1="0" y1="840" x2="1000" y2="840" />
+    <line x1="0" y1="880" x2="1000" y2="880" />
+    <line x1="0" y1="920" x2="1000" y2="920" />
+    <line x1="0" y1="960" x2="1000" y2="960" />
+  </g>
+  <!-- 바닥/벽 경계선 -->
+  <rect x="-2" y="756" width="1004" height="6" fill="#2E2418" />
+
+  <!-- 창문 프레임 외곽 -->
+  <rect x="258" y="108" width="484" height="584" rx="16" fill="#3A2D1E" />
+
+  <!-- 창문 유리 영역 — 야경 -->
+  <g clip-path="url(#windowClip)">
+    <!-- 밤하늘 -->
+    <rect x="270" y="120" width="460" height="560" fill="url(#nightSky)" />
+
+    <!-- 별 — 작은 점들 -->
+    <g fill="#FFFFFF" filter="url(#glow)">
+      <circle cx="310" cy="145" r="1.2" opacity="0.9" />
+      <circle cx="358" cy="132" r="0.9" opacity="0.7" />
+      <circle cx="390" cy="158" r="1.5" opacity="0.8" />
+      <circle cx="430" cy="140" r="1.0" opacity="0.6" />
+      <circle cx="478" cy="128" r="1.3" opacity="0.9" />
+      <circle cx="520" cy="148" r="0.8" opacity="0.5" />
+      <circle cx="560" cy="135" r="1.2" opacity="0.8" />
+      <circle cx="598" cy="155" r="1.0" opacity="0.7" />
+      <circle cx="635" cy="138" r="1.4" opacity="0.9" />
+      <circle cx="680" cy="150" r="0.9" opacity="0.6" />
+      <circle cx="340" cy="175" r="0.8" opacity="0.5" />
+      <circle cx="410" cy="185" r="1.1" opacity="0.7" />
+      <circle cx="490" cy="165" r="0.7" opacity="0.6" />
+      <circle cx="545" cy="175" r="1.0" opacity="0.8" />
+      <circle cx="615" cy="168" r="0.8" opacity="0.5" />
+      <circle cx="658" cy="180" r="1.2" opacity="0.7" />
+      <circle cx="695" cy="162" r="0.9" opacity="0.6" />
+      <circle cx="325" cy="210" r="0.7" opacity="0.4" />
+      <circle cx="455" cy="198" r="1.0" opacity="0.6" />
+      <circle cx="508" cy="205" r="0.8" opacity="0.5" />
+      <circle cx="582" cy="195" r="1.1" opacity="0.7" />
+      <circle cx="650" cy="208" r="0.7" opacity="0.4" />
+      <circle cx="710" cy="192" r="0.9" opacity="0.6" />
+    </g>
+
+    <!-- 달 -->
+    <circle cx="620" cy="195" r="48" fill="#FFF4CC" opacity="0.15" filter="url(#softGlow)" />
+    <circle cx="620" cy="195" r="36" fill="#FFF8E7" />
+    <!-- 달 크레이터 -->
+    <circle cx="608" cy="185" r="6" fill="#EDE0B8" opacity="0.5" />
+    <circle cx="630" cy="202" r="4" fill="#EDE0B8" opacity="0.4" />
+    <circle cx="618" cy="210" r="3" fill="#EDE0B8" opacity="0.3" />
+
+    <!-- 도시 실루엣 -->
+    <g fill="#0A0E1A">
+      <!-- 빌딩들 -->
+      <rect x="270" y="480" width="55" height="200" />
+      <rect x="290" y="440" width="30" height="240" />
+      <rect x="320" y="500" width="45" height="180" />
+      <rect x="350" y="460" width="60" height="220" />
+      <rect x="390" y="490" width="40" height="190" />
+      <rect x="415" y="430" width="25" height="250" />
+      <rect x="435" y="470" width="50" height="210" />
+      <rect x="480" y="450" width="70" height="230" />
+      <rect x="545" y="480" width="45" height="200" />
+      <rect x="572" y="440" width="35" height="240" />
+      <rect x="600" y="460" width="55" height="220" />
+      <rect x="645" y="490" width="40" height="190" />
+      <rect x="668" y="430" width="30" height="250" />
+      <rect x="692" y="470" width="50" height="210" />
+      <rect x="720" y="500" width="10" height="180" />
+      <!-- 안테나 -->
+      <rect x="421" y="416" width="3" height="20" />
+      <rect x="488" y="436" width="3" height="18" />
+      <rect x="578" y="426" width="2" height="18" />
+    </g>
+
+    <!-- 도시 불빛 (빌딩 창문) -->
+    <g opacity="0.85">
+      <!-- 따뜻한 노란 불빛 -->
+      <rect x="298" y="455" width="5" height="4" rx="1" fill="#FFD580" />
+      <rect x="307" y="468" width="5" height="4" rx="1" fill="#FFE4A0" />
+      <rect x="298" y="480" width="5" height="4" rx="1" fill="#FFD580" />
+      <rect x="307" y="493" width="5" height="4" rx="1" fill="#FFC85A" />
+      <rect x="298" y="506" width="5" height="4" rx="1" fill="#FFE4A0" />
+      <rect x="307" y="519" width="5" height="4" rx="1" fill="#FFD580" />
+
+      <rect x="358" y="473" width="5" height="4" rx="1" fill="#FFD580" />
+      <rect x="368" y="486" width="5" height="4" rx="1" fill="#FFE4A0" />
+      <rect x="378" y="473" width="5" height="4" rx="1" fill="#FFD580" />
+      <rect x="358" y="499" width="5" height="4" rx="1" fill="#FFC85A" />
+      <rect x="368" y="512" width="5" height="4" rx="1" fill="#FFD580" />
+      <rect x="378" y="499" width="5" height="4" rx="1" fill="#FFE4A0" />
+      <rect x="358" y="525" width="5" height="4" rx="1" fill="#FFD580" />
+      <rect x="378" y="525" width="5" height="4" rx="1" fill="#FFC85A" />
+
+      <!-- 파란 불빛 (TV/모니터) -->
+      <rect x="442" y="483" width="6" height="4" rx="1" fill="#7BA7E0" />
+      <rect x="452" y="496" width="6" height="4" rx="1" fill="#8BB5F0" />
+      <rect x="442" y="509" width="6" height="4" rx="1" fill="#7BA7E0" />
+      <rect x="452" y="522" width="6" height="4" rx="1" fill="#6A9AD0" />
+      <rect x="462" y="483" width="6" height="4" rx="1" fill="#8BB5F0" />
+      <rect x="462" y="509" width="6" height="4" rx="1" fill="#7BA7E0" />
+
+      <!-- 노란 불빛 더 -->
+      <rect x="490" y="463" width="5" height="4" rx="1" fill="#FFD580" />
+      <rect x="500" y="476" width="5" height="4" rx="1" fill="#FFE4A0" />
+      <rect x="510" y="463" width="5" height="4" rx="1" fill="#FFC85A" />
+      <rect x="520" y="476" width="5" height="4" rx="1" fill="#FFD580" />
+      <rect x="490" y="489" width="5" height="4" rx="1" fill="#FFE4A0" />
+      <rect x="510" y="489" width="5" height="4" rx="1" fill="#FFD580" />
+      <rect x="500" y="502" width="5" height="4" rx="1" fill="#FFC85A" />
+      <rect x="520" y="502" width="5" height="4" rx="1" fill="#FFE4A0" />
+      <rect x="490" y="515" width="5" height="4" rx="1" fill="#FFD580" />
+      <rect x="510" y="515" width="5" height="4" rx="1" fill="#FFE4A0" />
+
+      <rect x="608" y="473" width="5" height="4" rx="1" fill="#FFD580" />
+      <rect x="618" y="486" width="5" height="4" rx="1" fill="#FFE4A0" />
+      <rect x="628" y="473" width="5" height="4" rx="1" fill="#FFD580" />
+      <rect x="608" y="499" width="5" height="4" rx="1" fill="#FFC85A" />
+      <rect x="618" y="512" width="5" height="4" rx="1" fill="#FFD580" />
+      <rect x="628" y="499" width="5" height="4" rx="1" fill="#FFE4A0" />
+      <rect x="608" y="525" width="5" height="4" rx="1" fill="#FFD580" />
+
+      <rect x="676" y="445" width="5" height="4" rx="1" fill="#FFE4A0" />
+      <rect x="686" y="458" width="5" height="4" rx="1" fill="#FFD580" />
+      <rect x="676" y="471" width="5" height="4" rx="1" fill="#FFC85A" />
+      <rect x="686" y="484" width="5" height="4" rx="1" fill="#FFD580" />
+      <rect x="676" y="497" width="5" height="4" rx="1" fill="#FFE4A0" />
+      <rect x="686" y="510" width="5" height="4" rx="1" fill="#FFD580" />
+    </g>
+
+    <!-- 도시 전체 노란 글로우 -->
+    <rect x="270" y="560" width="460" height="120" fill="url(#cityGlow)" opacity="0.6" />
+  </g>
+
+  <!-- 창문 프레임 내부 테두리 -->
+  <rect x="270" y="120" width="460" height="560" rx="12" fill="none" stroke="#4A3828" stroke-width="8" />
+  <!-- 창문 중간 가로 프레임 -->
+  <rect x="270" y="415" width="460" height="10" fill="#3A2D1E" />
+  <!-- 창문 중간 세로 프레임 -->
+  <rect x="495" y="120" width="10" height="560" fill="#3A2D1E" />
+
+  <!-- 창문 유리 반사광 -->
+  <rect x="278" y="128" width="6" height="280" rx="3" fill="#FFFFFF" opacity="0.04" />
+  <rect x="287" y="128" width="2" height="280" rx="1" fill="#FFFFFF" opacity="0.03" />
+
+  <!-- 창문 아래 선반/창틀 -->
+  <rect x="250" y="676" width="500" height="18" rx="5" fill="#4A3828" />
+  <rect x="260" y="690" width="480" height="8" rx="3" fill="#3A2D1E" />
+
+  <!-- 좌측 커튼 -->
+  <g opacity="0.9">
+    <path d="M 100 100 Q 160 200 140 400 Q 150 550 120 680 L 268 680 L 268 100 Z" fill="#2C1F14" />
+    <path d="M 268 100 Q 230 200 245 350 Q 235 500 250 680 L 268 680 Z" fill="#3A2A1A" />
+    <!-- 커튼 주름 -->
+    <path d="M 200 100 Q 220 250 210 450 Q 220 580 205 680" fill="none" stroke="#1E1510" stroke-width="2" opacity="0.5" />
+    <path d="M 235 100 Q 248 200 242 380 Q 248 520 240 680" fill="none" stroke="#1E1510" stroke-width="2" opacity="0.5" />
+    <!-- 커튼 봉 -->
+    <rect x="95" y="95" width="180" height="10" rx="5" fill="#5A3D28" />
+    <circle cx="95" cy="100" r="8" fill="#6A4D38" />
+  </g>
+
+  <!-- 우측 커튼 -->
+  <g opacity="0.9">
+    <path d="M 900 100 Q 840 200 860 400 Q 850 550 880 680 L 732 680 L 732 100 Z" fill="#2C1F14" />
+    <path d="M 732 100 Q 770 200 755 350 Q 765 500 750 680 L 732 680 Z" fill="#3A2A1A" />
+    <!-- 커튼 주름 -->
+    <path d="M 800 100 Q 780 250 790 450 Q 780 580 795 680" fill="none" stroke="#1E1510" stroke-width="2" opacity="0.5" />
+    <path d="M 765 100 Q 752 200 758 380 Q 752 520 760 680" fill="none" stroke="#1E1510" stroke-width="2" opacity="0.5" />
+    <!-- 커튼 봉 -->
+    <rect x="725" y="95" width="180" height="10" rx="5" fill="#5A3D28" />
+    <circle cx="905" cy="100" r="8" fill="#6A4D38" />
+  </g>
+
+  <!-- 커튼 봉 중앙 연결 -->
+  <rect x="270" y="95" width="460" height="10" rx="2" fill="#4A3020" opacity="0.6" />
+
+  <!-- 창문 조명 (ambient glow) -->
+  <ellipse cx="500" cy="120" rx="200" ry="80" fill="url(#lampLight)" />
+
+  <!-- 창틀 아래 소품: 작은 화분 -->
+  <g>
+    <ellipse cx="310" cy="695" rx="18" ry="8" fill="#3D2E20" />
+    <rect x="296" y="660" width="28" height="36" rx="6" fill="#4A3828" />
+    <ellipse cx="310" cy="660" rx="14" ry="6" fill="#3D2E20" />
+    <!-- 식물 -->
+    <path d="M 310 660 Q 295 640 288 625" fill="none" stroke="#2D4A1E" stroke-width="4" stroke-linecap="round" />
+    <path d="M 310 660 Q 310 638 310 622" fill="none" stroke="#2D4A1E" stroke-width="4" stroke-linecap="round" />
+    <path d="M 310 660 Q 325 640 332 625" fill="none" stroke="#2D4A1E" stroke-width="4" stroke-linecap="round" />
+    <ellipse cx="288" cy="622" rx="10" ry="8" fill="#3D6028" />
+    <ellipse cx="310" cy="618" rx="12" ry="9" fill="#4A7832" />
+    <ellipse cx="332" cy="622" rx="10" ry="8" fill="#3D6028" />
+  </g>
+
+  <!-- 우측 소품: 작은 캔들 -->
+  <g filter="url(#glow)">
+    <rect x="672" y="668" width="22" height="30" rx="3" fill="#5A4838" />
+    <ellipse cx="683" cy="668" rx="11" ry="5" fill="#7A6858" />
+    <!-- 심지 -->
+    <line x1="683" y1="663" x2="683" y2="652" stroke="#3A2818" stroke-width="2" />
+    <!-- 불꽃 -->
+    <ellipse cx="683" cy="648" rx="5" ry="8" fill="#FFB830" opacity="0.9" />
+    <ellipse cx="683" cy="646" rx="3" ry="5" fill="#FFDD70" opacity="0.95" />
+    <ellipse cx="683" cy="644" rx="1.5" ry="3" fill="#FFFFFF" opacity="0.8" />
+    <!-- 불빛 글로우 -->
+    <ellipse cx="683" cy="660" rx="30" ry="20" fill="#FFB830" opacity="0.08" />
+  </g>
+
+  <!-- 반짝이 데코 (창문 반사 느낌) -->
+  <path d="M 188 340 Q 188 328 178 328 Q 188 328 188 316 Q 188 328 198 328 Q 188 328 188 340 Z" fill="#FFD580" opacity="0.3" />
+  <path d="M 810 280 Q 810 270 802 270 Q 810 270 810 260 Q 810 270 818 270 Q 810 270 810 280 Z" fill="#FFD580" opacity="0.3" />
+</svg>

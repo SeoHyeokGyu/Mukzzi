@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/gradient_scaffold.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../data/models/user_model.dart';
 import '../providers/user_provider.dart';
 
@@ -139,7 +140,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               runSpacing: 8,
               children: _allergenList.map((allergen) {
                 final isSelected = _selectedAllergies.contains(allergen);
-                final primaryColor = Theme.of(context).primaryColor;
+                final primaryColor =
+                    Theme.of(context).extension<AppColorTokens>()!.primary;
                 return FilterChip(
                   label: Text(allergen),
                   selected: isSelected,

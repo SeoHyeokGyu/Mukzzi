@@ -55,9 +55,10 @@ class _CollectionCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: tokens.card,
         borderRadius: BorderRadius.circular(16),
         boxShadow: AppColors.cardShadow,
       ),
@@ -68,10 +69,10 @@ class _CollectionCard extends ConsumerWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppColors.softPeach,
+              color: tokens.primaryBg,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(Icons.pets, size: 44, color: AppColors.orange),
+            child: Icon(Icons.pets, size: 44, color: tokens.primary),
           ),
           const SizedBox(height: 8),
           Text(
@@ -79,7 +80,7 @@ class _CollectionCard extends ConsumerWidget {
             style: GoogleFonts.poppins(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: tokens.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
@@ -87,7 +88,7 @@ class _CollectionCard extends ConsumerWidget {
           const SizedBox(height: 4),
           Text(
             DateFormat('yyyy.MM.dd').format(collection.achievedAt.toLocal()),
-            style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
+            style: TextStyle(fontSize: 11, color: tokens.textMuted),
           ),
           const SizedBox(height: 8),
           GestureDetector(
@@ -95,15 +96,15 @@ class _CollectionCard extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                color: AppColors.softPeach,
+                color: tokens.primaryBg,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Text(
+              child: Text(
                 '적용',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.orange,
+                  color: tokens.primary,
                 ),
               ),
             ),
@@ -168,22 +169,23 @@ class _PartDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppColorTokens>()!;
     return Tooltip(
       message: '$tooltip: $value',
       child: Container(
         width: 18,
         height: 18,
         decoration: BoxDecoration(
-          color: AppColors.surfaceElevated,
+          color: tokens.listItemBg,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Center(
           child: Text(
             '$value',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+              color: tokens.textSub,
             ),
           ),
         ),
@@ -191,4 +193,3 @@ class _PartDot extends StatelessWidget {
     );
   }
 }
-

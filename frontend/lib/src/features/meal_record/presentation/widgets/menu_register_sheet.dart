@@ -164,7 +164,7 @@ class _MenuRegisterSheetState extends ConsumerState<MenuRegisterSheet> {
                 child: Container(
                   width: 40, height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: tokens.divider,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),

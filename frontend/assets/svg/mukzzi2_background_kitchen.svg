@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="100%" height="100%">
   <defs>
+    <!-- 배경 및 주방 가구 그라데이션 -->
     <linearGradient id="wallBg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#FFFDF9" />
       <stop offset="100%" stop-color="#FFF5EA" />
@@ -13,98 +14,126 @@
       <stop offset="100%" stop-color="#BBDEFB" />
     </linearGradient>
 
+    <!-- 부드러운 그림자 효과 -->
     <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
       <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#A1887F" flood-opacity="0.15"/>
     </filter>
   </defs>
 
-  <!-- 1. 기본 벽면 배경 — 100px 인셋, rx=60으로 모서리 둥글게 -->
-  <rect x="100" y="100" width="800" height="800" rx="60" fill="url(#wallBg)" />
+  <!-- 1. 기본 벽면 배경 -->
+  <rect x="-2" y="-2" width="1004" height="1004" fill="url(#wallBg)" />
 
-  <!-- 2. 주방 타일 격자선 — 100~900 범위로 클리핑 -->
+  <!-- 2. 주방 타일 격자선 (은은한 피치톤) -->
   <g stroke="#EFE5D8" stroke-width="2">
-    <line x1="100" y1="200" x2="900" y2="200" />
-    <line x1="100" y1="300" x2="900" y2="300" />
-    <line x1="100" y1="400" x2="900" y2="400" />
-    <line x1="100" y1="500" x2="900" y2="500" />
-    <line x1="100" y1="600" x2="900" y2="600" />
-    <line x1="100" y1="700" x2="900" y2="700" />
-    <line x1="200" y1="100" x2="200" y2="750" />
-    <line x1="300" y1="100" x2="300" y2="750" />
-    <line x1="400" y1="100" x2="400" y2="750" />
-    <line x1="500" y1="100" x2="500" y2="750" />
-    <line x1="600" y1="100" x2="600" y2="750" />
-    <line x1="700" y1="100" x2="700" y2="750" />
-    <line x1="800" y1="100" x2="800" y2="750" />
+    <!-- 가로선 -->
+    <line x1="0" y1="100" x2="1000" y2="100" />
+    <line x1="0" y1="200" x2="1000" y2="200" />
+    <line x1="0" y1="300" x2="1000" y2="300" />
+    <line x1="0" y1="400" x2="1000" y2="400" />
+    <line x1="0" y1="500" x2="1000" y2="500" />
+    <line x1="0" y1="600" x2="1000" y2="600" />
+    <line x1="0" y1="700" x2="1000" y2="700" />
+    <!-- 세로선 -->
+    <line x1="100" y1="0" x2="100" y2="740" />
+    <line x1="200" y1="0" x2="200" y2="740" />
+    <line x1="300" y1="0" x2="300" y2="740" />
+    <line x1="400" y1="0" x2="400" y2="740" />
+    <line x1="500" y1="0" x2="500" y2="740" />
+    <line x1="600" y1="0" x2="600" y2="740" />
+    <line x1="700" y1="0" x2="700" y2="740" />
+    <line x1="800" y1="0" x2="800" y2="740" />
+    <line x1="900" y1="0" x2="900" y2="740" />
   </g>
 
-  <!-- 3. 중앙 아치형 창문 -->
+  <!-- 3. 중앙 아치형 창문 (햄스터 뒤에서 액자처럼 감싸는 연출) -->
   <g filter="url(#shadow)">
+    <!-- 창문 밖 하늘 -->
     <path d="M 380 320 L 380 180 A 120 120 0 0 1 620 180 L 620 320 Z" fill="url(#windowSky)" />
+    <!-- 뭉게구름 -->
     <circle cx="440" cy="200" r="25" fill="#FFFFFF" opacity="0.85" />
     <circle cx="465" cy="210" r="20" fill="#FFFFFF" opacity="0.85" />
     <circle cx="420" cy="215" r="18" fill="#FFFFFF" opacity="0.85" />
+    <!-- 창틀 -->
     <path d="M 380 320 L 380 180 A 120 120 0 0 1 620 180 L 620 320 Z" fill="none" stroke="#FFFFFF" stroke-width="12" />
-    <line x1="500" y1="120" x2="500" y2="320" stroke="#FFFFFF" stroke-width="6" />
+    <line x1="500" y1="60" x2="500" y2="320" stroke="#FFFFFF" stroke-width="6" />
     <line x1="380" y1="220" x2="620" y2="220" stroke="#FFFFFF" stroke-width="6" />
+    <!-- 창문 선반 -->
     <rect x="360" y="315" width="280" height="14" rx="6" fill="#FFFFFF" />
   </g>
 
-  <!-- 4. 좌측 상단: 조리기구 걸이 -->
+  <!-- 4. 좌측 상단: 걸이식 조리기구와 주방 장갑 -->
   <g filter="url(#shadow)">
-    <rect x="150" y="160" width="160" height="8" rx="4" fill="#BCAAA4" />
-    <path d="M 185 168 L 185 180 A 6 6 0 0 0 197 180" fill="none" stroke="#78909C" stroke-width="3" stroke-linecap="round"/>
-    <path d="M 230 168 L 230 180 A 6 6 0 0 0 242 180" fill="none" stroke="#78909C" stroke-width="3" stroke-linecap="round"/>
-    <path d="M 275 168 L 275 180 A 6 6 0 0 0 287 180" fill="none" stroke="#78909C" stroke-width="3" stroke-linecap="round"/>
-    <path d="M 193 180 L 187 195 C 180 205 180 215 190 225 C 200 235 210 230 213 215 L 215 195 Z" fill="#FF8A80" />
-    <circle cx="189" cy="202" r="4" fill="#FFFFFF" />
-    <circle cx="236" cy="215" r="22" fill="#90A4AE" />
-    <line x1="236" y1="180" x2="236" y2="193" stroke="#78909C" stroke-width="4" />
+    <rect x="80" y="140" width="180" height="8" rx="4" fill="#BCAAA4" />
+    <!-- 고리 -->
+    <path d="M 120 148 L 120 160 A 6 6 0 0 0 132 160" fill="none" stroke="#78909C" stroke-width="3" stroke-linecap="round"/>
+    <path d="M 170 148 L 170 160 A 6 6 0 0 0 182 160" fill="none" stroke="#78909C" stroke-width="3" stroke-linecap="round"/>
+    <path d="M 220 148 L 220 160 A 6 6 0 0 0 232 160" fill="none" stroke="#78909C" stroke-width="3" stroke-linecap="round"/>
+    <!-- 빨간 체크무늬 주방 장갑 -->
+    <path d="M 128 160 L 122 175 C 115 185 115 195 125 205 C 135 215 145 210 148 195 L 150 175 Z" fill="#FF8A80" />
+    <circle cx="124" cy="182" r="4" fill="#FFFFFF" />
+    <!-- 미니 소스팬 -->
+    <circle cx="176" cy="195" r="22" fill="#90A4AE" />
+    <line x1="176" y1="160" x2="176" y2="173" stroke="#78909C" stroke-width="4" />
   </g>
 
-  <!-- 5. 우측 상단: 벽면 선반 -->
+  <!-- 5. 우측 상단: 아기자기한 벽면 선반 선반 -->
   <g filter="url(#shadow)">
-    <rect x="700" y="260" width="190" height="16" rx="5" fill="#CDA377" />
-    <path d="M 725 225 L 755 225 L 750 260 L 730 260 Z" fill="#A1887F" />
-    <circle cx="730" cy="210" r="14" fill="#81C784" />
-    <circle cx="750" cy="205" r="16" fill="#66BB6A" />
-    <circle cx="740" cy="195" r="12" fill="#4CAF50" />
-    <path d="M 810 260 L 855 228 L 868 260 Z" fill="#FFD54F" />
-    <path d="M 855 228 L 868 260 L 878 260 L 868 228 Z" fill="#FFC107" />
-    <circle cx="835" cy="250" r="4" fill="#FFB300" opacity="0.4"/>
-    <circle cx="854" cy="252" r="3" fill="#FFB300" opacity="0.4"/>
+    <!-- 원목 선반 -->
+    <rect x="700" y="240" width="240" height="16" rx="5" fill="#CDA377" />
+    <!-- 미니 화분 -->
+    <path d="M 730 205 L 760 205 L 755 240 L 735 240 Z" fill="#A1887F" />
+    <circle cx="735" cy="190" r="14" fill="#81C784" />
+    <circle cx="755" cy="185" r="16" fill="#66BB6A" />
+    <circle cx="745" cy="175" r="12" fill="#4CAF50" />
+    <!-- 미니 치즈 조각 -->
+    <path d="M 820 240 L 870 205 L 885 240 Z" fill="#FFD54F" />
+    <path d="M 870 205 L 885 240 L 895 240 L 885 205 Z" fill="#FFC107" />
+    <circle cx="845" cy="230" r="4" fill="#FFB300" opacity="0.4"/>
+    <circle cx="865" cy="232" r="3" fill="#FFB300" opacity="0.4"/>
   </g>
 
-  <!-- 6. 조리대 베이스 — 100~900 범위, 하단 rx -->
-  <rect x="100" y="750" width="800" height="150" rx="0" fill="url(#counterBg)" />
-  <rect x="100" y="742" width="800" height="12" fill="#C68B45" />
+  <!-- 6. 조리대 베이스 (하단부) -->
+  <rect x="-2" y="740" width="1004" height="262" fill="url(#counterBg)" />
+  <rect x="-2" y="730" width="1004" height="12" fill="#C68B45" />
 
-  <!-- 7. 좌측 하단: 치즈 -->
+  <!-- 7. 좌측 하단: 입체적인 대형 치즈 아이콘 (소품 연출) -->
   <g filter="url(#shadow)">
-    <path d="M 245 840 L 135 785 Q 215 738 295 755 Z" fill="#FFE082" />
-    <path d="M 135 785 L 245 840 L 245 900 L 135 845 Z" fill="#FFCA28" />
-    <path d="M 245 840 L 295 755 L 295 815 L 245 900 Z" fill="#F57F17" />
-    <ellipse cx="175" cy="808" rx="12" ry="6" fill="#F57F17" opacity="0.3"/>
-    <ellipse cx="258" cy="818" rx="15" ry="8" fill="#F57F17" opacity="0.3"/>
+    <!-- 치즈 윗면 -->
+    <path d="M 180 820 L 60 760 Q 150 710 240 730 Z" fill="#FFE082" />
+    <!-- 치즈 좌측면 -->
+    <path d="M 60 760 L 180 820 L 180 890 L 60 830 Z" fill="#FFCA28" />
+    <!-- 치즈 우측면 -->
+    <path d="M 180 820 L 240 730 L 240 800 L 180 890 Z" fill="#F57F17" />
+    <!-- 치즈 구멍 음영 디테일 -->
+    <ellipse cx="110" cy="785" rx="12" ry="6" fill="#F57F17" opacity="0.3"/>
+    <ellipse cx="195" cy="795" rx="15" ry="8" fill="#F57F17" opacity="0.3"/>
+    <ellipse cx="150" cy="815" rx="10" ry="5" fill="#F57F17" opacity="0.3"/>
+    <ellipse cx="105" cy="830" rx="10" ry="14" fill="#D84315" opacity="0.3" transform="rotate(15, 105, 830)"/>
+    <ellipse cx="215" cy="825" rx="9" ry="15" fill="#D84315" opacity="0.3" transform="rotate(-20, 215, 825)"/>
   </g>
 
-  <!-- 8. 우측 하단: 쿠키병 -->
+  <!-- 8. 우측 하단: 달콤한 초코칩 쿠키 유리병 -->
   <g filter="url(#shadow)">
-    <rect x="760" y="775" width="120" height="130" rx="28" fill="#E0F7FA" opacity="0.7" stroke="#B2EBF2" stroke-width="4" />
-    <rect x="778" y="758" width="84" height="18" rx="6" fill="#FFB74D" />
-    <circle cx="820" cy="751" r="9" fill="#FFA726" />
-    <circle cx="796" cy="868" r="22" fill="#BCAAA4" />
-    <circle cx="796" cy="873" r="3" fill="#5D4037" />
-    <circle cx="837" cy="850" r="22" fill="#BCAAA4" />
-    <circle cx="832" cy="850" r="3" fill="#5D4037" />
-    <circle cx="812" cy="818" r="22" fill="#BCAAA4" />
-    <circle cx="817" cy="818" r="3" fill="#5D4037" />
+    <!-- 투명 유리병 -->
+    <rect x="760" y="760" width="130" height="160" rx="30" fill="#E0F7FA" opacity="0.7" stroke="#B2EBF2" stroke-width="4" />
+    <!-- 코르크 마개 -->
+    <rect x="780" y="740" width="90" height="20" rx="6" fill="#FFB74D" />
+    <circle cx="825" cy="732" r="10" fill="#FFA726" />
+    <!-- 내부 쿠키들 -->
+    <circle cx="800" cy="870" r="25" fill="#BCAAA4" />
+    <circle cx="805" cy="875" r="3" fill="#5D4037" />
+    <circle cx="795" cy="865" r="2" fill="#5D4037" />
+    <circle cx="845" cy="850" r="25" fill="#BCAAA4" />
+    <circle cx="840" cy="850" r="3" fill="#5D4037" />
+    <circle cx="850" cy="845" r="2" fill="#5D4037" />
+    <circle cx="815" cy="810" r="25" fill="#BCAAA4" />
+    <circle cx="820" cy="810" r="3" fill="#5D4037" />
   </g>
 
-  <!-- 9. 데코 반짝이 -->
+  <!-- 9. 감성적인 데코 요소 (반짝이 및 보케 효과) -->
   <path d="M 320 450 Q 320 430 300 430 Q 320 430 320 410 Q 320 430 340 430 Q 320 430 320 450 Z" fill="#FFD54F" />
   <path d="M 700 520 Q 700 505 685 505 Q 700 505 700 490 Q 700 505 715 505 Q 700 505 700 520 Z" fill="#FFD54F" />
-  <path d="M 240 580 Q 240 570 230 570 Q 240 570 240 560 Q 240 570 250 570 Q 240 570 240 580 Z" fill="#FFD54F" />
-  <circle cx="310" cy="520" r="8" fill="#FFAB91" opacity="0.4" />
-  <circle cx="720" cy="470" r="11" fill="#FFF59D" opacity="0.5" />
+  <path d="M 200 600 Q 200 590 190 590 Q 200 590 200 580 Q 200 590 210 590 Q 200 590 200 600 Z" fill="#FFD54F" />
+  <circle cx="280" cy="520" r="8" fill="#FFAB91" opacity="0.4" />
+  <circle cx="740" cy="460" r="12" fill="#FFF59D" opacity="0.5" />
 </svg>

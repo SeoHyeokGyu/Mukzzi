@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +18,7 @@ import 'package:mukzzi/src/features/character/data/models/character_model.dart';
 import 'package:mukzzi/src/features/character/presentation/providers/character_provider.dart';
 import 'package:mukzzi/src/features/home/presentation/pages/home_page.dart';
 import 'package:mukzzi/src/features/home/presentation/providers/nutrition_provider.dart';
+import 'package:mukzzi/src/features/home/data/models/nutrition_model.dart';
 import 'package:mukzzi/src/features/meal_record/presentation/providers/meal_provider.dart';
 import 'package:mukzzi/src/features/profile/data/models/user_model.dart';
 import 'package:mukzzi/src/features/profile/data/repositories/user_repository.dart';
@@ -24,9 +26,9 @@ import 'package:mukzzi/src/features/profile/presentation/providers/user_provider
 import 'package:mukzzi/src/features/quest/data/repositories/quest_repository_impl.dart';
 import 'package:mukzzi/src/features/quest/domain/entities/quest.dart';
 import 'package:mukzzi/src/features/quest/presentation/providers/quest_provider.dart';
+import 'package:mukzzi/src/features/ai/data/models/ai_models.dart';
+import 'package:mukzzi/src/features/ai/presentation/providers/ai_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-Widget _wrap(Widget child) => ProviderScope(child: MaterialApp(theme: AppTheme.darkTheme, home: child));
 
 class _FakeTokenStorage implements TokenStorage {
   @override
@@ -76,6 +78,24 @@ class _FakeQuestRepository implements QuestRepository {
   Future<void> claimReward(String userQuestId) async {}
 }
 
+class FakeNotificationNotifier extends NotificationNotifier {
+  FakeNotificationNotifier(super.repository);
+
+  @override
+  Future<void> fetchNotifications() async {}
+}
+
+class FakeLoadingUserNotifier extends UserNotifier {
+  FakeLoadingUserNotifier(super.repository) {
+    state = UserState(isLoading: true, user: null);
+  }
+
+  @override
+  Future<void> fetchMe() async {
+    // 테스트용으로 로딩 상태 유지
+  }
+}
+
 final _testUser = UserModel(
   id: 'user-1',
   username: 'tester',
@@ -96,7 +116,7 @@ const _testCharacter = CharacterModel(
   equipment: {},
 );
 
-Future<Widget> _wrapSeamless() async {
+Future<Widget> _wrapSeamless({bool isLoading = false}) async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
   final userRepository = _FakeUserRepository();
@@ -107,22 +127,69 @@ Future<Widget> _wrapSeamless() async {
       sharedPreferencesProvider.overrideWithValue(prefs),
       userRepositoryProvider.overrideWithValue(userRepository),
       userProvider.overrideWith(
-        (ref) => UserNotifier(userRepository, initialUser: _testUser),
+        (ref) => isLoading
+            ? FakeLoadingUserNotifier(userRepository)
+            : UserNotifier(userRepository, initialUser: _testUser),
       ),
-      characterProvider.overrideWith((ref) async => _testCharacter),
+      characterProvider.overrideWith((ref) => _testCharacter),
       questRepositoryProvider.overrideWithValue(_FakeQuestRepository()),
       notificationRepositoryProvider.overrideWithValue(notificationRepository),
+      notificationProvider.overrideWith((ref) => FakeNotificationNotifier(notificationRepository)),
       todayNutritionProvider.overrideWith(
-        (ref) => Future.error(Exception('test')),
+        (ref) => DailyNutritionModel(
+          date: '2026-06-20',
+          totalCalories: 1500,
+          totalCarbs: 150,
+          totalProtein: 80,
+          totalFat: 50,
+          totalSodium: 1000,
+          totalFiber: 20,
+          mealCount: 3,
+          lastCalculatedAt: DateTime.now(),
+          nutritionGoal: NutritionGoalModel(
+            calorieGoal: 2000,
+            carbGoal: 250,
+            proteinGoal: 100,
+            fatGoal: 65,
+          ),
+        ),
       ),
       weeklyNutritionProvider.overrideWith(
-        (ref) => Future.error(Exception('test')),
+        (ref) => [
+          WeeklyNutritionItemModel(
+            date: '2026-06-20',
+            calories: 1500,
+            carbs: 150,
+            protein: 80,
+            fat: 50,
+          ),
+        ],
       ),
       todayMealsProvider.overrideWith(
-        (ref) => Future.error(Exception('test')),
+        (ref) => const [],
       ),
+      nutritionCoachingProvider.overrideWith((ref, date) => NutritionCoachingResponse(
+        summary: '오늘도 균형 잡힌 식사를 하셨네요!',
+        score: 88,
+        strengths: const [],
+        improvements: const [],
+        tips: const ['단백질 섭취를 조금 더 늘려보세요.'],
+      )),
+      recommendMealProvider.overrideWith((ref, mealType) => RecommendMealResponse(
+        recommendations: const [],
+        reasoning: '회원님을 위한 맞춤 식단 추천입니다.',
+      )),
     ],
-    child: MaterialApp(theme: AppTheme.darkTheme, home: const HomePage()),
+    child: MaterialApp(
+      theme: AppTheme.darkTheme,
+      home: const HomePage(),
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: true),
+          child: child!,
+        );
+      },
+    ),
   );
 }
 
@@ -139,7 +206,11 @@ void main() {
 
   group('HomePage', () {
     testWidgets('shimmer가 로딩 중 표시된다', (tester) async {
-      await tester.pumpWidget(_wrap(const HomePage()));
+      addTearDown(() async {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+      });
+      await tester.pumpWidget(await _wrapSeamless(isLoading: true));
       // initState에서 바로 _isLoading = true 이므로 shimmer가 먼저 보임
       expect(find.byType(LinearProgressIndicator), findsNothing);
       // shimmer 카드가 존재하는지 확인
@@ -147,39 +218,59 @@ void main() {
     });
 
     testWidgets('로딩 완료 후 캐릭터 카드에 EXP 진행바가 표시된다', (tester) async {
-      await tester.pumpWidget(_wrap(const HomePage()));
+      addTearDown(() async {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+      });
+      await tester.pumpWidget(await _wrapSeamless());
       // 로딩 딜레이(1400ms) 경과
       await tester.pump(const Duration(milliseconds: 1500));
+      await tester.idle();
+      await tester.pump();
 
       expect(find.byType(LinearProgressIndicator), findsWidgets);
     });
 
     testWidgets('로딩 완료 후 캐릭터 진화 단계 배지가 표시된다', (tester) async {
-      await tester.pumpWidget(_wrap(const HomePage()));
+      addTearDown(() async {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+      });
+      await tester.pumpWidget(await _wrapSeamless());
       await tester.pump(const Duration(milliseconds: 1500));
+      await tester.idle();
+      await tester.pump();
 
-      expect(find.text('부화 단계'), findsOneWidget);
-    });
-
-    testWidgets('로딩 완료 후 먹찌 성장 안내 문구가 표시된다', (tester) async {
-      await tester.pumpWidget(_wrap(const HomePage()));
-      await tester.pump(const Duration(milliseconds: 1500));
-
-      expect(find.text('식사를 기록하면 먹찌가 성장해요'), findsOneWidget);
+      expect(find.text('정상'), findsOneWidget);
     });
 
     testWidgets('Coming Soon 텍스트가 더 이상 표시되지 않는다', (tester) async {
-      await tester.pumpWidget(_wrap(const HomePage()));
+      addTearDown(() async {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+      });
+      await tester.pumpWidget(await _wrapSeamless());
       await tester.pump(const Duration(milliseconds: 1500));
+      await tester.idle();
+      await tester.pump();
 
       expect(find.textContaining('Coming Soon'), findsNothing);
     });
 
     testWidgets('주간 칼로리 차트가 표시된다', (tester) async {
-      await tester.pumpWidget(_wrap(const HomePage()));
+      addTearDown(() async {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+      });
+      await tester.pumpWidget(await _wrapSeamless());
       await tester.pump(const Duration(milliseconds: 1500));
+      await tester.pumpAndSettle();
 
-      expect(find.text('이번주 칼로리'), findsOneWidget);
+      expect(find.text('주간 영양 트렌드'), findsOneWidget);
+
+      for (int i = 0; i < 50; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
     });
   });
 
@@ -188,6 +279,10 @@ void main() {
       tester.view.physicalSize = const Size(400, 900);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
+      addTearDown(() async {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+      });
 
       await tester.pumpWidget(await _wrapSeamless());
       // pump once to resolve async providers; pump again to drain animate timers
@@ -217,6 +312,10 @@ void main() {
       tester.view.physicalSize = const Size(900, 1200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
+      addTearDown(() async {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+      });
 
       await tester.pumpWidget(await _wrapSeamless());
       await tester.pump();

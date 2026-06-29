@@ -493,6 +493,71 @@ void main() {
 
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('아이템 그리드 childAspectRatio가 1.1이다', (tester) async {
+      final reward = _reward(
+        id: '1',
+        name: '테스트 아이템',
+        slot: EquipmentSlot.head,
+      );
+
+      await tester.pumpWidget(
+        _wrap(
+          characterRepository: _FakeCharacterRepository(_character()),
+          rewards: [reward],
+        ),
+      );
+      await tester.pump();
+
+      final gridView = tester.widget<GridView>(find.byType(GridView));
+      final delegate =
+          gridView.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+      expect(delegate.childAspectRatio, 1.1);
+    });
+
+    testWidgets('슬롯 칩 컨테이너 높이가 44px 이상이다', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          characterRepository: _FakeCharacterRepository(_character()),
+          rewards: [],
+        ),
+      );
+      await tester.pump();
+
+      final slotSelectorBox = tester
+          .widgetList<SizedBox>(find.byType(SizedBox))
+          .firstWhere(
+            (box) => box.child is ShaderMask,
+            orElse: () => throw TestFailure('SlotSelector SizedBox not found'),
+          );
+      expect(slotSelectorBox.height, greaterThanOrEqualTo(44.0),
+          reason: '슬롯 칩 컨테이너가 최소 44px 이상이어야 합니다');
+    });
+
+    testWidgets('칭호 카드 이름이 maxLines:1 overflow:ellipsis로 표시된다', (tester) async {
+      const longName =
+          '매우긴칭호이름매우긴칭호이름매우긴칭호이름매우긴칭호이름매우긴칭호이름매우긴칭호이름매우긴칭호이름매우긴칭호이름매우긴칭호이름매우긴칭호이름';
+      final title = _title(id: '1', name: longName);
+
+      await tester.pumpWidget(
+        _wrap(
+          characterRepository: _FakeCharacterRepository(_character()),
+          rewards: [],
+          titles: [title],
+          initialTab: 'title',
+        ),
+      );
+      await tester.pump();
+
+      final nameTextWidgets = tester
+          .widgetList<Text>(find.byType(Text))
+          .where((t) => t.data == longName)
+          .toList();
+      expect(nameTextWidgets, isNotEmpty, reason: '칭호 이름 Text 위젯이 없습니다');
+      final nameText = nameTextWidgets.first;
+      expect(nameText.maxLines, 1);
+      expect(nameText.overflow, TextOverflow.ellipsis);
+    });
   });
 
   group('칭호-아이템 통합', () {
