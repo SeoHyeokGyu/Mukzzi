@@ -624,20 +624,20 @@ Mukzzi.fig (파일 1개)
 |---|------|----------|---------|--------------|------|
 | 00 | 스플래시 | 로고, 로딩 인디케이터 (토큰 유효성 검사 중) | 앱 실행 | `POST /auth/refresh` | ✓ |
 | 01 | 온보딩 | 앱 소개, 신체정보·영양목표·먹찌 생성 | 최초 가입 시 | `POST /users/onboarding` | ✓ |
-| 02 | 로그인/회원가입 | 소셜 로그인 버튼 (Apple/Google/Kakao) | 비로그인 상태 | `POST /auth/login/{provider}` | ⚠️ username/password만, OAuth 미구현 |
+| 02 | 로그인/회원가입 | 이메일·비밀번호 입력 폼 | 비로그인 상태 | `POST /auth/register`, `POST /auth/login` | ⚠️ 이메일/비밀번호 구현, 소셜 로그인 미구현 |
 | 03 | 먹찌 생성 | 이름 입력, 초기 외형 선택 | 온보딩 완료 후 | (온보딩 트랜잭션에 통합) | ✓ 온보딩 화면에 통합 |
 | 03-B | 먹찌 부화 연출 | 알 부화 Lottie 풀스크린 애니메이션, 캐릭터 이름 표시, 입장 버튼 | 먹찌 생성 직후 1회 | (클라이언트 전용) | ❌ |
 | 04 | 홈 | 먹찌 상태, 오늘 식사 현황, 퀘스트 요약, 친구 응원 알림 | 하단 탭 (홈) | `GET /users/me/character`, `GET /nutrition/today` | ✓ |
-| 05 | 랜덤 룰렛 | 룰렛 애니메이션, 결과 메뉴 | 홈 메뉴 선택 | `POST /menus/roulette` | ❌ |
-| 06 | 상황별 필터 | 날씨/기분 태그 선택, 추천 메뉴 목록 | 홈 메뉴 선택 | `GET /menus/filter` | ❌ |
-| 07 | 선호도 추천 | 개인화 추천 목록, 좋아요/싫어요 | 홈 메뉴 선택 | `GET /menus/recommendations` | ❌ |
+| 05 | 랜덤 룰렛 | 룰렛 애니메이션, 결과 메뉴 | 홈 메뉴 선택 | `POST /menus/roulette` | ✓ |
+| 06 | 상황별 필터 | 날씨/기분 태그 선택, 추천 메뉴 목록 | 홈 메뉴 선택 | `GET /menus/filter` | ✓ |
+| 07 | 선호도 추천 | 개인화 추천 목록, 좋아요/싫어요 | 홈 메뉴 선택 | `GET /menus/recommendations` | ✓ |
 | 08 | 식사 기록 | 메뉴 검색, 수량 선택(0.5/1/1.5인분 또는 직접 입력), 검색 실패 시 카테고리 선택, 영양소 정보, 등록 | 하단 탭 (식사) | `GET /menus/search`, `POST /meals` | ✓ |
-| 08-B | 메뉴 상세 | 메뉴명, 영양소 정보, 마스터리 등급, 즐겨찾기 토글, 좋아요/싫어요 | 식사 기록 검색 결과 또는 먹부림 도감 | `GET /menus/{id}`, `POST /menus/{id}/favorite`, `POST /menus/{id}/preference` | ✓ |
+| 08-B | 메뉴 상세 | 메뉴명, 영양소 정보, 마스터리 등급, 즐겨찾기 토글, 좋아요/싫어요 | 식사 기록 검색 결과 또는 먹부림 도감 | `GET /menus/{id}`, `POST /menus/{id}/favorites`, `POST /menus/{id}/preferences` | ✓ |
 | 08-C | 사용자 메뉴 등록 | 메뉴명 직접 입력, 카테고리 선택 (영양소 추정값 자동 적용) | 식사 기록 검색 실패 시 | `POST /menus` | ❌ |
-| 09 | 먹부림 캘린더 | 월간 달력, 날짜별 기록 | 식사 탭 내 | `GET /meals` | ❌ |
+| 09 | 먹부림 캘린더 | 월간 달력, 날짜별 기록 | 식사 탭 내 | `GET /meals` | ✓ |
 | 10 | 먹찌 도감 | 외형 컬렉션, 달성/미달성 | 먹찌 탭 → 도감 | `GET /collections/characters` | ✓ |
-| 10-B | 먹찌 외형 커스터마이징 | 도감에서 이전 외형 선택 적용, 배경/악세서리 장착 | 먹찌 도감에서 진입 | `PATCH /characters/me/appearance`, `PATCH /characters/me/equipment` | ❌ |
-| 11 | 퀘스트 | 일일/주간/업적 탭, 진행 현황 | 미정 | `GET /quests`, `POST /quests/{id}/claim` | ❌ |
+| 10-B | 먹찌 장비 관리 | 슬롯별 배경/얼굴/악세서리 장착 (외형 파츠는 식사 기록 시 자동 변화) | 먹찌 도감/캐릭터에서 진입 | `PATCH /characters/me/equipment` | ✓ (장비 장착 / 외형 변경 전용 API 없음) |
+| 11 | 퀘스트 | 일일/주간/업적 탭, 진행 현황 | 홈/먹찌 탭 | `GET /quests`, `POST /quests/{id}/claim` | ✓ |
 | 12 | 프로필 | 닉네임, 칭호, 먹찌 외형, 연속 기록일, 누적 기록 수, 컬렉션 (뱃지/칭호/보상) | 하단 탭 (프로필) | `GET /users/me`, `GET /users/me/character` | ✓ |
 | 12-A | 뱃지 목록 | 카테고리별 뱃지 획득 현황 | 프로필 탭 → 컬렉션 → 뱃지 | `GET /collections/badges` | ✓ |
 | 12-B | 칭호 목록 | 획득 칭호 목록, 장착/해제 | 프로필 탭 → 컬렉션 → 칭호 | `GET /collections/titles`, `PATCH /collections/titles/equip` | ✓ |
@@ -647,7 +647,7 @@ Mukzzi.fig (파일 1개)
 | 15 | 영양 피드백 | 영양소 비율 차트, 추천 멘트 | 미정 | `GET /nutrition/weekly` | ❌ 홈 차트로 부분 대체 |
 | 16 | 먹부림 도감 | 카테고리별 수집 현황, 메뉴 상세 마스터리 | 식사 탭 AppBar 아이콘 | `GET /collections/mastery`, `GET /collections/mastery/{menuId}` | ✓ |
 | 17 | 설정 | 식사 목표, 알림 설정 (유형별 on/off), 계정 관리 (로그아웃/탈퇴), 앱 정보 | 프로필 탭 AppBar | `PATCH /users/me/settings`, `PATCH /users/me/nutrition-goal`, `POST /auth/logout`, `DELETE /users/me` | ✓ |
-| 18 | 알림 목록 | 인앱 알림 리스트 (퀘스트, 소셜, 패널티 등), 읽음/미읽음 필터 | 홈 AppBar 알림 아이콘 | `GET /notifications`, `PATCH /notifications/{id}/read`, `POST /notifications/read-all` | ✓ REST 폴링, SSE 미구현 |
+| 18 | 알림 목록 | 인앱 알림 리스트 (퀘스트, 소셜, 패널티 등), 읽음/미읽음 필터 | 홈 AppBar 알림 아이콘 | `GET /notifications`, `GET /notifications/stream`, `PATCH /notifications/{id}/read`, `POST /notifications/read-all` | ✓ REST + SSE 실시간 스트림 |
 | 19 | 개인정보처리방침/이용약관 | 정적 텍스트 | 설정 → 앱 정보 (앱스토어 심사 필수) | (정적 콘텐츠) | ✓ |
 
 ### 관리 방식

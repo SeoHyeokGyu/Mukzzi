@@ -7,7 +7,7 @@
 [![Go](https://img.shields.io/badge/Go-1.26-00ADD8.svg)](https://go.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7+-red.svg)](https://redis.io/)
-[![Progress](https://img.shields.io/badge/Progress-MVP%20개발%20중-blue.svg)]()
+[![Progress](https://img.shields.io/badge/Progress-개발%20완료-success.svg)]()
 
 **상세 기획 문서**: [docs/](docs/) - 사용자 플로우, 캐릭터 시스템, 기능 티어, 기술 스택 상세
 
@@ -134,10 +134,8 @@
 - **File Storage**: Oracle Object Storage (음식 사진, 캐릭터 이미지)
 
 ### AI / 외부 API
-- **음식 사진 인식**: Google Vision API (Tier 2)
-- **영수증 OCR**: Naver Clova OCR (Tier 2)
-- **메뉴 추천 AI**: OpenAI GPT API (Tier 2)
-- **영양소 DB**: 식약처 API + USDA
+- **AI 엔진**: Google Gemini API — 음식 사진 분석, 메뉴 추천, 영양 코칭
+- **영양소 DB**: 식약처(MFDS) API + USDA (관리자 수집 배치)
 
 ### 인증
 - **토큰**: JWT (Access + Refresh)
@@ -254,11 +252,10 @@ Cron Scheduler (매일 실행)
 | DDD 도메인 설계 | ✅ 완료 |
 | ERD / DB 설계 | ✅ 완료 |
 | API 설계 | ✅ 완료 |
-| 와이어프레임 | 🔲 예정 |
-| 백엔드 개발 | 🔄 진행 중 (Auth/User/Meal/Nutrition/Collection/Social/Notification 구현, Quest/OAuth/Character HTTP API 미구현) |
-| 프론트엔드 개발 | 🔄 진행 중 (주요 화면 구현, 룰렛/필터/캘린더/퀘스트 미구현) |
-| 캐릭터 에셋 제작 | 🔲 예정 |
-| 테스트 | 🔲 예정 |
+| 백엔드 개발 | ✅ 완료 (Auth/User/Meal/Nutrition/Menu/Character/Collection/Quest/Social/Notification/AI/Upload/Admin 구현, 소셜 로그인 미구현) |
+| 프론트엔드 개발 | ✅ 완료 (홈/메뉴결정·식사기록·캘린더·캐릭터·도감·퀘스트·소셜·프로필·설정·관리자 화면 구현) |
+| 캐릭터 에셋 제작 | ✅ 완료 (SVG 파츠 조합 + 장비 시스템) |
+| 테스트 | 🔄 일부 (백엔드 usecase 유닛 테스트) |
 
 ---
 
@@ -273,7 +270,7 @@ Cron Scheduler (매일 실행)
 - 먹부림 캘린더 + 먹찌 도감
 - 영양 밸런스 피드백
 - 친구 시스템 (검색/추천 사용자/프로필 방문/차단/신고)
-- 회원가입 / 로그인 (JWT + 소셜)
+- 회원가입 / 로그인 (JWT, 이메일·비밀번호 / 소셜 로그인 미구현)
 
 ### Tier 2 — 고도화
 > AI 사진 인식, 영수증 OCR, AI 메뉴 추천, 스트릭, 소셜 기능, 캐릭터 커스터마이징
@@ -287,7 +284,11 @@ Cron Scheduler (매일 실행)
 
 ## 데모 & 스크린샷
 
-> 이미지 저장 위치: `docs/images/` 폴더 — 화면 개발 완료 후 추가 예정
+전체 화면 캡쳐 및 기능 보고서: **[docs/report-screenshots/REPORT.md](docs/report-screenshots/REPORT.md)**
+
+| 홈 | 먹찌 캐릭터 | 먹부림 캘린더 |
+|----|------------|---------------|
+| ![홈](docs/report-screenshots/01-home.png) | ![캐릭터](docs/report-screenshots/06-character.png) | ![캘린더](docs/report-screenshots/04-meal-calendar.png) |
 
 ---
 
@@ -300,7 +301,8 @@ Cron Scheduler (매일 실행)
 | [ERD / DB 스키마](docs/erd.md) | 테이블 정의, ER 다이어그램, 인덱스 전략 |
 | [API 명세](docs/api.md) | REST API 엔드포인트, 요청/응답 DTO |
 | [인프라](docs/infrastructure.md) | 기술 스택, 로컬 개발, 프로덕션 아키텍처, CI/CD |
-| [서버 초기 설정](docs/setup.md) | Oracle Cloud 인스턴스 생성부터 배포까지 |
+| [프론트엔드 설정](docs/frontend-setup.md) | Flutter 프로젝트 구조 및 개발 환경 |
+| [기능/화면 보고서](docs/report-screenshots/REPORT.md) | 전체 화면 스크린샷 및 기능 설명 |
 
 ---
 
