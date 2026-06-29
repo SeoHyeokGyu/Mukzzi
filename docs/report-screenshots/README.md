@@ -4,11 +4,15 @@
 
 | 파일 | 화면 | 기능 |
 |------|------|------|
+| 00a-auth-login.png | 로그인 / 회원가입 | 이메일·소셜 로그인 진입점 |
+| 00b-onboarding.png | 온보딩 | 키·몸무게·활동량 입력 (4단계) |
 | 01-home.png | 홈 | 먹찌, 오늘의 영양, 연속 기록, 메뉴결정 진입 |
 | 01a-home-nutrition.png | 홈 · 오늘의 영양 | 칼로리 도넛 + 탄·단·지 매크로 |
 | 01b-home-weekly-trend.png | 홈 · 주간 영양 트렌드 | 7일 매크로 바 + 칼로리 라인 차트 |
 | 01c-home-menu-decision.png | 홈 · 메뉴 결정 | 룰렛/상황별 필터/취향 추천 + 오늘 먹은 것 |
 | 01d-home-ai-recommend.png | 홈 · AI 기능 | Gemini AI 영양 코칭 + 식단 추천 |
+| 01e-home-menu-recommend.png | 홈 · 취향 추천 | 내 기록 기반 추천 메뉴 |
+| 01f-home-menu-filter.png | 홈 · 상황별 필터 | 날씨·기분 태그 메뉴 추천 |
 | 02-home-quests.png | 퀘스트 | 일일/주간 퀘스트 |
 | 03-meal-record.png | 식사 기록 | 끼니 기록 입력/조회 |
 | 04-meal-calendar.png | 먹부림 캘린더 | 월별 기록 + 요약 (기록일/총끼니/평균) |
