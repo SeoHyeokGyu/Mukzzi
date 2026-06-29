@@ -1,6 +1,6 @@
 # API 명세
 
-> 상태: 진행 중 (Auth 기본/User/Meal/Nutrition/Collection/Social/Notification/Quest/온보딩/Menu 검색·룰렛·필터·추천·즐겨찾기·선호 구현, OAuth/메뉴 관리(CRUD) 미구현)
+> 상태: 구현 완료 (Auth/User/온보딩/Character/Menu/Meal/Nutrition/Quest/Collection/Social/Notification/AI/Upload/Admin). 인증은 이메일·비밀번호 기반이며 소셜 로그인(OAuth)은 미구현입니다.
 
 백엔드 REST API 엔드포인트 명세입니다. 기획 문서([planning.md](planning.md))와 ERD([erd.md](erd.md))를 기반으로 작성합니다. 상세한 Request/Response 스펙은 Swagger를 참조하세요.
 
@@ -70,8 +70,9 @@
 
 | Method | Endpoint | 인증 | 설명 |
 |--------|----------|------|------|
-| POST | /auth/login/{provider} | X | 소셜 로그인 및 토큰 발급 |
-| POST | /auth/refresh | X | Access Token 갱신 |
+| POST | /auth/register | X | 회원가입 (username, email, password) |
+| POST | /auth/login | X | 로그인 및 토큰 발급 (username 또는 email + password) |
+| POST | /auth/refresh | X | Access Token 갱신 (refreshToken) |
 | POST | /auth/logout | O | 로그아웃 (Refresh Token 무효화) |
 
 ### 2. 온보딩 (Onboarding)
@@ -88,21 +89,21 @@
 | PATCH | /users/me | O | 내 프로필 정보 수정 (닉네임, 이미지 등) |
 | PATCH | /users/me/body | O | 신체 정보 수정 (키, 몸무게, 활동량) |
 | PATCH | /users/me/nutrition-goal | O | 영양 목표 재설정 (목표 변경 + 권장 섭취량 재계산) |
-| PATCH | /users/me/settings | O | 설정 변경 (알림 on/off, 프라이버시 레벨, 식사 알림 시간) |
-| PATCH | /users/me/device | O | FCM 기기 토큰 등록/갱신 (푸시 알림 수신용) |
+| PATCH | /users/me/settings | O | 설정 변경 (알림 on/off, 프라이버시 레벨) |
 | DELETE | /users/me | O | 회원 탈퇴 |
 | GET | /users/me/stats | O | 내 누적 통계 (총 식사 수, 스트릭, 뱃지 수) |
 | GET | /users/{id}/profile | O | 타인 프로필 정보 조회 (누적 기록 수, 연속 기록일 포함) |
 | GET | /users/search | O | 사용자 검색 (query: 닉네임 또는 고유 ID) |
 | GET | /users/recommendations | O | 추천 사용자 목록 (비슷한 식습관/먹찌/인기) |
 
-### 4. 캐릭터 (Character) — ⚠️ 부분 구현
+### 4. 캐릭터 (Character)
 
-| Method | Endpoint | 인증 | 설명 | 구현 |
-|--------|----------|------|------|------|
-| GET | /users/me/character | O | 내 캐릭터 상태 및 외형 조회 (Redis 캐시 5분) | ✓ |
-| PATCH | /characters/me/appearance | O | 외형 변경 (도감에서 이전 외형 적용) | ❌ |
-| PATCH | /characters/me/equipment | O | 배경/악세서리 장착 변경 | ✓ |
+| Method | Endpoint | 인증 | 설명 |
+|--------|----------|------|------|
+| GET | /users/me/character | O | 내 캐릭터 상태 및 외형 조회 (Redis 캐시) |
+| PATCH | /characters/me/equipment | O | 슬롯별 장비(배경/얼굴/악세서리 등) 장착 변경 |
+
+> 캐릭터 외형(체형·근육·피부·표정 파츠)은 식사 기록 시 당일 영양소 기반으로 자동 갱신되며, 별도 외형 변경 API는 없습니다.
 
 ### 5. 메뉴 (Menu)
 
@@ -115,10 +116,10 @@
 | GET | /menus/recommendations | O | 선호도 기반 추천 목록 |
 | GET | /menus/filter | O | 상황별 필터 추천 (weather, mood 파라미터) |
 | GET | /menus/favorites | O | 즐겨찾기 목록 조회 |
-| POST | /menus/{id}/favorite | O | 즐겨찾기 추가 |
-| DELETE | /menus/{id}/favorite | O | 즐겨찾기 제거 |
-| POST | /menus/{id}/preference | O | 좋아요/싫어요 설정 |
-| DELETE | /menus/{id}/preference | O | 선호도 제거 |
+| POST | /menus/{id}/favorites | O | 즐겨찾기 추가 |
+| DELETE | /menus/{id}/favorites | O | 즐겨찾기 제거 |
+| POST | /menus/{id}/preferences | O | 좋아요/싫어요 설정 |
+| DELETE | /menus/{id}/preferences | O | 선호도 제거 |
 
 ### 6. 식사 기록 및 영양 (Meal & Nutrition)
 
@@ -263,8 +264,10 @@
 | POST | /users/{id}/block | O | 사용자 차단 |
 | DELETE | /users/{id}/block | O | 차단 해제 |
 | POST | /users/{id}/report | O | 사용자 신고 |
+| POST | /users/{id}/visit | O | 친구 먹찌 방 방문 기록 |
 | GET | /social/feed | O | 친구 활동 피드 (식사·레벨업·뱃지 등 타임라인) |
 | GET | /social/ranking | O | 사용자 랭킹 보드 (Redis ZSET 기반) |
+| GET | /social/friends/comparison | O | 친구와의 레벨·경험치·스트릭 비교 |
 
 ### 11. 알림 (Notification)
 
@@ -285,6 +288,46 @@
 - `BADGE_ACQUIRED`: 새로운 뱃지 획득
 - `MEAL_TAG`: 식사 기록에 태그됨
 - `MEAL_TAG_ACCEPTED`: 보낸 식사 태그가 수락됨
+- `PENALTY_CHANGED`: 먹찌 패널티 상태 변경 (배고픔/굶주림 등)
+- `QUEST_COMPLETED`: 퀘스트 완료
+
+### 12. AI (Gemini)
+
+Google Gemini API를 활용한 AI 기능입니다.
+
+| Method | Endpoint | 인증 | 설명 |
+|--------|----------|------|------|
+| POST | /ai/analyze-meal | O | 음식 사진 분석 (메뉴명·카테고리·영양 추정) |
+| POST | /ai/recommend-meal | O | AI 메뉴 추천 |
+| POST | /ai/nutrition-coaching | O | 영양 코칭 (섭취 분석 기반 조언) |
+
+### 13. 업로드 (Upload)
+
+| Method | Endpoint | 인증 | 설명 |
+|--------|----------|------|------|
+| POST | /upload/image | O | 이미지 업로드 (multipart, 음식 사진 등) |
+
+> 업로드된 파일은 `/uploads` 정적 경로로 서빙됩니다.
+
+### 14. 관리자 (Admin)
+
+관리자 권한(`AdminOnlyMiddleware`) 전용 운영 API입니다.
+
+| Method | Endpoint | 인증 | 설명 |
+|--------|----------|------|------|
+| POST | /admin/menus/seed | O(Admin) | 식약처/USDA 영양소 메뉴 수집 실행 |
+| GET | /admin/menus/seed/status | O(Admin) | 수집 작업 상태 조회 |
+| POST | /admin/menus/sync-redis | O(Admin) | 메뉴 데이터 Redis 동기화 |
+| GET | /admin/schedules | O(Admin) | 스케줄(cron) 작업 목록 조회 |
+| PATCH | /admin/schedules/{key}/toggle | O(Admin) | 스케줄 작업 활성/비활성 토글 |
+| POST | /admin/schedules/{key}/run | O(Admin) | 스케줄 작업 즉시 실행 |
+
+### 기타
+
+| Method | Endpoint | 인증 | 설명 |
+|--------|----------|------|------|
+| GET | /health | X | 헬스 체크 |
+| GET | /swagger/index.html | X | Swagger UI |
 
 ---
 

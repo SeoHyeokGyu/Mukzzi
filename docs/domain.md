@@ -1,13 +1,12 @@
 # DDD 도메인 설계
 
-> 상태: 진행 중 (Auth 기본/User/Meal/Nutrition/Collection/Social/Notification/Quest/패널티 구현, Character 파츠 즉시 재계산/HTTP API/OAuth 미구현)
+> 상태: 구현 완료 (소셜 로그인(OAuth) 제외)
 
 기획 문서([planning.md](planning.md))의 기능 정의를 기반으로 바운디드 컨텍스트를 정의하고, 도메인 간 관계를 설계합니다.
 
 **구현 현황:**
-- ⚠️ **구현 완료**: Auth (기본 register/login/refresh/logout), User, Meal, Nutrition (오늘/주간), Collection (전체), Social, Notification, 패널티 시스템, 온보딩, Quest (일일/주간/업적/튜토리얼), Character 장비 변경 API
-- ⚠️ **부분 구현**: Menu (검색만), Auth (OAuth 미구현), Character (외형 적용 API 미구현)
-- ❌ **미구현**: Character 외형 변경 API (PATCH /characters/me/appearance), OAuth (Kakao/Google/Apple)
+- ✅ **구현 완료**: Auth (register/login/refresh/logout), User, 온보딩, Character (장비 변경 + 식사 시 파츠 즉시 재계산), Menu (검색/룰렛/필터/추천/즐겨찾기/선호), Meal, Nutrition (오늘/주간), Quest, Collection, Social (친구/방명록/응원/차단/신고/피드/랭킹/비교/방문), Notification (SSE 스트림), AI (Gemini), Upload, Admin (영양소 수집/스케줄)
+- ❌ **미구현**: 소셜 로그인 OAuth (Kakao/Google/Apple) — 인증은 이메일·비밀번호 기반. 외형 변경 전용 API 없음(식사 기록 시 자동 재계산으로 대체).
 
 ---
 
@@ -70,10 +69,10 @@ type BaseDomain struct {
 
 ## 컨텍스트별 책임 및 핵심 엔티티 상세
 
-### Auth (인증) - ⚠️ 부분 구현
+### Auth (인증) - ✅ 구현 완료 (소셜 로그인 제외)
 
 **설계:**
-- 책임: 회원가입, 로그인, 토큰 관리, 소셜 로그인 연동, 로그아웃
+- 책임: 회원가입, 로그인(이메일·비밀번호), 토큰 관리, 로그아웃 (소셜 로그인 미구현)
 - 핵심 엔티티: Credential, Token
 - 비즈니스 규칙:
   - JWT 토큰은 짧은 주기의 Access Token과 긴 주기의 Refresh Token으로 이원화하여 관리함.
@@ -90,7 +89,7 @@ type BaseDomain struct {
 
 **TODO:** OAuth2 통합 필요 (Kakao, Google, Apple)
 
-### User (사용자) - ⚠️ 부분 구현
+### User (사용자) - ✅ 구현 완료
 
 **설계:**
 - 책임: 계정 관리, 프로필 관리, 신체 정보 이력 관리, 개인별 영양 목표 산출 및 관리, 설정 관리
@@ -114,13 +113,14 @@ type BaseDomain struct {
 - ✓ 프로필/캐릭터 Redis 캐싱 (TTL 5분)
 - ❌ OAuth 소셜 로그인 미구현
 
-### Character (캐릭터/성장) - ⚠️ 부분 구현
+### Character (캐릭터/성장) - ✅ 구현 완료
 
 **설계:**
-- 책임: 먹찌 생성, 파츠 조합, 영양소 기반 외형 변화, 배경/악세서리 장착
-- 핵심 엔티티: Character, Appearance (body_type, muscle, skin_tone, expression)
+- 책임: 먹찌 생성, 파츠 조합, 영양소 기반 외형 변화, 레벨/경험치, 슬롯 장비 장착
+- 핵심 엔티티: Character (body_type, muscle, skin_tone, expression, level, exp), CharacterEquipment
 - 비즈니스 규칙:
-  - EXP/레벨/진화 단계 없음. 외형은 당일 식사 기록 합산 영양소 기준으로만 결정됨.
+  - 외형 파츠는 당일 식사 기록 합산 영양소 기준으로 결정됨.
+  - 레벨/경험치: 퀘스트 보상 EXP 누적으로 성장하며 `Exp >= Level*100` 도달 시 레벨업 (LEVEL_UP 이벤트 발행).
   - 파츠 조합: 체형(5) x 근육(5) x 피부색(5) x 표정(5) = 625가지 외형.
   - 파츠 재계산 시점: `POST /meals` 호출 시 당일 합산 영양소로 즉시 재계산.
   - 당일 식사 기록 없으면 파츠는 전날 마지막 상태 유지.
@@ -134,10 +134,11 @@ type BaseDomain struct {
 - ✓ 연속 기록일(Streak) 갱신 (`UpdateStreakOnMeal`)
 - ✓ 캐릭터 조회 (`GET /users/me/character`) - Redis 캐시 5분
 - ✓ CharacterCollection 자동 등록 (온보딩 시 초기 외형 등록)
-- ✓ Level/Exp/EvolutionStage 필드 제거 및 nutrition_achievement_days 필드 추가 완료
+- ✓ nutrition_achievement_days 필드 + Level/Exp 기반 성장 구현
 - ✓ 식사 기록 시 당일 파츠 즉시 재계산 (`RecalcAppearance`) 구현 완료
 - ✓ nutrition_achievement_days 일일 갱신 cron (00:05 KST) 구현 완료
-- ⚠️ 캐릭터 외형 HTTP API 부분 구현 (PATCH /characters/me/appearance 미구현, PATCH /characters/me/equipment 구현 완료)
+- ✓ 슬롯 장비 장착 API (`PATCH /characters/me/equipment`) 구현 완료
+- 외형은 식사 기록 시 자동 재계산되므로 별도 외형 변경 전용 API는 없음
 
 ### Meal (식사 기록) - ✓ 구현 완료
 
@@ -148,7 +149,7 @@ type BaseDomain struct {
   - MVP에서는 텍스트 입력 기반으로 식사를 기록하며, 사진은 선택 사항임.
   - 식사 기록 시 메뉴명, 식사 타입(아침/점심/저녁/간식), 수량(0.5/1.0/1.5인분)을 필수로 입력함.
   - 날씨/기분 태그를 선택적으로 기록하여 상황별 추천 데이터로 활용함.
-  - AI 캐릭터 피드백(GPT 한 줄 코멘트)은 Tier 2에서 도입하며, Tier 1에서는 규칙 기반 간단 피드백을 제공함.
+  - AI 음식 사진 분석·메뉴 추천·영양 코칭은 Google Gemini API로 제공함 (`/ai/*`). 규칙 기반 피드백과 병행.
   - 사용자는 주간/월간 단위의 캘린더 뷰를 통해 과거 식사 기록과 영양 요약 정보를 조회할 수 있음.
   - DB에 없는 메뉴 입력 시 메뉴명만 저장하고, 영양소는 유사 카테고리 평균값으로 추정 적용함.
   - 식사 기록 시 친구를 태그할 수 있으며, 태그는 친구 관계인 사용자에게만 가능함. 태그된 친구가 수락하면 양쪽 모두에게 보너스 경험치(5 EXP)가 지급됨.
@@ -157,9 +158,9 @@ type BaseDomain struct {
 - ✓ 식사 기록 CRUD (`POST/GET/PATCH/DELETE /meals`)
 - ✓ 친구 태그 수락 (`POST /meals/:id/tags/:tagId/accept`)
 - ✓ MealCreated 이벤트 → 마스터리 갱신, 뱃지 조건 체크 연결
-- ❌ 메뉴 즐겨찾기 / 선호도 API 미구현
+- ✓ 메뉴 검색/룰렛/상황별 필터/선호도 추천, 즐겨찾기, 좋아요/싫어요 선호도 API 구현 완료
 
-### Nutrition (영양소) - ⚠️ 부분 구현
+### Nutrition (영양소) - ✅ 구현 완료
 
 **설계:**
 - 책임: 영양소 DB 연동, 섭취 비율 계산, 밸런스 피드백
@@ -171,7 +172,7 @@ type BaseDomain struct {
 **현재 구현:**
 - ✓ 오늘 영양 요약 (`GET /nutrition/today`)
 - ✓ 주간 영양 요약 (`GET /nutrition/weekly`)
-- ❌ 영양소 DB 연동 및 캐릭터 파츠 재계산 미구현
+- ✓ 영양소 DB 연동 (식약처/USDA 수집 배치) 및 식사 기록 시 캐릭터 파츠 재계산 구현 완료
 
 ### Quest (퀘스트) - ✓ 구현 완료
 
@@ -213,36 +214,35 @@ type BaseDomain struct {
   - 칭호는 획득한 목록 중 하나를 선택하여 프로필에 장착할 수 있음.
   - 먹찌 도감에는 달성한 적 있는 모든 파츠 조합이 기록됨.
 
-### Social (소셜) - ⚠️ 부분 구현
+### Social (소셜) - ✅ 구현 완료
 
 **설계:**
-- 책임: 친구 관리, 추천 사용자, 응원하기(Nudge), 방명록, 차단/신고
-- 핵심 엔티티: Friendship, Block, Guestbook, Nudge, Report
+- 책임: 친구 관리, 추천 사용자, 응원하기(Nudge), 방명록, 차단/신고, 활동 피드, 랭킹, 친구 방문/비교
+- 핵심 엔티티: Friendship, Block, Guestbook, Nudge, Report, CharacterVisit
 - 비즈니스 규칙:
   - 친구 요청은 수신자가 수락해야만 정식 친구 상태가 되며, 차단 시 상대방의 모든 상호작용이 차단됨.
   - 차단 시 기존의 친구 관계는 즉시 삭제됨.
-  - 응원하기(Nudge)는 동일 대상에게 1일 1회로 제한함. (현재 로직은 스텁 단계)
+  - 응원하기(Nudge)는 동일 대상에게 1일 1회로 제한함 (Redis 키 기반).
   - 방명록 작성 시 비밀글 여부를 설정할 수 있음.
 
 **현재 구현:**
-- ✓ 핵심 엔티티 정의 (`Friendship`, `Block`, `Guestbook`, `Report`)
+- ✓ 핵심 엔티티 정의 (`Friendship`, `Block`, `Guestbook`, `Nudge`, `Report`, `CharacterVisit`)
 - ✓ 친구 목록 조회, 삭제, 요청, 수락/거절 API 구현
-- ✓ 방명록 조회/작성, 차단/해제, 신고 API 구현
-- ✓ 사용자 검색 및 단순 추천 로직 구현
-- ❌ 응원하기(Nudge) 1일 1회 제한 실제 구현 (Redis 필요)
-- ❌ 고도화된 추천 로직 (식습관 분석 기반) 미구현
+- ✓ 방명록 조회/작성/삭제, 차단/해제, 신고, 친구 방문 API 구현
+- ✓ 응원하기(Nudge) 1일 1회 제한 (Redis) 구현 완료
+- ✓ 사용자 검색 및 추천, 활동 피드, 랭킹(Redis ZSET), 친구 비교 API 구현
 
 ### Notification (알림) - ✓ 구현 완료
 
 **설계:**
-- 책임: 인앱 알림 목록 관리, FCM 푸시 알림 발송, 알림 읽음 처리
+- 책임: 인앱 알림 목록 관리, 실시간(SSE) 알림 전송, 알림 읽음 처리
 - 핵심 엔티티: Notification
 - 비즈니스 규칙:
   - 알림 유형: `FRIEND_REQUEST`, `FRIEND_ACCEPTED`, `NUDGE`, `GUESTBOOK`, `APPEARANCE_CHANGED`, `BADGE_ACQUIRED`, `MEAL_TAG`, `MEAL_TAG_ACCEPTED`, `PENALTY_CHANGED`, `QUEST_COMPLETED`.
   - **성능 최적화**: 알림 읽음 처리는 고루틴과 채널을 이용한 비동기 배칭(Batching)으로 처리하여 DB 부하를 최소화함 (5초 주기 또는 100건 누적 시 Bulk Update).
-  - 인앱 알림과 FCM 푸시 알림을 병행하여 발송함.
+  - 실시간 알림은 SSE(`GET /notifications/stream`)로 전송하며, 미수신분은 인앱 알림 목록에서 확인 가능.
   - 사용자 설정에 따라 알림 유형별 on/off 가능.
-  - 도메인 이벤트의 소비자로 동작하며, 이벤트 수신 시 알림을 생성하고 FCM으로 전송함.
+  - 도메인 이벤트의 소비자로 동작하며, 이벤트 수신 시 알림을 생성하고 SSE로 푸시함.
 
 ---
 
@@ -284,13 +284,7 @@ type BaseDomain struct {
 
 1. **즉시 재계산**: `POST /meals` 호출 시 당일 `daily_intakes` 합산값으로 파츠 4종을 즉시 재계산하여 `characters` 테이블 업데이트.
 2. **조회 시 캐시 반환**: `GET /users/me/character`는 `characters` 테이블의 현재 값을 즉시 반환 (Redis 캐시 5분).
-3. **달성일 갱신 (Cron)**: 매일 05:00에 전날 영양 밸런스 달성 여부를 판정하여 `nutrition_achievement_days`를 갱신.
-
-### 스케줄링 작업 추가 (미구현)
-
-| 작업 | 스케줄 | 설명 |
-|------|--------|------|
-| NutritionAchievementUpdate | 매일 05:05 | 전날 영양 밸런스 달성 사용자 nutrition_achievement_days 갱신 |
+3. **달성일 갱신**: 일일 배치에서 전날 영양 밸런스 달성 여부를 판정하여 `nutrition_achievement_days`를 갱신.
 
 ---
 
@@ -320,8 +314,8 @@ type BaseDomain struct {
 | MealCreated | 식사 기록 생성 | 마스터리 갱신, 퀘스트 진행 반영, 영양소 재계산, 파츠 재계산 |
 | QuestCompleted | 퀘스트 목표 달성 | 보상 대기 상태 전환, 알림 발송 |
 | RewardClaimed | 보상 수령 | 뱃지/칭호/배경/악세서리 지급, 도감 등록 |
-| NudgeSent | 응원하기 전송 | FCM 푸시 알림 전송, 인앱 알림 생성 |
-| GuestbookWritten | 방명록 작성 | 수신자 FCM 푸시 알림 전송, 인앱 알림 생성 |
+| NudgeSent | 응원하기 전송 | SSE 실시간 알림 전송, 인앱 알림 생성 |
+| GuestbookWritten | 방명록 작성 | 수신자 SSE 실시간 알림 전송, 인앱 알림 생성 |
 | AppearanceChanged | 파츠 재계산으로 외형 변경 | 외형 변화 알림, character_collections 신규 조합 등록 |
 | FriendTagAccepted | 친구 태그 수락 | 태그한 사람·태그된 사람 양쪽에 알림 발송 |
 | FriendRequestSent | 친구 요청 | 수신자 알림 발송 |
@@ -341,19 +335,21 @@ type BaseDomain struct {
 | 영양소 재계산 | 오늘 영양 요약이 일시적으로 부정확 | 다음 식사 기록 또는 05:10 배치 재계산에서 자동 보정. 영양 요약 API 응답에 `last_calculated_at` 필드를 포함하여 프론트엔드에서 "계산 중" 상태를 표시 가능 |
 | 마스터리 갱신 | 도감에서 최신 횟수가 즉시 반영되지 않음 | 재시도로 복구. 사용자에게 별도 안내하지 않음 (지연이 체감되기 어려움) |
 | 퀘스트 진행 반영 | 퀘스트 완료 알림이 지연됨 | 재시도로 복구. 다음 조회 시 정상 반영 |
-| 알림 발송 (FCM) | 푸시 알림 미수신 | 재시도로 복구. 인앱 알림은 다음 앱 접속 시 확인 가능 |
+| 알림 발송 (SSE) | 실시간 알림 미수신 | 인앱 알림은 다음 앱 접속/목록 조회 시 확인 가능 |
 | 캐릭터 외형 재계산 | 외형이 즉시 변하지 않음 | 05:10 배치 재계산에서 최종 보정. 치명적이지 않은 지연 |
 
 ### 스케줄링 작업 (Cron 기반 예약 실행)
 
-| 작업 | 스케줄 | 설명 | 구현 |
-|------|--------|------|------|
-| PhysicalDeletion | 매일 00:00 | 탈퇴 후 30일 경과 회원 물리 삭제 | ✓ |
-| InactivityPenalty | 매일 00:05 | 미기록 사용자 패널티 상태 갱신 | ✓ |
-| DailyQuestReset | 매일 00:05 | 일일 퀘스트 초기화 및 신규 할당 | ✓ |
-| WeeklyQuestReset | 매주 월요일 00:05 | 주간 퀘스트 초기화 및 신규 할당 | ✓ |
-| ExpiredRewardCleanup | 매일 00:05 | 기간 만료 미수령 보상 자동 소멸 | ❌ |
-| NutritionAchievementUpdate | 매일 00:05 | 전날 영양 밸런스 달성 사용자 nutrition_achievement_days 갱신 | ✓ |
+스케줄은 관리자 API(`GET /admin/schedules`)로 조회·토글·즉시 실행할 수 있습니다. (`internal/config/scheduler.go`)
+
+| 키 | 스케줄 (KST) | 설명 |
+|------|--------|------|
+| physical_deletion | 매일 00:00 | 탈퇴 후 30일 경과 회원 물리 삭제 |
+| inactivity_penalty | 매일 00:05 | 미기록 사용자 패널티 상태 갱신 |
+| daily_quest_reset | 매일 00:05 | 일일 퀘스트 초기화 및 신규 할당 |
+| weekly_quest_reset | 매주 월요일 00:05 | 주간 퀘스트 초기화 및 신규 할당 |
+| streak_reconciliation | 매일 00:05 | 전체 유저 스트릭 재계산 및 보정 |
+| menu_seed | 매월 1일 03:00 | 식약처(MFDS)/USDA 영양소 메뉴 수집 |
 
 ---
 

@@ -1,6 +1,6 @@
 # ERD / DB 스키마
 
-> 상태: 진행 중 (User 분리 리팩토링 반영 완료)
+> 상태: 구현 완료 (GORM AutoMigrate 기반, 도메인 엔티티와 동기화)
 
 기획 문서([planning.md](planning.md))의 도메인 정의를 기반으로 데이터베이스 스키마를 설계합니다.
 
@@ -34,8 +34,9 @@
 | profile_image_url | TEXT | NULL | 프로필 이미지 URL |
 | last_login_at | TIMESTAMPTZ | - | 마지막 로그인 일시 |
 | point | INT | DEFAULT 0 | 보유 재화 (방울) |
-| provider | VARCHAR(20) | NULL | OAuth 제공자 (kakao, google, apple) |
-| provider_id | VARCHAR(100) | UNIQUE, NULL | 소셜 서비스 고유 ID |
+| allergies | TEXT | DEFAULT '' | 알레르기 정보 (메뉴 추천 필터링용) |
+| provider | VARCHAR(20) | NULL | OAuth 제공자 필드 (소셜 로그인 미구현, 스키마만 존재) |
+| provider_id | VARCHAR(100) | UNIQUE, NULL | 소셜 서비스 고유 ID (미사용) |
 | equipped_title_id | BIGINT | FK (titles.id), NULL | 장착 중인 칭호 |
 | privacy_level | VARCHAR(20) | DEFAULT 'PUBLIC' | PUBLIC, FRIENDS, PRIVATE |
 | notification_settings | JSONB | DEFAULT '{}' | 알림 유형별 on/off 설정 |
@@ -53,6 +54,8 @@
 | skin_tone | SMALLINT | NOT NULL DEFAULT 3 | 피부색 파츠 단계 (0~4) |
 | expression | SMALLINT | NOT NULL DEFAULT 3 | 표정 파츠 단계 (0~4) |
 | penalty_status | VARCHAR(20) | NOT NULL DEFAULT 'NORMAL' | NORMAL, HUNGRY, STARVING, WEAKENED |
+| level | INT | DEFAULT 1 | 캐릭터 레벨 |
+| exp | INT | DEFAULT 0 | 경험치 |
 | streak_days | INT | NOT NULL DEFAULT 0 | 연속 기록일 |
 | nutrition_achievement_days | INT | NOT NULL DEFAULT 0 | 영양 밸런스 달성일 누적 수 |
 | last_recorded_at | TIMESTAMPTZ | NULL | 마지막 식사 기록 일시 |
@@ -78,21 +81,12 @@
 |------|------|----------|------|
 | user_id | BIGINT | FK (users.id), UNIQUE, NOT NULL | 소유자 ID |
 | goal | VARCHAR(20) | NOT NULL | DIET, MAINTAIN, BULK |
-| daily_kcal_target | INT | DEFAULT 2000 | 일일 칼로리 목표 |
-| daily_carbs_target | INT | DEFAULT 300 | 일일 탄수화물 목표 (g) |
-| daily_protein_target | INT | DEFAULT 60 | 일일 단백질 목표 (g) |
-| daily_fat_target | INT | DEFAULT 50 | 일일 지방 목표 (g) |
+| daily_kcal_target | INT | - | 일일 칼로리 목표 (온보딩 시 TDEE 기반 계산) |
+| daily_carbs_target | INT | - | 일일 탄수화물 목표 g (kcal×0.5÷4) |
+| daily_protein_target | INT | - | 일일 단백질 목표 g (kcal×0.3÷4) |
+| daily_fat_target | INT | - | 일일 지방 목표 g (kcal×0.2÷9) |
 
-### 사용자 기기 (user_devices)
-
-FCM 푸시 알림 발송을 위한 기기 토큰을 관리합니다. 한 사용자가 여러 기기를 사용할 수 있습니다.
-
-| 컬럼 | 타입 | 제약 조건 | 설명 |
-|------|------|----------|------|
-| user_id | BIGINT | FK (users.id), NOT NULL | 소유자 ID |
-| fcm_token | TEXT | NOT NULL | FCM 기기 토큰 |
-| device_type | VARCHAR(10) | NOT NULL | IOS, ANDROID, WEB |
-| last_used_at | TIMESTAMPTZ | NOT NULL | 마지막 사용 일시 |
+> 목표 수치는 DB 기본값이 아니라 온보딩/목표 변경 시 신체 정보(키·몸무게·활동량) 기반 TDEE에서 계산됩니다.
 
 ### 친구 관계 (friendships)
 
@@ -101,6 +95,7 @@ FCM 푸시 알림 발송을 위한 기기 토큰을 관리합니다. 한 사용�
 | requester_id | BIGINT | FK (users.id), NOT NULL | 요청자 ID |
 | receiver_id | BIGINT | FK (users.id), NOT NULL | 수신자 ID |
 | status | VARCHAR(20) | DEFAULT 'PENDING' | PENDING, ACCEPTED |
+| friendship_score | INT | DEFAULT 0 | 친밀도 점수 (상호작용 누적) |
 
 ### 차단 (blocks)
 
@@ -196,6 +191,176 @@ FCM 푸시 알림 발송을 위한 기기 토큰을 관리합니다. 한 사용�
 | meal_count | INT | DEFAULT 0 | 당일 기록한 식사 횟수 |
 | is_balanced | BOOLEAN | DEFAULT FALSE | 당일 영양 밸런스 달성 여부 |
 
+### 메뉴 (menus)
+
+음식 메뉴 마스터 데이터. (name + category 복합 UNIQUE)
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| name | VARCHAR(100) | UNIQUE(name+category), NOT NULL | 메뉴명 |
+| category | VARCHAR(20) | UNIQUE(name+category), NOT NULL | KOREAN, CHINESE, JAPANESE, WESTERN, SNACK, CAFE, OTHER |
+| default_calories | DOUBLE PRECISION | DEFAULT 0 | 기본 칼로리 |
+| default_carbs | DOUBLE PRECISION | DEFAULT 0 | 기본 탄수화물 (g) |
+| default_protein | DOUBLE PRECISION | DEFAULT 0 | 기본 단백질 (g) |
+| default_fat | DOUBLE PRECISION | DEFAULT 0 | 기본 지방 (g) |
+| default_fiber | DOUBLE PRECISION | DEFAULT 0 | 기본 식이섬유 (g) |
+| default_vitamin_score | DOUBLE PRECISION | DEFAULT 0 | 기본 비타민 점수 |
+| source | VARCHAR(20) | DEFAULT 'USER' | USDA, MFDS, USER |
+| allergies | TEXT | DEFAULT '' | 알레르기 유발 정보 |
+
+### 식사 기록 (meal_records)
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| user_id | BIGINT | FK (users.id), NOT NULL, INDEX | 작성자 ID |
+| menu_id | BIGINT | FK (menus.id), NULL, INDEX | 연결 메뉴 (직접 입력 시 NULL) |
+| image_url | TEXT | NULL | 음식 사진 URL |
+| menu_name | TEXT | NOT NULL | 메뉴명 (스냅샷) |
+| category | TEXT | NOT NULL | 카테고리 (스냅샷) |
+| meal_type | VARCHAR | NOT NULL | BREAKFAST, LUNCH, DINNER, SNACK |
+| serving_size | DOUBLE PRECISION | DEFAULT 1.0 | 섭취량 배수 |
+| recorded_at | TIMESTAMPTZ | NOT NULL, INDEX | 식사 일시 |
+| weather_tag | VARCHAR | NULL | SUNNY, CLOUDY, RAINY, SNOWY, WINDY, HOT, COLD |
+| mood_tag | VARCHAR | NULL | GOOD, TIRED, STRESSED, HUNGRY, EXCITED, SAD, NORMAL |
+| review | TEXT | NULL | 한 줄 후기 |
+| rating | INT | NULL, CHECK 1~5 | 평점 |
+| is_manual | BOOLEAN | DEFAULT FALSE | 수동 입력 여부 |
+
+### 식사 친구 태그 (meal_friend_tags)
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| meal_id | BIGINT | FK (meal_records.id), UNIQUE(meal+tagged), NOT NULL | 대상 식사 기록 |
+| tagged_user_id | BIGINT | FK (users.id), UNIQUE(meal+tagged), NOT NULL | 태그된 사용자 |
+| status | VARCHAR | DEFAULT 'PENDING' | PENDING, ACCEPTED |
+
+### 즐겨찾기 (favorites)
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| user_id | BIGINT | FK (users.id), UNIQUE(user+menu), NOT NULL | 사용자 ID |
+| menu_id | BIGINT | FK (menus.id), UNIQUE(user+menu), NOT NULL | 메뉴 ID |
+
+### 메뉴 선호 (menu_preferences)
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| user_id | BIGINT | FK (users.id), UNIQUE(user+menu), NOT NULL | 사용자 ID |
+| menu_id | BIGINT | FK (menus.id), UNIQUE(user+menu), NOT NULL | 메뉴 ID |
+| preference | VARCHAR(10) | NOT NULL | LIKE, DISLIKE |
+
+### 먹부림 마스터리 (masteries)
+
+메뉴별 누적 섭취 기반 숙련도.
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| user_id | BIGINT | FK (users.id), UNIQUE(user+menu), NOT NULL | 사용자 ID |
+| menu_id | BIGINT | FK (menus.id), UNIQUE(user+menu), NOT NULL | 메뉴 ID |
+| eat_count | INT | DEFAULT 0 | 누적 섭취 횟수 |
+| grade | VARCHAR(20) | DEFAULT 'BEGINNER' | BEGINNER, MANIA, ARTISAN, MASTER |
+| first_eaten_at | TIMESTAMPTZ | NOT NULL | 최초 섭취 일시 |
+| last_eaten_at | TIMESTAMPTZ | NOT NULL | 최근 섭취 일시 |
+
+### 칭호 (titles) / 사용자 칭호 (user_titles)
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| code | VARCHAR(50) | UNIQUE, NOT NULL | 칭호 코드 |
+| name | VARCHAR(50) | NOT NULL | 칭호 이름 |
+| description | TEXT | - | 설명 |
+
+| 컬럼(user_titles) | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| user_id | BIGINT | FK (users.id), UNIQUE(user+title), NOT NULL | 사용자 ID |
+| title_id | BIGINT | FK (titles.id), UNIQUE(user+title), NOT NULL | 칭호 ID |
+| achieved_at | TIMESTAMPTZ | NOT NULL | 획득 일시 |
+
+### 보상 아이템 (rewards) / 사용자 보상 (user_rewards)
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| reward_type | VARCHAR(20) | NOT NULL | BACKGROUND, EFFECT, MOTION, ACCESSORY |
+| code | VARCHAR(50) | - | 보상 코드 |
+| name | VARCHAR(50) | NOT NULL | 보상 이름 |
+| description | TEXT | - | 설명 |
+| asset_url | TEXT | - | 에셋 URL |
+| render_config | JSON | NULL | 렌더 설정 (slot, offset, scale, rotation, z_index) |
+
+| 컬럼(user_rewards) | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| user_id | BIGINT | FK (users.id), UNIQUE(user+reward), NOT NULL | 사용자 ID |
+| reward_id | BIGINT | FK (rewards.id), UNIQUE(user+reward), NOT NULL | 보상 ID |
+| quest_id | BIGINT | NULL | 획득 경로 퀘스트 (Optional) |
+| achieved_at | TIMESTAMPTZ | NOT NULL | 획득 일시 |
+
+### 뱃지 (badges) / 사용자 뱃지 (user_badges)
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| code | VARCHAR | UNIQUE, NOT NULL | 뱃지 코드 |
+| name | VARCHAR | NOT NULL | 뱃지 이름 |
+| description | TEXT | - | 설명 |
+| icon_url | TEXT | - | 아이콘 URL |
+
+| 컬럼(user_badges) | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| user_id | BIGINT | FK (users.id), UNIQUE(user+badge) | 사용자 ID |
+| badge_id | BIGINT | FK (badges.id), UNIQUE(user+badge) | 뱃지 ID |
+
+### 먹찌 도감 (character_collections)
+
+달성한 캐릭터 외형 조합 컬렉션.
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| user_id | BIGINT | FK (users.id), UNIQUE(조합), NOT NULL | 사용자 ID |
+| body_type | INT | UNIQUE(조합), NOT NULL | 체형 단계 |
+| muscle | INT | UNIQUE(조합), NOT NULL | 근육 단계 |
+| skin_tone | INT | UNIQUE(조합), NOT NULL | 피부색 단계 |
+| expression | INT | UNIQUE(조합), NOT NULL | 표정 단계 |
+| achieved_at | TIMESTAMPTZ | NOT NULL | 달성 일시 |
+
+### 퀘스트 정의 (quest_definitions)
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| code | VARCHAR | UNIQUE, NOT NULL | 퀘스트 식별 코드 |
+| type | VARCHAR | NOT NULL | DAILY, WEEKLY, ACHIEVEMENT |
+| category | VARCHAR | NOT NULL | MEAL, SOCIAL, GROWTH |
+| title | VARCHAR | NOT NULL | 제목 |
+| description | TEXT | - | 설명 |
+| target_count | INT | NOT NULL | 목표 수치 |
+| reward_point | INT | DEFAULT 0 | 보상 포인트 |
+| reward_exp | INT | DEFAULT 0 | 보상 경험치 |
+| reward_title_id | BIGINT | NULL | 보상 칭호 (Optional) |
+| reward_badge_id | BIGINT | NULL | 보상 뱃지 (Optional) |
+| reward_item_id | BIGINT | NULL | 보상 아이템 (Optional) |
+| is_active | BOOLEAN | DEFAULT TRUE | 활성화 여부 |
+
+### 사용자 퀘스트 (user_quests)
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| user_id | BIGINT | FK (users.id), NOT NULL | 사용자 ID |
+| quest_id | BIGINT | FK (quest_definitions.id), NOT NULL | 퀘스트 정의 ID |
+| current_count | INT | DEFAULT 0 | 현재 진행 수치 |
+| status | VARCHAR | DEFAULT 'PROGRESS' | PROGRESS, COMPLETED, CLAIMED, EXPIRED |
+| assigned_at | TIMESTAMPTZ | NOT NULL | 할당 일시 |
+| expires_at | TIMESTAMPTZ | NOT NULL | 만료 일시 (업적은 먼 미래) |
+
+> (user_id + quest_id)는 `deleted_at IS NULL` 조건부 UNIQUE 인덱스로 재할당을 지원합니다.
+
+### 먹찌 방문 (character_visits)
+
+친구 먹찌 방 방문/상호작용 기록.
+
+| 컬럼 | 타입 | 제약 조건 | 설명 |
+|------|------|----------|------|
+| visitor_id | BIGINT | FK (users.id), NOT NULL | 방문자 ID |
+| host_id | BIGINT | FK (users.id), NOT NULL | 방 주인 ID |
+| interaction_type | VARCHAR(20) | NOT NULL | FEED, NUDGE |
+
 ---
 
 ## ER 다이어그램
@@ -206,7 +371,11 @@ erDiagram
     users ||--o{ user_bodies : "records body info"
     users ||--|| characters : owns
     users ||--o{ meal_records : records
-    users ||--o{ user_devices : "has devices"
+    users ||--o{ daily_intakes : "daily totals"
+    users ||--o{ user_quests : "assigned"
+    quest_definitions ||--o{ user_quests : "instantiated"
+    users ||--o{ character_visits : "visitor"
+    users ||--o{ character_visits : "host"
     users ||--o{ friendships : "requester"
     users ||--o{ friendships : "receiver"
     users ||--o{ blocks : "blocker"

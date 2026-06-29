@@ -44,7 +44,7 @@
 | 컨테이너 | Docker + Docker Compose | 단일 명령으로 전체 서비스 관리, 환경 일관성 보장 |
 | 서버 | Oracle Cloud ARM (A1) | 4 OCPU / 24GB RAM 무료 티어 |
 | CI/CD | GitHub Actions | GitHub 저장소 통합, 무료 러너 제공 |
-| 푸시 알림 | FCM | iOS/Android 크로스 플랫폼 푸시 지원 |
+| 실시간 알림 | SSE (Server-Sent Events) | `GET /notifications/stream` 단방향 실시간 푸시 (FCM 미사용) |
 
 ### Database
 
@@ -70,12 +70,10 @@
 
 ### AI / 외부 API
 
-| 항목 | 선택 | 티어 |
+| 항목 | 선택 | 비고 |
 |------|------|------|
-| 음식 사진 인식 | Google Vision API | Tier 2 |
-| 영수증 OCR | Naver Clova OCR | Tier 2 |
-| 메뉴 추천 AI | OpenAI GPT API | Tier 2 |
-| 음식 영양소 DB | 식약처 API + USDA | Tier 1 |
+| AI 엔진 | Google Gemini API | 음식 사진 분석, 메뉴 추천, 영양 코칭 (`/ai/*`) |
+| 음식 영양소 DB | 식약처(MFDS) API + USDA | 관리자 수집 배치 (`menu_seed` cron) |
 
 ### 인증
 
@@ -470,20 +468,16 @@ Deep health check는 Uptime Kuma에서 주기적으로 호출하여 인프라 �
 | Variable | Description |
 |----------|-------------|
 | SERVER_PORT | Go 서버 포트 (default: 8080) |
+| SERVER_IP | 서버 공인 IP (CORS/링크 구성용) |
 | DATABASE_URL | PostgreSQL 연결 문자열 |
+| POSTGRES_HOST / PORT / USER / PASSWORD / DB | PostgreSQL 접속 정보 |
 | REDIS_URL | Redis 연결 문자열 |
 | JWT_SECRET | JWT 서명 시크릿 |
 | ENVIRONMENT | development / production |
-| KAKAO_CLIENT_ID | Kakao OAuth |
-| GOOGLE_CLIENT_ID | Google OAuth |
-| APPLE_TEAM_ID | Apple Sign In |
-| FCM_SERVER_KEY | Firebase Cloud Messaging |
-| GOOGLE_VISION_API_KEY | 음식 사진 인식 (Tier 2) |
-| NAVER_CLOVA_CLIENT_ID/SECRET | 영수증 OCR (Tier 2) |
-| OPENAI_API_KEY | AI 메뉴 추천 (Tier 2) |
-| FOOD_SAFETY_API_KEY | 식약처 영양소 DB |
-| USDA_API_KEY | USDA 영양소 DB |
-| ORACLE_OBJECT_STORAGE_* | 이미지 파일 저장소 |
+| ADMIN_USER_ID | 관리자 권한 사용자 ID |
+| GEMINI_API_KEY | Google Gemini AI API 키 (`/ai/*`) |
+| MFDS_API_KEY | 식약처 영양소 DB API 키 |
+| USDA_API_KEY | USDA 영양소 DB API 키 |
 
 ---
 
